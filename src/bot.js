@@ -34,7 +34,7 @@ const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard
 const { REGIONS } = require('./constants/regions');
 const { formatErrorMessage } = require('./formatter');
 const { generateLiveStatusMessage, escapeHtml } = require('./utils');
-const { safeEditMessageText, safeAnswerCallbackQuery } = require('./utils/errorHandler');
+const { safeEditMessageText, safeAnswerCallbackQuery, isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 
@@ -946,7 +946,11 @@ bot.on('my_chat_member', async (ctx) => {
             { parse_mode: 'HTML' }
           );
         } catch (error) {
-          console.error('Error sending pause message in my_chat_member:', error);
+          if (isTelegramUserInactiveError(error)) {
+            console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про паузу пропущено`);
+          } else {
+            console.error('Error sending pause message in my_chat_member:', error);
+          }
         }
         return;
       }
@@ -969,7 +973,11 @@ bot.on('my_chat_member', async (ctx) => {
             { parse_mode: 'HTML' }
           );
         } catch (error) {
-          console.error('Error sending occupied channel notification:', error);
+          if (isTelegramUserInactiveError(error)) {
+            console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про зайнятий канал пропущено`);
+          } else {
+            console.error('Error sending occupied channel notification:', error);
+          }
         }
         return;
       }
@@ -1065,7 +1073,11 @@ bot.on('my_chat_member', async (ctx) => {
             }
           );
         } catch (error) {
-          console.error('Error sending replace channel prompt:', error);
+          if (isTelegramUserInactiveError(error)) {
+            console.log(`ℹ️ Користувач ${userId} недоступний — запит на заміну каналу пропущено`);
+          } else {
+            console.error('Error sending replace channel prompt:', error);
+          }
         }
       } else {
         // У користувача немає каналу - запропонувати підключити
@@ -1084,7 +1096,11 @@ bot.on('my_chat_member', async (ctx) => {
             }
           );
         } catch (error) {
-          console.error('Error sending connect channel prompt:', error);
+          if (isTelegramUserInactiveError(error)) {
+            console.log(`ℹ️ Користувач ${userId} недоступний — запит на підключення каналу пропущено`);
+          } else {
+            console.error('Error sending connect channel prompt:', error);
+          }
         }
       }
       
@@ -1158,7 +1174,11 @@ bot.on('my_chat_member', async (ctx) => {
             { parse_mode: 'HTML' }
           );
         } catch (error) {
-          console.error('Error sending channel removal notification:', error);
+          if (isTelegramUserInactiveError(error)) {
+            console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про видалення каналу пропущено`);
+          } else {
+            console.error('Error sending channel removal notification:', error);
+          }
         }
         
         // Очистити channel_id в БД

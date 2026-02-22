@@ -8,6 +8,26 @@ const { createLogger } = require('./logger');
 const logger = createLogger('ErrorHandler');
 
 /**
+ * Перевіряє чи є помилка Telegram API очікуваною через недоступність користувача
+ * (бот заблокований, акаунт деактивований, чат не знайдено)
+ * @param {Error} error - Об'єкт помилки
+ * @returns {boolean}
+ */
+const TELEGRAM_USER_INACTIVE_PATTERNS = [
+  'bot was blocked by the user',
+  'user is deactivated',
+  'chat not found',
+];
+
+function isTelegramUserInactiveError(error) {
+  const msg = error.message || '';
+  const desc = error.description || error.response?.body?.description || '';
+  return TELEGRAM_USER_INACTIVE_PATTERNS.some(
+    pattern => msg.includes(pattern) || desc.includes(pattern)
+  );
+}
+
+/**
  * Безпечна відправка повідомлення
  * @param {Object} bot - Екземпляр Telegram бота
  * @param {String|Number} chatId - ID чату
@@ -19,7 +39,11 @@ async function safeSendMessage(bot, chatId, text, options = {}) {
   try {
     return await bot.api.sendMessage(chatId, text, options);
   } catch (error) {
-    logger.error(`Помилка відправки повідомлення ${chatId}:`, { error: error.message });
+    if (isTelegramUserInactiveError(error)) {
+      console.log(`ℹ️ Користувач ${chatId} недоступний — повідомлення не відправлено`);
+    } else {
+      logger.error(`Помилка відправки повідомлення ${chatId}:`, { error: error.message });
+    }
     return null;
   }
 }
@@ -54,7 +78,11 @@ async function safeEditMessage(bot, chatId, messageId, text, options = {}) {
   try {
     return await bot.api.editMessageText(chatId, messageId, text, options);
   } catch (error) {
-    logger.error(`Помилка редагування повідомлення:`, { error: error.message });
+    if (isTelegramUserInactiveError(error)) {
+      console.log(`ℹ️ Користувач ${chatId} недоступний — редагування повідомлення пропущено`);
+    } else {
+      logger.error(`Помилка редагування повідомлення:`, { error: error.message });
+    }
     return null;
   }
 }
@@ -116,7 +144,11 @@ async function safeSendPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
     const input = Buffer.isBuffer(photo) ? new InputFile(photo, 'schedule.png') : photo;
     return await bot.api.sendPhoto(chatId, input, options);
   } catch (error) {
-    logger.error(`Помилка відправки фото ${chatId}:`, { error: error.message });
+    if (isTelegramUserInactiveError(error)) {
+      console.log(`ℹ️ Користувач ${chatId} недоступний — відправку фото пропущено`);
+    } else {
+      logger.error(`Помилка відправки фото ${chatId}:`, { error: error.message });
+    }
     return null;
   }
 }
@@ -210,6 +242,7 @@ async function safeSetChatPhoto(bot, chatId, photo, options = {}, fileOpts = {})
 }
 
 module.exports = {
+  isTelegramUserInactiveError,
   safeSendMessage,
   safeDeleteMessage,
   safeEditMessage,

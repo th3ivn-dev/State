@@ -6,6 +6,7 @@ const usersDb = require('./database/users');
 const { REGIONS } = require('./constants/regions');
 const crypto = require('crypto');
 const { InputFile } = require('grammy');
+const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -184,14 +185,18 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
             }
           );
         } catch (notifyError) {
-          console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+          if (isTelegramUserInactiveError(notifyError)) {
+            console.log(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
+          } else {
+            console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+          }
         }
         
         return;
       }
     } catch (validationError) {
       // Channel not found or not accessible
-      console.error(`Канал ${user.channel_id} недоступний:`, validationError.message);
+      console.log(`ℹ️ Канал ${user.channel_id} недоступний: ${validationError.message}`);
       await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
       
       // Notify user about the issue
@@ -213,7 +218,11 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
           }
         );
       } catch (notifyError) {
-        console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+        if (isTelegramUserInactiveError(notifyError)) {
+          console.log(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
+        } else {
+          console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
+        }
       }
       
       return;
