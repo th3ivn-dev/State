@@ -107,7 +107,7 @@ class MessageQueue {
   async executeWithRetry(item) {
     while (item.retries < TELEGRAM_MAX_RETRIES) {
       try {
-        return await this.bot[item.method](...item.args);
+        return await this.bot.api[item.method](...item.args);
       } catch (error) {
         item.retries++;
         this.metrics.retries++;

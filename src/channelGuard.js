@@ -57,7 +57,7 @@ async function verifyChannelBranding(user) {
   
   try {
     // Get current channel info
-    const chatInfo = await bot.getChat(user.channel_id);
+    const chatInfo = await bot.api.getChat(user.channel_id);
     
     const currentTitle = chatInfo.title || '';
     const currentDescription = chatInfo.description || '';
@@ -119,7 +119,7 @@ async function verifyChannelBranding(user) {
           `Налаштування → Канал → Підключити канал`;
         
         try {
-          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         } catch (sendError) {
           console.error(`Не вдалося надіслати повідомлення користувачу ${user.telegram_id}:`, sendError.message);
         }
@@ -168,7 +168,7 @@ async function checkExistingUsers(botInstance) {
         let needsMigration = false;
         
         try {
-          const chatInfo = await bot.getChat(user.channel_id);
+          const chatInfo = await bot.api.getChat(user.channel_id);
           const currentTitle = chatInfo.title || '';
           
           // Check if title doesn't start with "СвітлоБот ⚡️ " prefix
@@ -204,7 +204,7 @@ async function checkExistingUsers(botInstance) {
           `Щоб продовжити роботу, перейдіть в:\n` +
           `Налаштування → Канал → Підключити канал`;
         
-        await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         console.log(`📧 Надіслано повідомлення про міграцію користувачу ${user.telegram_id}`);
       } catch (error) {
         console.error(`Помилка надсилання повідомлення користувачу ${user.telegram_id}:`, error.message);

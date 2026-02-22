@@ -411,18 +411,18 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
     for (const adminId of allAdmins) {
       try {
         if (state.messageType === 'text') {
-          await bot.sendMessage(adminId, message, {
+          await bot.api.sendMessage(adminId, message, {
             parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         } else if (state.messageType === 'photo' && state.fileId) {
-          await bot.sendPhoto(adminId, state.fileId, {
+          await bot.api.sendPhoto(adminId, state.fileId, {
             caption: message,
             parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         } else if (state.messageType === 'video' && state.fileId) {
-          await bot.sendVideo(adminId, state.fileId, {
+          await bot.api.sendVideo(adminId, state.fileId, {
             caption: message,
             parse_mode: 'HTML',
             reply_markup: keyboard,
@@ -443,7 +443,7 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
  */
 async function handleFeedbackCallback(bot, query) {
   const data = query.data;
-  await bot.answerCallbackQuery(query.id).catch(() => {});
+  await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
   if (data === 'feedback_start') {
     await handleFeedbackStart(bot, query);

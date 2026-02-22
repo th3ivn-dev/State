@@ -44,7 +44,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
   }
   const channelPaused = user.channel_paused === true;
   
-  await bot.sendMessage(
+  await bot.api.sendMessage(
     chatId,
     '🏠 <b>Головне меню</b>',
     {
@@ -191,25 +191,25 @@ async function handleSettingsCallback(bot, query) {
     }
     
     // Answer callback query immediately to prevent timeout (after user validation)
-    await bot.answerCallbackQuery(query.id).catch(() => {});
+    await bot.api.answerCallbackQuery(query.id).catch(() => {});
     
     // Показати підтвердження перед зміною черги
     if (data === 'settings_region') {
       const confirmKeyboard = {
         inline_keyboard: [
           [
-            { text: '✅ Так, змінити', callback_data: 'settings_region_confirm' },
-            { text: '❌ Скасувати', callback_data: 'back_to_settings' }
+            { text: 'Так, змінити', callback_data: 'settings_region_confirm', icon_custom_emoji_id: '5206607081334906820' },
+            { text: 'Скасувати', callback_data: 'back_to_settings', icon_custom_emoji_id: '5210952531676504517' }
           ]
         ]
       };
       
       await safeEditMessageText(bot,
-        '⚠️ <b>Зміна регіону/черги</b>\n\n' +
-        'Ви впевнені, що хочете змінити регіон або чергу?\n\n' +
+        '<tg-emoji emoji-id="5447644880824181073">⚠️</tg-emoji> <b>Зміна регіону/черги</b>\n\n' +
         'Поточні налаштування:\n' +
-        `📍 Регіон: ${REGIONS[user.region]?.name || user.region}\n` +
-        `🔢 Черга: ${user.queue}`,
+        `<tg-emoji emoji-id="5399898266265475100">📍</tg-emoji> Регіон: ${REGIONS[user.region]?.name || user.region}\n` +
+        `<tg-emoji emoji-id="5390854796011906616">🔢</tg-emoji> Черга: ${user.queue}\n\n` +
+        'Ви впевнені, що хочете змінити регіон або чергу?',
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -224,7 +224,7 @@ async function handleSettingsCallback(bot, query) {
     if (data === 'settings_region_confirm') {
       // Видаляємо попереднє повідомлення
       try {
-        await bot.deleteMessage(chatId, query.message.message_id);
+        await bot.api.deleteMessage(chatId, query.message.message_id);
       } catch (e) {
         // Ігноруємо помилки видалення
       }
@@ -349,7 +349,7 @@ async function handleSettingsCallback(bot, query) {
       
       // Send main menu after successful deactivation
       const { getMainMenu } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '🏠 <b>Головне меню</b>',
         {
@@ -490,9 +490,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         }
       };
 
-      await bot.editMessageText(instructionText, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
+      await bot.api.editMessageText(chatId, query.message.message_id, instructionText, {
         parse_mode: 'HTML',
         disable_web_page_preview: true,
         ...keyboard
@@ -547,7 +545,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       
       // Set up warning timeout (4 minutes = 5 minutes - 1 minute)
       const warningTimeout = setTimeout(() => {
-        bot.sendMessage(
+        bot.api.sendMessage(
           chatId,
           '⏳ Залишилась 1 хвилина.\n' +
           'Надішліть IP-адресу або продовжіть пізніше.'
@@ -570,7 +568,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         }
         const channelPaused = user.channel_paused === true;
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
           'Режим налаштування IP завершено.\n\n' +
@@ -753,7 +751,7 @@ DDNS (Dynamic Domain Name System) дозволяє
       }
       const channelPaused = updatedUser.channel_paused === true;
       
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '🏠 <b>Головне меню</b>',
         {
@@ -892,11 +890,11 @@ async function handleIpConversation(bot, msg) {
     const validationResult = isValidIPorDomain(text);
     
     if (!validationResult.valid) {
-      await bot.sendMessage(chatId, `❌ ${validationResult.error}`);
+      await bot.api.sendMessage(chatId, `❌ ${validationResult.error}`);
       
       // Reset timeout with new 5-minute timer
       const warningTimeout = setTimeout(() => {
-        bot.sendMessage(
+        bot.api.sendMessage(
           chatId,
           '⏳ Залишилась 1 хвилина.\n' +
           'Надішліть IP-адресу або продовжіть пізніше.'
@@ -918,7 +916,7 @@ async function handleIpConversation(bot, msg) {
         }
         const channelPaused = user.channel_paused === true;
         
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '⌛ <b>Час вийшов.</b>\n' +
           'Режим налаштування IP завершено.\n\n' +
@@ -945,7 +943,7 @@ async function handleIpConversation(bot, msg) {
     await logIpMonitoringSetup(telegramId);
     
     // Send success message with navigation buttons
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId,
       `✅ IP-адресу збережено\n\n` +
       `📡 Адреса: ${validationResult.address}\n\n` +
@@ -980,7 +978,7 @@ async function handleIpConversation(bot, msg) {
     }
     const channelPaused = user ? user.channel_paused === true : false;
     
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '😅 Щось пішло не так. Спробуйте ще раз.\n\nОберіть наступну дію:',
       getMainMenu(botStatus, channelPaused)

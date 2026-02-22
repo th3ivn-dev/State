@@ -5,6 +5,7 @@ const usersDb = require('./database/users');
 const { REGION_CODES } = require('./constants/regions');
 const schedulerManager = require('./scheduler/schedulerManager');
 const { getSetting } = require('./database/db');
+const { InputFile } = require('grammy');
 
 let bot = null;
 
@@ -151,13 +152,14 @@ async function checkUserSchedule(user, data) {
         // Спробуємо з фото
         try {
           const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-          await bot.sendPhoto(user.telegram_id, imageBuffer, {
+          const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+          await bot.api.sendPhoto(user.telegram_id, photoInput, {
             caption: message,
             parse_mode: 'HTML'
-          }, { filename: 'schedule.png', contentType: 'image/png' });
+          });
         } catch (imgError) {
           // Без фото
-          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         }
         
         console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);

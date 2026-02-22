@@ -385,7 +385,7 @@ class MonitoringManager {
     }
     
     try {
-      await this.alertDeliveryBot.sendMessage(alertChannelId, formattedAlert, {
+      await this.alertDeliveryBot.api.sendMessage(alertChannelId, formattedAlert, {
         parse_mode: 'HTML'
       });
       logger.debug('Alert delivered', { channel: alertChannelId, level: alert.level });

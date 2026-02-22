@@ -267,7 +267,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
       // Відправляємо в особистий чат користувача
       if (notifyTarget === 'bot' || notifyTarget === 'both') {
         try {
-          await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
           console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
         } catch (error) {
           console.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
@@ -288,7 +288,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
           console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
         } else {
           try {
-            await bot.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
+            await bot.api.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
             console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
           } catch (error) {
             console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);

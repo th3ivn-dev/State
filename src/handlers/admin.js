@@ -84,7 +84,7 @@ async function handleUsers(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -92,7 +92,7 @@ async function handleUsers(bot, msg) {
     const users = await usersDb.getRecentUsers(20);
     
     if (users.length === 0) {
-      await bot.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
+      await bot.api.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
       return;
     }
     
@@ -108,12 +108,12 @@ async function handleUsers(bot, msg) {
       message += `   ID: <code>${user.telegram_id}</code>\n\n`;
     });
     
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleUsers:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -127,7 +127,7 @@ async function handleBroadcast(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -136,7 +136,7 @@ async function handleBroadcast(bot, msg) {
     const text = msg.text.replace('/broadcast', '').trim();
     
     if (!text) {
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Використання: /broadcast <повідомлення>\n\nПриклад:\n/broadcast Важливе оновлення!'
       );
@@ -146,18 +146,18 @@ async function handleBroadcast(bot, msg) {
     const users = await usersDb.getAllActiveUsers();
     
     if (users.length === 0) {
-      await bot.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
+      await bot.api.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
       return;
     }
     
-    await bot.sendMessage(chatId, `📤 Розсилка повідомлення ${users.length} користувачам...`);
+    await bot.api.sendMessage(chatId, `📤 Розсилка повідомлення ${users.length} користувачам...`);
     
     let sent = 0;
     let failed = 0;
     
     for (const user of users) {
       try {
-        await bot.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
+        await bot.api.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
           parse_mode: 'HTML',
         });
         sent++;
@@ -170,7 +170,7 @@ async function handleBroadcast(bot, msg) {
       }
     }
     
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId,
       `✅ Розсилка завершена!\n\n` +
       `Відправлено: ${sent}\n` +
@@ -180,7 +180,7 @@ async function handleBroadcast(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleBroadcast:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка при розсилці.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -194,7 +194,7 @@ async function handleSystem(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -217,12 +217,12 @@ async function handleSystem(bot, msg) {
       message += `Service: ${process.env.RAILWAY_SERVICE_NAME || 'N/A'}\n`;
     }
     
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleSystem:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -242,7 +242,7 @@ async function handleAdminCallback(bot, query) {
   }
   
   // Answer callback query immediately to prevent timeout (after permission check)
-  await bot.answerCallbackQuery(query.id).catch(() => {});
+  await bot.api.answerCallbackQuery(query.id).catch(() => {});
   
   try {
     if (data === 'admin_stats') {
@@ -1871,7 +1871,7 @@ async function handleSetInterval(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -1882,7 +1882,7 @@ async function handleSetInterval(bot, msg, match) {
     
     if (type !== 'schedule' && type !== 'power') {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Невірний тип інтервалу.\n\n' +
         'Використання:\n' +
@@ -1899,7 +1899,7 @@ async function handleSetInterval(bot, msg, match) {
     
     if (isNaN(value)) {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId, 
         '❌ Значення має бути числом.\n\nОберіть наступну дію:',
         getAdminMenuKeyboard()
@@ -1911,7 +1911,7 @@ async function handleSetInterval(bot, msg, match) {
     if (type === 'schedule') {
       if (value < 5 || value > 3600) {
         const { getAdminMenuKeyboard } = require('../keyboards/inline');
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '❌ Інтервал перевірки графіка має бути від 5 до 3600 сек (60 хв).\n\n' +
           'Оберіть наступну дію:',
@@ -1922,7 +1922,7 @@ async function handleSetInterval(bot, msg, match) {
     } else if (type === 'power') {
       if (value < 1 || value > 60) {
         const { getAdminMenuKeyboard } = require('../keyboards/inline');
-        await bot.sendMessage(
+        await bot.api.sendMessage(
           chatId,
           '❌ Інтервал моніторингу світла має бути від 1 до 60 сек.\n\n' +
           'Оберіть наступну дію:',
@@ -1937,7 +1937,7 @@ async function handleSetInterval(bot, msg, match) {
     await setSetting(key, String(value));
     
     const typeName = type === 'schedule' ? 'перевірки графіка' : 'моніторингу світла';
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId,
       `✅ Інтервал ${typeName} встановлено: ${value} сек\n\n` +
       '⚠️ Для застосування змін потрібен перезапуск бота.'
@@ -1946,7 +1946,7 @@ async function handleSetInterval(bot, msg, match) {
   } catch (error) {
     console.error('Помилка в handleSetInterval:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -1960,7 +1960,7 @@ async function handleSetDebounce(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -1969,7 +1969,7 @@ async function handleSetDebounce(bot, msg, match) {
     
     if (isNaN(value)) {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId, 
         '❌ Значення має бути числом.\n\nОберіть наступну дію:',
         getAdminMenuKeyboard()
@@ -1980,7 +1980,7 @@ async function handleSetDebounce(bot, msg, match) {
     // Валідація: від 0 до 30 хвилин (0 = вимкнено)
     if (value < 0 || value > 30) {
       const { getAdminMenuKeyboard } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Час debounce має бути від 0 до 30 хвилин.\n\n' +
         '0 = вимкнено (без затримок)\n' +
@@ -2006,12 +2006,12 @@ async function handleSetDebounce(bot, msg, match) {
         'Зміни застосуються автоматично при наступній перевірці.';
     }
     
-    await bot.sendMessage(chatId, message);
+    await bot.api.sendMessage(chatId, message);
     
   } catch (error) {
     console.error('Помилка в handleSetDebounce:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -2025,14 +2025,14 @@ async function handleGetDebounce(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
   try {
     const value = await getSetting('power_debounce_minutes', '5');
     
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId,
       `⚙️ <b>Поточний час debounce:</b> ${value} хв\n\n` +
       'Зміни стану світла публікуються після ' +
@@ -2045,7 +2045,7 @@ async function handleGetDebounce(bot, msg) {
   } catch (error) {
     console.error('Помилка в handleGetDebounce:', error);
     const { getAdminMenuKeyboard } = require('../keyboards/inline');
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId, 
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
       getAdminMenuKeyboard()
@@ -2306,7 +2306,7 @@ async function handleMonitoring(bot, msg) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -2362,11 +2362,11 @@ async function handleMonitoring(bot, msg) {
     message += '\n\nДля налаштування канала:\n';
     message += '/setalertchannel <channel_id>';
     
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleMonitoring:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
+    await bot.api.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
   }
 }
 
@@ -2376,7 +2376,7 @@ async function handleSetAlertChannel(bot, msg, match) {
   const userId = String(msg.from.id);
   
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-    await bot.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
+    await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
   
@@ -2385,7 +2385,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     
     // Validate channel ID format
     if (!channelId.startsWith('@') && !channelId.startsWith('-')) {
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Невірний формат ID каналу.\n\n' +
         'Використайте:\n' +
@@ -2398,14 +2398,14 @@ async function handleSetAlertChannel(bot, msg, match) {
     
     // Try to send a test message to verify bot has access
     try {
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         channelId,
         '✅ Канал для алертів налаштовано успішно!\n\n' +
         'Тут будуть публікуватися алерти системи моніторингу.',
         { parse_mode: 'HTML' }
       );
     } catch (error) {
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId,
         '❌ Не вдалося надіслати повідомлення в канал.\n\n' +
         'Перевірте:\n' +
@@ -2421,7 +2421,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     const { monitoringManager } = require('../monitoring/monitoringManager');
     monitoringManager.setAlertChannel(channelId);
     
-    await bot.sendMessage(
+    await bot.api.sendMessage(
       chatId,
       `✅ Канал для алертів налаштовано: ${channelId}\n\n` +
       'Тепер усі алерти системи моніторингу будуть публікуватися в цьому каналі.',
@@ -2430,6 +2430,6 @@ async function handleSetAlertChannel(bot, msg, match) {
     
   } catch (error) {
     console.error('Помилка в handleSetAlertChannel:', error);
-    await bot.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
+    await bot.api.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
   }
 }

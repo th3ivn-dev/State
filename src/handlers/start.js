@@ -106,7 +106,7 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
     
     for (const adminId of allAdmins) {
       try {
-        await bot.sendMessage(adminId, message, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });
       } catch (error) {
         // Ігноруємо помилки (адмін може мати заблоковані повідомлення)
       }
@@ -124,7 +124,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
   const lastMsg = getState('lastMenuMessages', telegramId);
   if (lastMsg && lastMsg.messageId) {
     try {
-      await bot.deleteMessage(chatId, lastMsg.messageId);
+      await bot.api.deleteMessage(chatId, lastMsg.messageId);
     } catch (e) {
       // Ігноруємо помилки: повідомлення може бути вже видалене користувачем або застаріле
     }
@@ -250,8 +250,6 @@ async function handleStart(bot, msg) {
       // Build main menu message
       let message = '<b>🚧 Бот у розробці</b>\n';
       message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
-      message += '<i>💬 Маєте ідеї або знайшли помилку?</i>\n';
-      message += '<i>❓ Допомога → ⚒️ Підтримка</i>\n\n';
       message += '🏠 <b>Головне меню</b>\n\n';
       message += `📍 Регіон: ${region} • ${user.queue}\n`;
       message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
@@ -290,7 +288,7 @@ async function handleWizardCallback(bot, query) {
   const telegramId = String(query.from.id);
   const data = query.data;
   
-  await bot.answerCallbackQuery(query.id).catch(() => {});
+  await bot.api.answerCallbackQuery(query.id).catch(() => {});
   
   try {
     const state = getWizardState(telegramId) || { step: 'region' };
@@ -463,7 +461,7 @@ async function handleWizardCallback(bot, query) {
         
         // Відправляємо головне меню і зберігаємо ID
         const botStatus = 'no_channel'; // New user won't have channel yet
-        const sentMessage = await bot.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus, false));
+        const sentMessage = await bot.api.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus, false));
         await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
       }
       
@@ -550,11 +548,11 @@ async function handleWizardCallback(bot, query) {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Пропозиція підписатись на канал новин
-      await bot.sendMessage(chatId, NEWS_CHANNEL_MESSAGE.text, NEWS_CHANNEL_MESSAGE.options);
+      await bot.api.sendMessage(chatId, NEWS_CHANNEL_MESSAGE.text, NEWS_CHANNEL_MESSAGE.options);
       
       // Відправляємо головне меню
       const botStatus = 'no_channel'; // New user won't have channel yet
-      const sentMessage = await bot.sendMessage(
+      const sentMessage = await bot.api.sendMessage(
         chatId, 
         '🏠 <b>Головне меню</b>',
         {
@@ -745,8 +743,8 @@ async function handleWizardCallback(bot, query) {
       
       // Перевіряємо чи бот ще в каналі
       try {
-        const botInfo = await bot.getMe();
-        const chatMember = await bot.getChatMember(channelId, botInfo.id);
+        const botInfo = await bot.api.getMe();
+        const chatMember = await bot.api.getChatMember(channelId, botInfo.id);
         
         if (chatMember.status !== 'administrator') {
           await safeAnswerCallbackQuery(bot, query.id, {

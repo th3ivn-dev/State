@@ -63,7 +63,9 @@ async function notifyAdminsAboutError(bot, error, context) {
     const skipPatterns = [
       'bot was blocked by the user',
       'chat not found',
-      'ETELEGRAM 409 Conflict'
+      'ETELEGRAM 409 Conflict',
+      '409: Conflict',
+      'terminated by other getUpdates request'
     ];
     
     if (skipPatterns.some(pattern => errorMessage.includes(pattern))) {
@@ -128,7 +130,7 @@ async function notifyAdminsAboutError(bot, error, context) {
     // Надсилаємо повідомлення кожному адміну окремо
     for (const adminId of adminList) {
       try {
-        await bot.sendMessage(adminId, message, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });
       } catch (sendError) {
         // Ігноруємо помилки відправки окремим адмінам
         // (можливо бот заблокований або chat не існує)

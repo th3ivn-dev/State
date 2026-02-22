@@ -18,7 +18,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       req.on('end', () => {
         try {
           const update = JSON.parse(body);
-          bot.processUpdate(update);
+          bot.handleUpdate(update);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (error) {
@@ -73,14 +73,14 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
     if (useWebhook && config.WEBHOOK_URL) {
       // Set webhook with Telegram
       const fullWebhookUrl = `${config.WEBHOOK_URL}${webhookPath}`;
-      bot.setWebHook(fullWebhookUrl, {
+      bot.api.setWebhook(fullWebhookUrl, {
         max_connections: config.WEBHOOK_MAX_CONNECTIONS,
       }).then(() => {
         console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
       }).catch((error) => {
         console.error('❌ Помилка встановлення webhook:', error.message);
         console.log('⚠️ Перемикаємось на polling...');
-        bot.startPolling();
+        bot.start();
       });
     }
   });
@@ -90,7 +90,7 @@ function stopHealthCheck() {
   if (server) {
     // If using webhook, delete it before stopping
     if (botRef && config.USE_WEBHOOK) {
-      botRef.deleteWebHook().catch((error) => {
+      botRef.api.deleteWebhook().catch((error) => {
         console.error('⚠️  Помилка при видаленні webhook:', error.message);
       });
     }

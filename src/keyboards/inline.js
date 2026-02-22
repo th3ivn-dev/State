@@ -5,11 +5,11 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
   const buttons = [
     [
       { text: 'Графік', callback_data: 'menu_schedule', icon_custom_emoji_id: '5210956306952758910' },
-      { text: 'Таймер', callback_data: 'menu_timer', icon_custom_emoji_id: '5382194935057372936' }
+      { text: 'Допомога', callback_data: 'menu_help', icon_custom_emoji_id: '5443038326535759644' }
     ],
     [
       { text: 'Статистика', callback_data: 'menu_stats', icon_custom_emoji_id: '5190806721286657692' },
-      { text: 'Допомога', callback_data: 'menu_help', icon_custom_emoji_id: '5443038326535759644' }
+      { text: 'Таймер', callback_data: 'menu_timer', icon_custom_emoji_id: '5382194935057372936' }
     ],
     [
       { text: 'Налаштування', callback_data: 'menu_settings', icon_custom_emoji_id: '5341715473882955310' }
@@ -234,19 +234,19 @@ function getConfirmKeyboard() {
 function getSettingsKeyboard(isAdmin = false) {
   const buttons = [
     [
-      { text: '📍 Регіон', callback_data: 'settings_region' },
-      { text: '📡 IP', callback_data: 'settings_ip' }
+      { text: 'Регіон', callback_data: 'settings_region', icon_custom_emoji_id: '5399898266265475100' },
+      { text: 'IP', callback_data: 'settings_ip', icon_custom_emoji_id: '5447410659077661506' }
     ],
     [
-      { text: '📺 Канал', callback_data: 'settings_channel' },
-      { text: '🔔 Сповіщення', callback_data: 'settings_alerts' }
+      { text: 'Канал', callback_data: 'settings_channel', icon_custom_emoji_id: '5424818078833715060' },
+      { text: 'Сповіщення', callback_data: 'settings_alerts', icon_custom_emoji_id: '5458603043203327669' }
     ],
   ];
   
   // Add admin panel button if user is admin
   if (isAdmin) {
     buttons.push(
-      [{ text: '👑 Адмін-панель', callback_data: 'settings_admin' }]
+      [{ text: 'Адмін-панель', callback_data: 'settings_admin', icon_custom_emoji_id: '5217822164362739968' }]
     );
   }
   

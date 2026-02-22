@@ -1,8 +1,5 @@
 #!/usr/bin/env node
 
-// Suppress node-telegram-bot-api deprecation warning about file content-type
-process.env.NTBA_FIX_350 = '1';
-
 const bot = require('./bot');
 const { restorePendingChannels, stopBotCleanup } = require('./bot');
 const { initScheduler, schedulerManager } = require('./scheduler');
@@ -22,6 +19,18 @@ const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
+
+/**
+ * Перевіряє чи помилка є 409 Conflict (очікувана при редеплої polling)
+ * @param {*} error
+ * @returns {boolean}
+ */
+function is409ConflictError(error) {
+  if (!error) return false;
+  if (error.error_code === 409) return true;
+  const msg = error instanceof Error ? error.message : String(error);
+  return msg.includes('409') && (msg.includes('Conflict') || msg.includes('terminated by other getUpdates request'));
+}
 
 // Головна async функція для запуску
 async function main() {
@@ -94,6 +103,36 @@ async function main() {
   await monitoringManager.start();
   console.log('✅ Система моніторингу запущена');
   
+  // Ініціалізація бота (отримання botInfo для bot.options.id)
+  await bot.init();
+  console.log(`🤖 Bot info: @${bot.botInfo.username}`);
+
+  // Start polling if not webhook mode
+  if (!config.USE_WEBHOOK) {
+    // Don't await — bot.start() is a long-running promise.
+    // Use retry logic to handle 409 Conflict during redeploy gracefully.
+    const MAX_POLLING_RETRIES = 3;
+    const POLLING_RETRY_DELAY_MS = 5000;
+
+    function startPollingWithRetry(attempt) {
+      bot.start({
+        onStart: () => console.log('✅ Polling запущено'),
+      }).catch(err => {
+        if (is409ConflictError(err) && attempt < MAX_POLLING_RETRIES) {
+          console.warn(`⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, повторна спроба через 5с... (${attempt + 1}/${MAX_POLLING_RETRIES})`);
+          setTimeout(() => startPollingWithRetry(attempt + 1), POLLING_RETRY_DELAY_MS);
+        } else if (is409ConflictError(err)) {
+          console.error('❌ 409 Conflict при старті polling після всіх спроб — стара інстанція ще не завершилась');
+        } else {
+          console.error('❌ Помилка при старті polling:', err);
+          notifyAdminsAboutError(bot, err, 'polling');
+        }
+      });
+    }
+
+    startPollingWithRetry(0);
+  }
+
   // Запуск health check server
   startHealthCheck(bot, config.HEALTH_PORT);
 
@@ -133,12 +172,12 @@ const shutdown = async (signal) => {
   try {
     // 1. Зупиняємо прийом повідомлень
     if (config.USE_WEBHOOK) {
-      await bot.deleteWebHook().catch((error) => {
+      await bot.api.deleteWebhook().catch((error) => {
         console.error('⚠️  Помилка при видаленні webhook:', error.message);
       });
       console.log('✅ Webhook видалено');
     } else {
-      await bot.stopPolling();
+      await bot.stop();
       console.log('✅ Polling зупинено');
     }
     
@@ -209,6 +248,11 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 // Обробка необроблених помилок
 process.on('uncaughtException', (error) => {
+  // 409 Conflict is expected during redeploy (old instance still polling) — skip silently
+  if (is409ConflictError(error)) {
+    console.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, ігнорується');
+    return;
+  }
   console.error('❌ Необроблена помилка:', error);
   // Track error in monitoring system
   try {
@@ -225,6 +269,11 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason, promise) => {
+  // 409 Conflict is expected during redeploy (old instance still polling) — skip silently
+  if (is409ConflictError(reason)) {
+    console.warn('⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, ігнорується...');
+    return;
+  }
   console.error('❌ Необроблене відхилення промісу:', reason);
   // Track error in monitoring system
   try {

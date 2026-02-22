@@ -25,7 +25,7 @@ async function handleSchedule(bot, msg) {
     }
     
     // Показуємо індикатор завантаження
-    await bot.sendChatAction(chatId, 'typing');
+    await bot.api.sendChatAction(chatId, 'typing');
     
     // Отримуємо дані графіка
     const data = await fetchScheduleData(user.region);
@@ -83,7 +83,7 @@ async function handleNext(bot, msg) {
       return;
     }
     
-    await bot.sendChatAction(chatId, 'typing');
+    await bot.api.sendChatAction(chatId, 'typing');
     
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
@@ -94,7 +94,7 @@ async function handleNext(bot, msg) {
     
   } catch (error) {
     console.error('Помилка в handleNext:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
+    await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
 
@@ -108,7 +108,7 @@ async function handleTimer(bot, msg) {
     
     if (!user) {
       const { getMainMenu } = require('../keyboards/inline');
-      await bot.sendMessage(
+      await bot.api.sendMessage(
         chatId, 
         '❌ Спочатку запустіть бота, натиснувши /start\n\nОберіть наступну дію:',
         getMainMenu('no_channel', false)
@@ -116,18 +116,18 @@ async function handleTimer(bot, msg) {
       return;
     }
     
-    await bot.sendChatAction(chatId, 'typing');
+    await bot.api.sendChatAction(chatId, 'typing');
     
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
     
     const message = formatTimerMessage(nextEvent);
-    await bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
     
   } catch (error) {
     console.error('Помилка в handleTimer:', error);
-    await bot.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
+    await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
 

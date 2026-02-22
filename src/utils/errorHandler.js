@@ -3,6 +3,7 @@
  * Забезпечує надійну обробку помилок для всіх критичних операцій
  */
 
+const { InputFile } = require('grammy');
 const { createLogger } = require('./logger');
 const logger = createLogger('ErrorHandler');
 
@@ -16,7 +17,7 @@ const logger = createLogger('ErrorHandler');
  */
 async function safeSendMessage(bot, chatId, text, options = {}) {
   try {
-    return await bot.sendMessage(chatId, text, options);
+    return await bot.api.sendMessage(chatId, text, options);
   } catch (error) {
     logger.error(`Помилка відправки повідомлення ${chatId}:`, { error: error.message });
     return null;
@@ -32,7 +33,7 @@ async function safeSendMessage(bot, chatId, text, options = {}) {
  */
 async function safeDeleteMessage(bot, chatId, messageId) {
   try {
-    await bot.deleteMessage(chatId, messageId);
+    await bot.api.deleteMessage(chatId, messageId);
     return true;
   } catch (error) {
     // Ігноруємо — повідомлення могло бути вже видалене
@@ -51,7 +52,7 @@ async function safeDeleteMessage(bot, chatId, messageId) {
  */
 async function safeEditMessage(bot, chatId, messageId, text, options = {}) {
   try {
-    return await bot.editMessageText(text, { chat_id: chatId, message_id: messageId, ...options });
+    return await bot.api.editMessageText(chatId, messageId, text, options);
   } catch (error) {
     logger.error(`Помилка редагування повідомлення:`, { error: error.message });
     return null;
@@ -67,23 +68,17 @@ async function safeEditMessage(bot, chatId, messageId, text, options = {}) {
  */
 async function safeEditMessageText(bot, text, options = {}) {
   try {
-    return await bot.editMessageText(text, options);
+    const { chat_id, message_id, ...other } = options;
+    return await bot.api.editMessageText(chat_id, message_id, text, other);
   } catch (error) {
-    // Перевіряємо чи це помилка від Telegram API
-    if (error.code !== 'ETELEGRAM') {
-      // Не Telegram помилка - логуємо і викидаємо
-      logger.error(`Помилка редагування тексту повідомлення:`, { 
-        error: error.message,
-        code: error.code
-      });
-      throw error;
-    }
-    
+    const errorMessage = error.message || '';
+    // grammY includes the Telegram description in error.message; node-telegram-bot-api uses error.response
     const errorDescription = error.response?.body?.description || '';
     
     // Ігноруємо помилку "message is not modified" — це нормальна ситуація
     // Виникає коли користувач натискає ту саму кнопку двічі
-    if (errorDescription.includes('message is not modified')) {
+    if (errorDescription.includes('message is not modified') ||
+        errorMessage.includes('message is not modified')) {
       // Повідомлення вже актуальне, нічого робити не потрібно
       return null;
     }
@@ -92,7 +87,8 @@ async function safeEditMessageText(bot, text, options = {}) {
     // Виникає коли намагаємось редагувати повідомлення з фото (яке має caption замість тексту)
     // Викидаємо без логування, оскільки викликач (напр. bot.js:back_to_main) обробляє
     // цю помилку через try-catch і реалізує fallback (видалення старого повідомлення + відправка нового)
-    if (errorDescription.includes('there is no text in the message to edit')) {
+    if (errorDescription.includes('there is no text in the message to edit') ||
+        errorMessage.includes('there is no text in the message to edit')) {
       throw error;
     }
     
@@ -117,7 +113,8 @@ async function safeEditMessageText(bot, text, options = {}) {
  */
 async function safeSendPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
   try {
-    return await bot.sendPhoto(chatId, photo, options, fileOpts);
+    const input = Buffer.isBuffer(photo) ? new InputFile(photo, 'schedule.png') : photo;
+    return await bot.api.sendPhoto(chatId, input, options);
   } catch (error) {
     logger.error(`Помилка відправки фото ${chatId}:`, { error: error.message });
     return null;
@@ -133,7 +130,7 @@ async function safeSendPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
  */
 async function safeAnswerCallbackQuery(bot, callbackQueryId, options = {}) {
   try {
-    await bot.answerCallbackQuery(callbackQueryId, options);
+    await bot.api.answerCallbackQuery(callbackQueryId, options);
     return true;
   } catch (error) {
     logger.error(`Помилка відповіді на callback query:`, { error: error.message });
@@ -150,12 +147,15 @@ async function safeAnswerCallbackQuery(bot, callbackQueryId, options = {}) {
  */
 async function safeSetChatTitle(bot, chatId, title) {
   try {
-    await bot.setChatTitle(chatId, title);
+    await bot.api.setChatTitle(chatId, title);
     return true;
   } catch (error) {
     // Ігноруємо помилку "chat title is not modified"
-    if (error.code === 'ETELEGRAM' && 
-        error.response?.body?.description?.includes('title is not modified')) {
+    // grammY: error.message includes the description; node-telegram-bot-api: error.response.body.description
+    const errorMessage = error.message || '';
+    const errorDescription = error.response?.body?.description || '';
+    if (errorMessage.includes('title is not modified') ||
+        errorDescription.includes('title is not modified')) {
       logger.info(`Назва чату ${chatId} вже актуальна, пропускаємо`);
       return true;
     }
@@ -173,12 +173,15 @@ async function safeSetChatTitle(bot, chatId, title) {
  */
 async function safeSetChatDescription(bot, chatId, description) {
   try {
-    await bot.setChatDescription(chatId, description);
+    await bot.api.setChatDescription(chatId, { description: description });
     return true;
   } catch (error) {
     // Ігноруємо помилку "chat description is not modified"
-    if (error.code === 'ETELEGRAM' && 
-        error.response?.body?.description?.includes('description is not modified')) {
+    // grammY: error.message includes the description; node-telegram-bot-api: error.response.body.description
+    const errorMessage = error.message || '';
+    const errorDescription = error.response?.body?.description || '';
+    if (errorMessage.includes('description is not modified') ||
+        errorDescription.includes('description is not modified')) {
       logger.info(`Опис чату ${chatId} вже актуальний, пропускаємо`);
       return true;
     }
@@ -198,7 +201,7 @@ async function safeSetChatDescription(bot, chatId, description) {
  */
 async function safeSetChatPhoto(bot, chatId, photo, options = {}, fileOpts = {}) {
   try {
-    await bot.setChatPhoto(chatId, photo, options, fileOpts);
+    await bot.api.setChatPhoto(chatId, photo);
     return true;
   } catch (error) {
     logger.error(`Помилка зміни фото чату ${chatId}:`, { error: error.message });

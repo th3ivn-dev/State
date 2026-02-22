@@ -353,7 +353,7 @@ async function notifyAdminsAboutRegionRequest(bot, ticket, state, username) {
 
     for (const adminId of allAdmins) {
       try {
-        await bot.sendMessage(adminId, message, {
+        await bot.api.sendMessage(adminId, message, {
           parse_mode: 'HTML',
           reply_markup: keyboard,
         });
@@ -372,7 +372,7 @@ async function notifyAdminsAboutRegionRequest(bot, ticket, state, username) {
  */
 async function handleRegionRequestCallback(bot, query) {
   const data = query.data;
-  await bot.answerCallbackQuery(query.id).catch(() => {});
+  await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
   if (data === 'region_request_start') {
     await handleRegionRequestStart(bot, query);
