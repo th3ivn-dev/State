@@ -29,7 +29,7 @@ function test(name, fn) {
 
 // Test 1: isValidIPorDomain is defined in settings.js
 test('settings.js defines isValidIPorDomain function', () => {
-  const settingsContent = fs.readFileSync('./src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
   
   if (!settingsContent.includes('function isValidIPorDomain(input)')) {
     throw new Error('isValidIPorDomain function is not defined in settings.js');
@@ -38,7 +38,7 @@ test('settings.js defines isValidIPorDomain function', () => {
 
 // Test 2: isValidIPorDomain is exported from settings.js
 test('settings.js exports isValidIPorDomain', () => {
-  const settingsContent = fs.readFileSync('./src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
   
   // Check module.exports includes isValidIPorDomain
   const exportsMatch = settingsContent.match(/module\.exports\s*=\s*\{[^}]*\}/s);
@@ -53,7 +53,7 @@ test('settings.js exports isValidIPorDomain', () => {
 
 // Test 3: isValidIPorDomain function has correct validation logic
 test('isValidIPorDomain function has IP and domain validation', () => {
-  const settingsContent = fs.readFileSync('./src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
   
   // Find the function
   const funcStart = settingsContent.indexOf('function isValidIPorDomain(input) {');
@@ -85,7 +85,7 @@ test('isValidIPorDomain function has IP and domain validation', () => {
 
 // Test 4: admin.js imports from settings, not utils
 test('admin.js imports isValidIPorDomain from settings.js', () => {
-  const adminContent = fs.readFileSync('./src/handlers/admin.js', 'utf8');
+  const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
   
   // Check that it imports from ./settings
   if (!adminContent.includes("require('./settings')")) {
@@ -107,7 +107,7 @@ test('admin.js imports isValidIPorDomain from settings.js', () => {
 
 // Test 5: Catch block does NOT clear state on error
 test('admin.js catch block does not clear conversation state on error', () => {
-  const adminContent = fs.readFileSync('./src/handlers/admin.js', 'utf8');
+  const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
   
   // Find the handleAdminRouterIpConversation function
   const functionStart = adminContent.indexOf('async function handleAdminRouterIpConversation');
@@ -147,7 +147,7 @@ test('admin.js catch block does not clear conversation state on error', () => {
 
 // Test 6: Handler order is correct in bot.js
 test('bot.js has correct handler order (admin router IP before channel handlers)', () => {
-  const botContent = fs.readFileSync('./src/bot.js', 'utf8');
+  const botContent = fs.readFileSync('../src/bot.js', 'utf8');
   
   // Find positions of handler calls
   const adminRouterPos = botContent.indexOf('handleAdminRouterIpConversation(bot, msg)');
@@ -169,7 +169,7 @@ test('bot.js has correct handler order (admin router IP before channel handlers)
 
 // Test 7: Each handler returns true when it processes a message
 test('Handlers return true to prevent cascading to other handlers', () => {
-  const botContent = fs.readFileSync('./src/bot.js', 'utf8');
+  const botContent = fs.readFileSync('../src/bot.js', 'utf8');
   
   // Check that there are checks for handler return values
   const checks = [
@@ -188,7 +188,7 @@ test('Handlers return true to prevent cascading to other handlers', () => {
 
 // Test 8: handleAdminRouterIpConversation uses isValidIPorDomain
 test('handleAdminRouterIpConversation calls isValidIPorDomain', () => {
-  const adminContent = fs.readFileSync('./src/handlers/admin.js', 'utf8');
+  const adminContent = fs.readFileSync('../src/handlers/admin.js', 'utf8');
   
   // Find the function
   const functionStart = adminContent.indexOf('async function handleAdminRouterIpConversation');

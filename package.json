@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "node test.js"
+    "test": "node tests/test.js"
   },
   "keywords": [
     "telegram",
@@ -19,6 +19,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/hydrate": "^1.6.0",
     "@grammyjs/runner": "^2.0.3",
     "axios": "^1.6.5",

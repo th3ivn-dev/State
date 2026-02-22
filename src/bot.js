@@ -1,5 +1,6 @@
 const { Bot, InputFile } = require('grammy');
 const { hydrate } = require('@grammyjs/hydrate');
+const { autoRetry } = require('@grammyjs/auto-retry');
 const config = require('./config');
 const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
@@ -120,6 +121,12 @@ console.log(`🤖 Telegram Bot ініціалізовано (режим: ${useWe
 
 // Register hydrate middleware to allow convenient message editing (msg.editText(), msg.delete(), etc.)
 bot.use(hydrate());
+
+// Auto-retry on 429 (Too Many Requests) errors from Telegram API
+bot.api.config.use(autoRetry({
+  maxRetryAttempts: 3,
+  maxDelaySeconds: 10,
+}));
 
 // Compatibility for bot.options.id used in handlers
 bot.options = {};

@@ -27,7 +27,7 @@ function test(name, fn) {
 
 // Test 1: Database module exists and exports functions
 test('Database module exports all required functions', () => {
-  const adminRoutersDb = require('./src/database/adminRouters');
+  const adminRoutersDb = require('../src/database/adminRouters');
   
   const requiredFunctions = [
     'getAdminRouter',
@@ -50,7 +50,7 @@ test('Database module exports all required functions', () => {
 
 // Test 2: Monitor module exists and exports functions
 test('Monitor module exports all required functions', () => {
-  const adminRouterMonitor = require('./src/adminRouterMonitor');
+  const adminRouterMonitor = require('../src/adminRouterMonitor');
   
   const requiredFunctions = [
     'startAdminRouterMonitoring',
@@ -67,7 +67,7 @@ test('Monitor module exports all required functions', () => {
 
 // Test 3: Keyboard module exports new functions
 test('Keyboard module exports admin router keyboard functions', () => {
-  const keyboards = require('./src/keyboards/inline');
+  const keyboards = require('../src/keyboards/inline');
   
   const requiredFunctions = [
     'getAdminRouterKeyboard',
@@ -84,7 +84,7 @@ test('Keyboard module exports admin router keyboard functions', () => {
 
 // Test 4: Admin handler exports router IP conversation handler
 test('Admin handler exports handleAdminRouterIpConversation', () => {
-  const adminHandler = require('./src/handlers/admin');
+  const adminHandler = require('../src/handlers/admin');
   
   if (typeof adminHandler.handleAdminRouterIpConversation !== 'function') {
     throw new Error('Missing or invalid function: handleAdminRouterIpConversation');
@@ -93,7 +93,7 @@ test('Admin handler exports handleAdminRouterIpConversation', () => {
 
 // Test 5: Keyboard functions return valid structures
 test('Keyboard functions return valid keyboard structures', () => {
-  const keyboards = require('./src/keyboards/inline');
+  const keyboards = require('../src/keyboards/inline');
   
   // Test getAdminRouterKeyboard with no data
   const kb1 = keyboards.getAdminRouterKeyboard(null);
@@ -125,7 +125,7 @@ test('Keyboard functions return valid keyboard structures', () => {
 
 // Test 6: Admin keyboard includes router monitoring button
 test('Admin keyboard includes router monitoring button', () => {
-  const keyboards = require('./src/keyboards/inline');
+  const keyboards = require('../src/keyboards/inline');
   
   const adminKeyboard = keyboards.getAdminKeyboard();
   const buttons = adminKeyboard.reply_markup.inline_keyboard.flat();
@@ -142,7 +142,7 @@ test('Admin keyboard includes router monitoring button', () => {
 // Test 7: Database tables are defined in db.js
 test('Database tables are defined in initialization', () => {
   const fs = require('fs');
-  const dbContent = fs.readFileSync('./src/database/db.js', 'utf8');
+  const dbContent = fs.readFileSync('../src/database/db.js', 'utf8');
   
   if (!dbContent.includes('CREATE TABLE IF NOT EXISTS admin_routers')) {
     throw new Error('admin_routers table not found in db.js');
@@ -156,7 +156,7 @@ test('Database tables are defined in initialization', () => {
 // Test 8: Bot.js includes admin router IP conversation handler
 test('Bot.js includes admin router IP conversation handler', () => {
   const fs = require('fs');
-  const botContent = fs.readFileSync('./src/bot.js', 'utf8');
+  const botContent = fs.readFileSync('../src/bot.js', 'utf8');
   
   if (!botContent.includes('handleAdminRouterIpConversation')) {
     throw new Error('handleAdminRouterIpConversation not imported in bot.js');
@@ -170,7 +170,7 @@ test('Bot.js includes admin router IP conversation handler', () => {
 // Test 9: Index.js starts and stops admin router monitoring
 test('Index.js starts and stops admin router monitoring', () => {
   const fs = require('fs');
-  const indexContent = fs.readFileSync('./src/index.js', 'utf8');
+  const indexContent = fs.readFileSync('../src/index.js', 'utf8');
   
   if (!indexContent.includes('startAdminRouterMonitoring')) {
     throw new Error('startAdminRouterMonitoring not called in index.js');

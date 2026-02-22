@@ -15,7 +15,7 @@ const {
   getFormatSettingsKeyboard,
   getFormatScheduleKeyboard,
   getFormatPowerKeyboard
-} = require('./src/keyboards/inline');
+} = require('../src/keyboards/inline');
 
 assert(typeof getFormatSettingsKeyboard === 'function', 'getFormatSettingsKeyboard should be a function');
 assert(typeof getFormatScheduleKeyboard === 'function', 'getFormatScheduleKeyboard should be a function');
