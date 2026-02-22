@@ -2,6 +2,7 @@
 
 const bot = require('./bot');
 const { restorePendingChannels, stopBotCleanup } = require('./bot');
+const { run } = require('@grammyjs/runner');
 const { initScheduler, schedulerManager } = require('./scheduler');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
@@ -19,6 +20,9 @@ const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
+
+// Active runner instance (used when running in polling mode via @grammyjs/runner)
+let activeRunner = null;
 
 /**
  * Перевіряє чи помилка є 409 Conflict (очікувана при редеплої polling)
@@ -109,28 +113,17 @@ async function main() {
 
   // Start polling if not webhook mode
   if (!config.USE_WEBHOOK) {
-    // Don't await — bot.start() is a long-running promise.
-    // Use retry logic to handle 409 Conflict during redeploy gracefully.
-    const MAX_POLLING_RETRIES = 3;
-    const POLLING_RETRY_DELAY_MS = 5000;
-
-    function startPollingWithRetry(attempt) {
-      bot.start({
-        onStart: () => console.log('✅ Polling запущено'),
-      }).catch(err => {
-        if (is409ConflictError(err) && attempt < MAX_POLLING_RETRIES) {
-          console.warn(`⚠️ 409 Conflict при старті polling — очікувана помилка при редеплої, повторна спроба через 5с... (${attempt + 1}/${MAX_POLLING_RETRIES})`);
-          setTimeout(() => startPollingWithRetry(attempt + 1), POLLING_RETRY_DELAY_MS);
-        } else if (is409ConflictError(err)) {
-          console.error('❌ 409 Conflict при старті polling після всіх спроб — стара інстанція ще не завершилась');
-        } else {
-          console.error('❌ Помилка при старті polling:', err);
-          notifyAdminsAboutError(bot, err, 'polling');
-        }
-      });
-    }
-
-    startPollingWithRetry(0);
+    // Use @grammyjs/runner for parallel update processing
+    activeRunner = run(bot);
+    console.log('✅ Polling запущено (runner)');
+    activeRunner.task().catch(err => {
+      if (is409ConflictError(err)) {
+        console.warn('⚠️ 409 Conflict при polling — очікувана помилка при редеплої, стара інстанція ще не завершилась');
+      } else {
+        console.error('❌ Помилка при старті polling:', err);
+        notifyAdminsAboutError(bot, err, 'polling');
+      }
+    });
   }
 
   // Запуск health check server
@@ -177,7 +170,12 @@ const shutdown = async (signal) => {
       });
       console.log('✅ Webhook видалено');
     } else {
-      await bot.stop();
+      // Stop runner if it was started (polling mode), otherwise fall back to bot.stop()
+      if (activeRunner) {
+        await activeRunner.stop();
+      } else {
+        await bot.stop();
+      }
       console.log('✅ Polling зупинено');
     }
     

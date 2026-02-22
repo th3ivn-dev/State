@@ -1,4 +1,5 @@
 const { Bot, InputFile } = require('grammy');
+const { hydrate } = require('@grammyjs/hydrate');
 const config = require('./config');
 const { savePendingChannel, getPendingChannel, deletePendingChannel, getAllPendingChannels } = require('./database/db');
 
@@ -116,6 +117,9 @@ const bot = new Bot(config.botToken);
 // Polling will be started in index.js via bot.start()
 
 console.log(`🤖 Telegram Bot ініціалізовано (режим: ${useWebhook ? 'Webhook' : 'Polling'})`);
+
+// Register hydrate middleware to allow convenient message editing (msg.editText(), msg.delete(), etc.)
+bot.use(hydrate());
 
 // Compatibility for bot.options.id used in handlers
 bot.options = {};
