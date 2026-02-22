@@ -6,6 +6,7 @@ const { REGION_CODES } = require('./constants/regions');
 const schedulerManager = require('./scheduler/schedulerManager');
 const { getSetting } = require('./database/db');
 const { InputFile } = require('grammy');
+const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 
 let bot = null;
 
@@ -164,7 +165,12 @@ async function checkUserSchedule(user, data) {
         
         console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
       } catch (error) {
-        console.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
+        if (isTelegramUserInactiveError(error)) {
+          console.log(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
+          await usersDb.setUserActive(user.telegram_id, false);
+        } else {
+          console.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
+        }
       }
     }
     
@@ -182,7 +188,11 @@ async function checkUserSchedule(user, data) {
         }
         console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
       } catch (channelError) {
-        console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+        if (isTelegramUserInactiveError(channelError)) {
+          console.log(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
+        } else {
+          console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+        }
         // Channel error doesn't affect hash — prevents duplicates in bot
       }
     }

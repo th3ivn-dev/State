@@ -9,6 +9,7 @@ const {
   POWER_PING_TIMEOUT_MS 
 } = require('./constants/timeouts');
 const logger = require('./utils/logger').createLogger('PowerMonitor');
+const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -270,7 +271,12 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
           await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
           console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
         } catch (error) {
-          console.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
+          if (isTelegramUserInactiveError(error)) {
+            console.log(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
+            await usersDb.setUserActive(user.telegram_id, false);
+          } else {
+            console.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
+          }
           // Track error
           if (metricsCollector) {
             metricsCollector.trackError(error, { 
@@ -291,7 +297,11 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
             await bot.api.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
             console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
           } catch (error) {
-            console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
+            if (isTelegramUserInactiveError(error)) {
+              console.log(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
+            } else {
+              console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
+            }
             // Track channel error
             if (metricsCollector) {
               metricsCollector.trackChannelEvent('publishErrors');
