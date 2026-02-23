@@ -18,7 +18,7 @@ console.log('🧪 Тестування функціоналу привіталь
 console.log('Test 1: Перевірка наявності функції getChannelWelcomeMessage');
 try {
   const fs = require('fs');
-  const channelJsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
+  const channelJsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/channel/helpers.js'), 'utf8');
   
   const hasFunctionDefinition = channelJsContent.includes('function getChannelWelcomeMessage(user)');
   assert.strictEqual(hasFunctionDefinition, true, 'Функція getChannelWelcomeMessage має існувати');
@@ -149,11 +149,11 @@ try {
   process.exit(1);
 }
 
-// Test 5: Verify implementation in channel.js uses the function
+// Test 5: Verify implementation in channel/branding.js uses the function
 console.log('Test 5: Перевірка використання функції в applyChannelBranding');
 try {
   const fs = require('fs');
-  const channelJsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
+  const channelJsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/channel/branding.js'), 'utf8');
   
   const usesFunction = channelJsContent.includes('getChannelWelcomeMessage(user)');
   assert.strictEqual(usesFunction, true, 'applyChannelBranding має використовувати getChannelWelcomeMessage');

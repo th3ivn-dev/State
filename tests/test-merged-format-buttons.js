@@ -73,7 +73,12 @@ try {
 console.log('Test 2: Checking for format_schedule_text handler...');
 try {
   const fs = require('fs');
-  const channelJsContent = fs.readFileSync('./src/handlers/channel.js', 'utf8');
+  const path = require('path');
+  const channelDir = path.join(__dirname, '../src/handlers/channel');
+  const channelJsContent = fs.readdirSync(channelDir)
+    .filter(f => f.endsWith('.js'))
+    .map(f => fs.readFileSync(path.join(channelDir, f), 'utf8'))
+    .join('\n');
   
   // Check for format_schedule_text handler
   assert(channelJsContent.includes("data === 'format_schedule_text'"), 
@@ -117,7 +122,12 @@ try {
 console.log('Test 3: Checking cancel buttons in text input screens...');
 try {
   const fs = require('fs');
-  const channelJsContent = fs.readFileSync('./src/handlers/channel.js', 'utf8');
+  const path = require('path');
+  const channelDir = path.join(__dirname, '../src/handlers/channel');
+  const channelJsContent = fs.readdirSync(channelDir)
+    .filter(f => f.endsWith('.js'))
+    .map(f => fs.readFileSync(path.join(channelDir, f), 'utf8'))
+    .join('\n');
   
   // Helper function to check for cancel button in a handler
   const checkCancelButton = (handlerPattern, expectedCallback, handlerName) => {
@@ -173,7 +183,12 @@ try {
 console.log('Test 4: Checking return navigation after saving...');
 try {
   const fs = require('fs');
-  const channelJsContent = fs.readFileSync('./src/handlers/channel.js', 'utf8');
+  const path = require('path');
+  const channelDir = path.join(__dirname, '../src/handlers/channel');
+  const channelJsContent = fs.readdirSync(channelDir)
+    .filter(f => f.endsWith('.js'))
+    .map(f => fs.readFileSync(path.join(channelDir, f), 'utf8'))
+    .join('\n');
   
   // Check that caption handler returns to instruction screen
   const captionHandlerIndex = channelJsContent.indexOf("state.state === 'waiting_for_schedule_caption'");

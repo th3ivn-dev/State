@@ -16,9 +16,12 @@ console.log('  Test: Merged Reset Buttons');
 console.log('═══════════════════════════════════════════════════\n');
 
 // Read the channel.js and inline.js files
-const channelJsPath = path.join(__dirname, '../src/handlers/channel.js');
+const channelDir = path.join(__dirname, '../src/handlers/channel');
 const inlineJsPath = path.join(__dirname, '../src/keyboards/inline.js');
-const channelJsContent = fs.readFileSync(channelJsPath, 'utf8');
+const channelJsContent = fs.readdirSync(channelDir)
+  .filter(f => f.endsWith('.js'))
+  .map(f => fs.readFileSync(path.join(channelDir, f), 'utf8'))
+  .join('\n');
 const inlineJsContent = fs.readFileSync(inlineJsPath, 'utf8');
 
 // Test 1: Schedule text keyboard has only ONE reset button

@@ -15,8 +15,11 @@ console.log('  Test: Reset Buttons Popup Fix');
 console.log('═══════════════════════════════════════════════════\n');
 
 // Read the channel.js file
-const channelJsPath = path.join(__dirname, '../src/handlers/channel.js');
-const channelJsContent = fs.readFileSync(channelJsPath, 'utf8');
+const channelDir = path.join(__dirname, '../src/handlers/channel');
+const channelJsContent = fs.readdirSync(channelDir)
+  .filter(f => f.endsWith('.js'))
+  .map(f => fs.readFileSync(path.join(channelDir, f), 'utf8'))
+  .join('\n');
 
 // Test 1: Check that CALLBACKS_WITH_CUSTOM_ANSWER constant exists
 console.log('🧪 Test 1: CALLBACKS_WITH_CUSTOM_ANSWER constant exists');
