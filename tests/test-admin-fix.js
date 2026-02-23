@@ -11,7 +11,15 @@ console.log('🧪 Testing admin panel fix and UX improvements...\n');
 
 // Test 1: Check that settings.js doesn't call handleAdmin anymore
 console.log('Test 1: Verify settings.js admin panel implementation');
-const settingsContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+const settingsContent = [
+  'settings/index.js',
+  'settings/helpers.js',
+  'settings/region.js',
+  'settings/alerts.js',
+  'settings/data.js',
+  'settings/ip.js',
+  'settings/channel.js',
+].map(f => require('fs').readFileSync(path.join(__dirname, '../src/handlers/', f), 'utf8')).join('\n');
 
 // Check that the problematic handleAdmin call is removed
 const hasProblematicCall = settingsContent.includes("await handleAdmin(bot, query.message);");

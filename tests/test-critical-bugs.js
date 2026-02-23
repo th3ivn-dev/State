@@ -68,13 +68,13 @@ console.log('✓ isAdmin function correctly checks ownerId\n');
 // ============================================================================
 console.log('Test 2: Verify settings.js imports and uses isAdmin from utils');
 
-const settingsCode = require('fs').readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+const settingsCode = require('fs').readFileSync(path.join(__dirname, '../src/handlers/settings/index.js'), 'utf8');
 
 // Check that isAdmin is imported from utils
 assert(
-  settingsCode.includes("const { isAdmin } = require('../utils')") ||
-  settingsCode.includes('const { isAdmin } = require("../utils")'),
-  'settings.js should import isAdmin from utils'
+  settingsCode.includes("require('../../utils')") && settingsCode.includes('isAdmin') ||
+  settingsCode.includes('require("../../utils")') && settingsCode.includes('isAdmin'),
+  'settings/index.js should import isAdmin from utils'
 );
 
 // Check that inline isAdmin checks are replaced

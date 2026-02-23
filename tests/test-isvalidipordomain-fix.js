@@ -27,33 +27,33 @@ function test(name, fn) {
   }
 }
 
-// Test 1: isValidIPorDomain is defined in settings.js
-test('settings.js defines isValidIPorDomain function', () => {
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+// Test 1: isValidIPorDomain is defined in settings/helpers.js
+test('settings/helpers.js defines isValidIPorDomain function', () => {
+  const settingsContent = fs.readFileSync('../src/handlers/settings/helpers.js', 'utf8');
   
   if (!settingsContent.includes('function isValidIPorDomain(input)')) {
-    throw new Error('isValidIPorDomain function is not defined in settings.js');
+    throw new Error('isValidIPorDomain function is not defined in settings/helpers.js');
   }
 });
 
-// Test 2: isValidIPorDomain is exported from settings.js
-test('settings.js exports isValidIPorDomain', () => {
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+// Test 2: isValidIPorDomain is exported from settings/helpers.js
+test('settings/helpers.js exports isValidIPorDomain', () => {
+  const settingsContent = fs.readFileSync('../src/handlers/settings/helpers.js', 'utf8');
   
   // Check module.exports includes isValidIPorDomain
   const exportsMatch = settingsContent.match(/module\.exports\s*=\s*\{[^}]*\}/s);
   if (!exportsMatch) {
-    throw new Error('No module.exports found in settings.js');
+    throw new Error('No module.exports found in settings/helpers.js');
   }
   
   if (!exportsMatch[0].includes('isValidIPorDomain')) {
-    throw new Error('isValidIPorDomain is not exported from settings.js');
+    throw new Error('isValidIPorDomain is not exported from settings/helpers.js');
   }
 });
 
 // Test 3: isValidIPorDomain function has correct validation logic
 test('isValidIPorDomain function has IP and domain validation', () => {
-  const settingsContent = fs.readFileSync('../src/handlers/settings.js', 'utf8');
+  const settingsContent = fs.readFileSync('../src/handlers/settings/helpers.js', 'utf8');
   
   // Find the function
   const funcStart = settingsContent.indexOf('function isValidIPorDomain(input) {');

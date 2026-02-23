@@ -47,14 +47,14 @@ test('IP monitoring menu should have instruction button', () => {
 // Simulate the instruction handler
 test('Instruction handler should exist for ip_instruction callback', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
   assert(settingsContent.includes("data === 'ip_instruction'"), 
-    'ip_instruction handler not found in settings.js');
+    'ip_instruction handler not found in settings/ip.js');
 });
 
 test('Instruction text should contain all required sections', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
   
   // Check for key sections
   const requiredSections = [
@@ -82,7 +82,7 @@ test('Instruction text should contain all required sections', () => {
 
 test('Instruction should include example formats', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
   
   // Note: Examples use intentionally invalid IPs (89.267.32.1 with octet 267 > 255)
   // to prevent users from accidentally using example addresses
@@ -93,7 +93,7 @@ test('Instruction should include example formats', () => {
 
 test('Instruction should include useful service links', () => {
   const fs = require('fs');
-  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
   
   assert(settingsContent.includes('https://2ip.ua/ua'), 'Missing 2ip.ua link');
   assert(settingsContent.includes('https://www.asus.com/ua-ua/support/FAQ/1011725/'), 
@@ -106,10 +106,9 @@ test('Instruction should include useful service links', () => {
 console.log('\nTask 2: IP/Domain Validation\n');
 
 // Import validation function
-const settingsModule = './src/handlers/settings.js';
-delete require.cache[require.resolve(settingsModule)];
 const fs = require('fs');
-const settingsCode = fs.readFileSync(settingsModule, 'utf8');
+const settingsCode = fs.readFileSync('./src/handlers/settings/ip.js', 'utf8') + '\n' +
+  fs.readFileSync('./src/handlers/settings/helpers.js', 'utf8');
 
 // Extract and evaluate the validation function
 const functionMatch = settingsCode.match(/function isValidIPorDomain\(input\) \{[\s\S]*?\n\}/);
@@ -317,12 +316,12 @@ test('All keyboard exports should be available', () => {
 
 test('Settings module should export required functions', () => {
   // Check that module can be loaded
-  assert(fs.existsSync('./src/handlers/settings.js'), 
-    'settings.js not found');
+  assert(fs.existsSync('./src/handlers/settings/index.js'), 
+    'settings/index.js not found');
   
   // Check for key function exports
   assert(settingsCode.includes('module.exports'), 
-    'No exports found in settings.js');
+    'No exports found in settings files');
 });
 
 // ============================================================================
