@@ -20,8 +20,7 @@ const adminJsContent = fs.readFileSync(adminJsPath, 'utf8');
 console.log('🧪 Test 1: admin_router_set_ip callback uses centralized state manager');
 
 // setState should now be imported at the top level (not inline in function)
-const hasStateManagerImport = adminJsContent.includes("setState") && 
-  adminJsContent.match(/^const \{[^}]*setState[^}]*\} = require\('\.\.\/state\/stateManager'\)/m);
+const hasStateManagerImport = adminJsContent.match(/^const \{[^}]*setState[^}]*\} = require\('\.\.\/state\/stateManager'\)/m) !== null;
 const usesSetState = adminJsContent.match(/admin_router_set_ip[\s\S]*?await setState\('conversation'/);
 
 if (!hasStateManagerImport) {
@@ -40,7 +39,7 @@ console.log('  ✅ admin_router_set_ip correctly uses setState from stateManager
 console.log('\n🧪 Test 2: handleAdminRouterIpConversation uses centralized state manager');
 
 // getState and clearState should be imported at the top level (not inline in function)
-const usesGetState = adminJsContent.match(/^const \{[^}]*getState[^}]*\} = require\('\.\.\/state\/stateManager'\)/m);
+const usesGetState = adminJsContent.match(/^const \{[^}]*getState[^}]*clearState[^}]*\} = require\('\.\.\/state\/stateManager'\)|^const \{[^}]*clearState[^}]*getState[^}]*\} = require\('\.\.\/state\/stateManager'\)/m) !== null;
 const callsGetState = adminJsContent.match(/handleAdminRouterIpConversation[\s\S]*?const state = getState\('conversation', telegramId\)/);
 const callsClearState = adminJsContent.match(/handleAdminRouterIpConversation[\s\S]*?await clearState\('conversation', telegramId\)/);
 

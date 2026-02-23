@@ -136,8 +136,13 @@ async function handleMenuTimer(bot, query) {
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerMessage(nextEvent);
-    // Remove HTML tags for popup
-    const cleanMessage = message.replace(/<[^>]*>/g, '');
+    // Strip HTML tags for popup (loop to handle any nesting)
+    let cleanMessage = message;
+    let prev;
+    do {
+      prev = cleanMessage;
+      cleanMessage = prev.replace(/<[^>]*>/g, '');
+    } while (cleanMessage !== prev);
 
     await safeAnswerCallbackQuery(bot, query.id, {
       text: cleanMessage,
@@ -260,7 +265,7 @@ async function handleBackToMain(bot, query) {
     message += `📍 Регіон: ${region} • ${user.queue}\n`;
     message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
     message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
-    message += '\n💬 Допоможіть нам стати краще — скористайтесь ❓ Допомога\n';
+    message += '\n💬 Допоможіть нам стати краще — скористайтеся ❓ Допомога\n';
 
     // If current message is a photo/media, skip editMessageText and go straight to delete+send
     const isMediaMessage = !!(query.message.photo || query.message.document ||
