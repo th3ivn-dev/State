@@ -14,7 +14,7 @@ console.log('🧪 Testing feedback and regionRequest fixes...\n');
 // Load source files
 const regionRequestCode = fs.readFileSync(path.join(__dirname, '../src/handlers/regionRequest.js'), 'utf8');
 const feedbackCode = fs.readFileSync(path.join(__dirname, '../src/handlers/feedback.js'), 'utf8');
-const startCode = fs.readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
+const startCode = fs.readFileSync(path.join(__dirname, '../src/handlers/start/command.js'), 'utf8');
 
 // Test 1: Verify persist=false in setRegionRequestState
 console.log('Test 1: Check regionRequest state persistence fix');

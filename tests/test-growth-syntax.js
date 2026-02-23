@@ -43,7 +43,7 @@ try {
   }
   
   // Check start.js has registration limits
-  const startJs = fs.readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
+  const startJs = fs.readFileSync(path.join(__dirname, '../src/handlers/start/notify.js'), 'utf8');
   if (startJs.includes('isRegistrationEnabled')) {
     console.log('✅ start.js has registration checks');
   } else {

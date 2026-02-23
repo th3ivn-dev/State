@@ -58,7 +58,7 @@ console.log('✓ channel.js sends main menu after successful setup\n');
 
 // Check start.js
 console.log('Test 4: Verify start.js sends main menu after region/queue update');
-const startContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
+const startContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/start/region.js'), 'utf8');
 
 const hasMainMenuAfterEdit = startContent.includes("Налаштування оновлено") && 
                              startContent.match(/Налаштування оновлено[\s\S]*?getMainMenu/);

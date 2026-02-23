@@ -68,7 +68,7 @@ console.log('✓ delete_data_step2 правильно включено в мар
 console.log('Test 4: Перевірка узгодженості структури повідомлень');
 
 // Find handleStart function in start.js
-const startJs = fs.readFileSync(path.join(__dirname, '../src/handlers/start.js'), 'utf8');
+const startJs = fs.readFileSync(path.join(__dirname, '../src/handlers/start/command.js'), 'utf8');
 
 // Check that /start uses similar beta message structure
 assert(startJs.includes('🚧 Бот у розробці'), 
