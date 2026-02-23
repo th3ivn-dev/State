@@ -15,7 +15,7 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
       { text: 'Налаштування', callback_data: 'menu_settings', icon_custom_emoji_id: '5341715473882955310' }
     ],
   ];
-  
+
   // Add pause/resume button if user has a channel
   if (botStatus !== 'no_channel') {
     if (channelPaused) {
@@ -28,7 +28,7 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
       ]);
     }
   }
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons,
@@ -40,22 +40,22 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
 function getRegionKeyboard() {
   const buttons = [];
   const row = [];
-  
+
   Object.keys(REGIONS).forEach((code, index) => {
     row.push({
       text: REGIONS[code].name,
       callback_data: `region_${code}`,
     });
-    
+
     if (row.length === 2 || index === Object.keys(REGIONS).length - 1) {
       buttons.push([...row]);
       row.length = 0;
     }
   });
-  
+
   // Add "Suggest Region" button
   buttons.push([{ text: '🏙 Запропонувати регіон', callback_data: 'region_request_start' }]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons,
@@ -66,60 +66,60 @@ function getRegionKeyboard() {
 // Вибір черги з підтримкою пагінації для Києва
 function getQueueKeyboard(region = null, page = 1) {
   const buttons = [];
-  
+
   // Validate page number for Kyiv region
   if (region === 'kyiv' && (page < 1 || page > 5)) {
     page = 1; // Default to page 1 for invalid page numbers
   }
-  
+
   // Для не-Київських регіонів або якщо регіон не вказано - показуємо стандартні 12 черг
   if (!region || region !== 'kyiv') {
     const queues = region ? getQueuesForRegion(region) : QUEUES;
     const row = [];
-    
+
     queues.forEach((queue, index) => {
       row.push({
         text: queue,
         callback_data: `queue_${queue}`,
       });
-      
+
       // 3 кнопки в рядку
       if (row.length === 3 || index === queues.length - 1) {
         buttons.push([...row]);
         row.length = 0;
       }
     });
-    
+
     buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
-    
+
     return {
       reply_markup: {
         inline_keyboard: buttons,
       },
     };
   }
-  
+
   // Для Києва - показуємо пагіновану клавіатуру
   const kyivQueues = getQueuesForRegion('kyiv');
-  
+
   if (page === 1) {
     // Page 1: Стандартні черги 1.1-6.2 (indices 0-11, 12 queues, 4 per row)
     const standardQueues = kyivQueues.slice(0, 12);
     const row = [];
-    
+
     standardQueues.forEach((queue, index) => {
       row.push({
         text: queue,
         callback_data: `queue_${queue}`,
       });
-      
+
       // 4 кнопки в рядку
       if (row.length === 4 || index === standardQueues.length - 1) {
         buttons.push([...row]);
         row.length = 0;
       }
     });
-    
+
     // Кнопка "Інші черги →"
     buttons.push([{ text: 'Інші черги →', callback_data: 'queue_page_2' }]);
     buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
@@ -127,19 +127,19 @@ function getQueueKeyboard(region = null, page = 1) {
     // Page 2: Queues 7.1-22.1 (indices 12-27, 16 queues, 4×4 grid)
     const pageQueues = kyivQueues.slice(12, 28);
     const row = [];
-    
+
     pageQueues.forEach((queue, index) => {
       row.push({
         text: queue,
         callback_data: `queue_${queue}`,
       });
-      
+
       if (row.length === 4 || index === pageQueues.length - 1) {
         buttons.push([...row]);
         row.length = 0;
       }
     });
-    
+
     // Navigation buttons
     buttons.push([
       { text: '← Назад', callback_data: 'queue_page_1' },
@@ -149,19 +149,19 @@ function getQueueKeyboard(region = null, page = 1) {
     // Page 3: Queues 23.1-38.1 (indices 28-43, 16 queues, 4×4 grid)
     const pageQueues = kyivQueues.slice(28, 44);
     const row = [];
-    
+
     pageQueues.forEach((queue, index) => {
       row.push({
         text: queue,
         callback_data: `queue_${queue}`,
       });
-      
+
       if (row.length === 4 || index === pageQueues.length - 1) {
         buttons.push([...row]);
         row.length = 0;
       }
     });
-    
+
     // Navigation buttons
     buttons.push([
       { text: '← Назад', callback_data: 'queue_page_2' },
@@ -171,19 +171,19 @@ function getQueueKeyboard(region = null, page = 1) {
     // Page 4: Queues 39.1-54.1 (indices 44-59, 16 queues, 4×4 grid)
     const pageQueues = kyivQueues.slice(44, 60);
     const row = [];
-    
+
     pageQueues.forEach((queue, index) => {
       row.push({
         text: queue,
         callback_data: `queue_${queue}`,
       });
-      
+
       if (row.length === 4 || index === pageQueues.length - 1) {
         buttons.push([...row]);
         row.length = 0;
       }
     });
-    
+
     // Navigation buttons
     buttons.push([
       { text: '← Назад', callback_data: 'queue_page_3' },
@@ -193,23 +193,23 @@ function getQueueKeyboard(region = null, page = 1) {
     // Page 5: Queues 55.1-60.1 (indices 60-65, 6 queues, last page)
     const pageQueues = kyivQueues.slice(60, 66);
     const row = [];
-    
+
     pageQueues.forEach((queue, index) => {
       row.push({
         text: queue,
         callback_data: `queue_${queue}`,
       });
-      
+
       if (row.length === 4 || index === pageQueues.length - 1) {
         buttons.push([...row]);
         row.length = 0;
       }
     });
-    
+
     // Only back button on last page
     buttons.push([{ text: '← Назад', callback_data: 'queue_page_4' }]);
   }
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons,
@@ -242,25 +242,25 @@ function getSettingsKeyboard(isAdmin = false) {
       { text: 'Сповіщення', callback_data: 'settings_alerts', icon_custom_emoji_id: '5458603043203327669' }
     ],
   ];
-  
+
   // Add admin panel button if user is admin
   if (isAdmin) {
     buttons.push(
       [{ text: 'Адмін-панель', callback_data: 'settings_admin', icon_custom_emoji_id: '5217822164362739968' }]
     );
   }
-  
+
   buttons.push(
     [{ text: 'Видалити мої дані', callback_data: 'settings_delete_data', icon_custom_emoji_id: '5445267414562389170' }]
   );
-  
+
   buttons.push(
     [
       { text: '← Назад', callback_data: 'back_to_main' },
       { text: '⤴ Меню', callback_data: 'back_to_main' }
     ]
   );
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons,
@@ -288,7 +288,7 @@ function getAlertsSettingsKeyboard() {
 // Адмін меню
 function getAdminKeyboard(openTicketsCount = 0) {
   const ticketsText = openTicketsCount > 0 ? `📩 Звернення (${openTicketsCount})` : '📩 Звернення';
-  
+
   const buttons = [
     [
       { text: '📊 Статистика', callback_data: 'admin_stats' },
@@ -320,12 +320,12 @@ function getAdminKeyboard(openTicketsCount = 0) {
       { text: '🔄 Перезапуск', callback_data: 'admin_restart' }
     ],
   ];
-  
+
   buttons.push([
     { text: '← Назад', callback_data: 'back_to_settings' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons,
@@ -482,7 +482,7 @@ function getStatisticsKeyboard() {
 async function getHelpKeyboard() {
   const { getSupportButton } = require('../handlers/feedback');
   const supportButton = await getSupportButton();
-  
+
   return {
     reply_markup: {
       inline_keyboard: [
@@ -504,7 +504,7 @@ async function getHelpKeyboard() {
 // Канал меню
 function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatus = 'active') {
   const buttons = [];
-  
+
   if (!channelId) {
     // Канал НЕ підключено
     buttons.push([{ text: '✚ Підключити канал', callback_data: 'channel_connect' }]);
@@ -514,7 +514,7 @@ function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatu
     if (isPublic && channelId.startsWith('@')) {
       buttons.push([{ text: '📺 Відкрити канал', url: `https://t.me/${channelId.replace('@', '')}` }]);
     }
-    
+
     buttons.push([
       { text: 'ℹ️ Інфо', callback_data: 'channel_info' },
       { text: '✏️ Назва', callback_data: 'channel_edit_title' }
@@ -526,17 +526,17 @@ function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatu
     buttons.push([
       { text: '🧪 Тест', callback_data: 'channel_test' },
       // Add reconnect button if channel is blocked, otherwise disable
-      channelStatus === 'blocked' 
+      channelStatus === 'blocked'
         ? { text: '⚙️ Перепідключити', callback_data: 'channel_reconnect' }
         : { text: '🔴 Вимкнути', callback_data: 'channel_disable' }
     ]);
   }
-  
+
   buttons.push([
     { text: '← Назад', callback_data: 'back_to_settings' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons,
@@ -577,7 +577,7 @@ function getFormatSettingsKeyboard(user) {
 function getFormatScheduleKeyboard(user) {
   const deleteOld = user.delete_old_message ? '✓' : '○';
   const picOnly = user.picture_only ? '✓' : '○';
-  
+
   return {
     reply_markup: {
       inline_keyboard: [
@@ -633,23 +633,23 @@ function getPauseMenuKeyboard(isPaused) {
   const statusIcon = isPaused ? '🔴' : '🟢';
   const statusText = isPaused ? 'Бот на паузі' : 'Бот активний';
   const toggleText = isPaused ? '🟢 Вимкнути паузу' : '🔴 Увімкнути паузу';
-  
+
   const buttons = [
     [{ text: `${statusIcon} ${statusText}`, callback_data: 'pause_status' }],
     [{ text: toggleText, callback_data: 'pause_toggle' }],
     [{ text: '📋 Налаштувати повідомлення', callback_data: 'pause_message_settings' }],
   ];
-  
+
   if (isPaused) {
     buttons.push([{ text: '🏷 Тип паузи', callback_data: 'pause_type_select' }]);
   }
-  
+
   buttons.push([{ text: '📜 Лог паузи', callback_data: 'pause_log' }]);
   buttons.push([
     { text: '← Назад', callback_data: 'admin_menu' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons
@@ -660,7 +660,7 @@ function getPauseMenuKeyboard(isPaused) {
 // Меню налаштування повідомлення паузи
 function getPauseMessageKeyboard(showSupportButton) {
   const supportIcon = showSupportButton ? '✓' : '○';
-  
+
   return {
     reply_markup: {
       inline_keyboard: [
@@ -688,17 +688,17 @@ function getPauseTypeKeyboard(currentType = 'update') {
     { value: 'maintenance', label: '🔨 Обслуговування', icon: '🔨' },
     { value: 'testing', label: '🧪 Тестування', icon: '🧪' },
   ];
-  
+
   const buttons = types.map(type => [{
     text: currentType === type.value ? `✓ ${type.label}` : type.label,
     callback_data: `pause_type_${type.value}`
   }]);
-  
+
   buttons.push([
     { text: '← Назад', callback_data: 'admin_pause' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons
@@ -710,7 +710,7 @@ function getPauseTypeKeyboard(currentType = 'update') {
 async function getErrorKeyboard() {
   const { getSupportButton } = require('../handlers/feedback');
   const supportButton = await getSupportButton();
-  
+
   return {
     reply_markup: {
       inline_keyboard: [
@@ -738,7 +738,7 @@ function getDebounceKeyboard(currentValue) {
       callback_data: `debounce_set_${min}`
     };
   });
-  
+
   return {
     reply_markup: {
       inline_keyboard: [
@@ -761,17 +761,17 @@ function getNotifyTargetKeyboard(currentTarget = 'both') {
     { value: 'channel', label: '📺 Тільки в канал' },
     { value: 'both', label: '📱📺 В бот і канал' }
   ];
-  
+
   const buttons = options.map(opt => [{
     text: currentTarget === opt.value ? `✓ ${opt.label}` : opt.label,
     callback_data: `notify_target_${opt.value}`
   }]);
-  
+
   buttons.push([
     { text: '← Назад', callback_data: 'back_to_settings' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons
@@ -782,7 +782,7 @@ function getNotifyTargetKeyboard(currentTarget = 'both') {
 // Unified alerts menu (combines alerts on/off with notify target selection)
 function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
   const buttons = [];
-  
+
   if (isActive) {
     // Show target selection buttons when notifications are enabled
     const options = [
@@ -790,7 +790,7 @@ function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
       { value: 'channel', label: '📺 Тільки в канал' },
       { value: 'both', label: '📱📺 В бот і канал' }
     ];
-    
+
     options.forEach(opt => {
       const btn = {
         text: opt.label,
@@ -799,19 +799,19 @@ function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
       if (currentTarget === opt.value) btn.style = 'success';
       buttons.push([btn]);
     });
-    
+
     // Add disable button
     buttons.push([{ text: '🔕 Вимкнути сповіщення', callback_data: 'alert_toggle', style: 'danger' }]);
   } else {
     // Show only enable button when notifications are disabled
     buttons.push([{ text: '🔔 Увімкнути сповіщення', callback_data: 'alert_toggle', style: 'success' }]);
   }
-  
+
   // Add back button
   buttons.push([
     { text: '← Назад', callback_data: 'back_to_settings' }
   ]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons
@@ -872,7 +872,7 @@ function getGrowthStageKeyboard(currentStage) {
 function getGrowthRegistrationKeyboard(enabled) {
   const toggleText = enabled ? '🔴 Вимкнути реєстрацію' : '🟢 Увімкнути реєстрацію';
   const statusText = enabled ? '🟢 Реєстрація увімкнена' : '🔴 Реєстрація вимкнена';
-  
+
   return {
     reply_markup: {
       inline_keyboard: [
@@ -928,18 +928,18 @@ function getAdminTicketsKeyboard(openCount = 0) {
 // Admin ticket management keyboard
 function getAdminTicketKeyboard(ticketId, status = 'open') {
   const buttons = [];
-  
+
   if (status === 'open') {
     buttons.push([{ text: '💬 Відповісти', callback_data: `admin_ticket_reply_${ticketId}` }]);
     buttons.push([{ text: '✅ Закрити', callback_data: `admin_ticket_close_${ticketId}` }]);
   } else if (status === 'closed') {
     buttons.push([{ text: '🔄 Відкрити знову', callback_data: `admin_ticket_reopen_${ticketId}` }]);
   }
-  
+
   buttons.push([
     { text: '← Назад до списку', callback_data: 'admin_tickets' },
   ]);
-  
+
   return {
     inline_keyboard: buttons,
   };
@@ -948,11 +948,11 @@ function getAdminTicketKeyboard(ticketId, status = 'open') {
 // Admin tickets list keyboard
 function getAdminTicketsListKeyboard(tickets, page = 1) {
   const buttons = [];
-  
+
   // Show up to 5 tickets per page
   const startIndex = (page - 1) * 5;
   const endIndex = Math.min(startIndex + 5, tickets.length);
-  
+
   for (let i = startIndex; i < endIndex; i++) {
     const ticket = tickets[i];
     const typeEmoji = ticket.type === 'bug' ? '🐛' : ticket.type === 'region_request' ? '🏙' : '💬';
@@ -964,7 +964,7 @@ function getAdminTicketsListKeyboard(tickets, page = 1) {
     const buttonText = `${statusEmoji} ${typeEmoji} #${ticket.id} - ${displaySubject}`;
     buttons.push([{ text: buttonText, callback_data: `admin_ticket_view_${ticket.id}` }]);
   }
-  
+
   // Pagination if needed
   const totalPages = Math.ceil(tickets.length / 5);
   if (totalPages > 1) {
@@ -979,12 +979,12 @@ function getAdminTicketsListKeyboard(tickets, page = 1) {
       buttons.push(paginationRow);
     }
   }
-  
+
   buttons.push([
     { text: '← Назад', callback_data: 'admin_menu' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
-  
+
   return {
     inline_keyboard: buttons,
   };
@@ -993,7 +993,7 @@ function getAdminTicketsListKeyboard(tickets, page = 1) {
 // Admin router monitoring keyboards
 function getAdminRouterKeyboard(routerData) {
   const buttons = [];
-  
+
   if (!routerData || !routerData.router_ip) {
     // IP not configured
     buttons.push([
@@ -1010,12 +1010,12 @@ function getAdminRouterKeyboard(routerData) {
       { text: '🔄 Оновити', callback_data: 'admin_router_refresh' }
     ]);
   }
-  
+
   buttons.push([
     { text: '← Назад', callback_data: 'admin_menu' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
-  
+
   return {
     reply_markup: {
       inline_keyboard: buttons,
@@ -1054,20 +1054,20 @@ function getAdminRouterSetIpKeyboard() {
 function getAdminSupportKeyboard(currentMode, supportUrl) {
   const channelActive = currentMode === 'channel';
   const botActive = currentMode === 'bot';
-  
+
   return {
     reply_markup: {
       inline_keyboard: [
         [
-          { 
-            text: `${channelActive ? '●' : '○'} Через канал (листування)`, 
-            callback_data: 'admin_support_channel' 
+          {
+            text: `${channelActive ? '●' : '○'} Через канал (листування)`,
+            callback_data: 'admin_support_channel'
           }
         ],
         [
-          { 
-            text: `${botActive ? '●' : '○'} Через бот (тікети)`, 
-            callback_data: 'admin_support_bot' 
+          {
+            text: `${botActive ? '●' : '○'} Через бот (тікети)`,
+            callback_data: 'admin_support_bot'
           }
         ],
         [

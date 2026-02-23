@@ -17,28 +17,28 @@ let bot = null;
 async function initScheduler(botInstance) {
   bot = botInstance;
   console.log('📅 Ініціалізація планувальника...');
-  
+
   // Read interval from database instead of config
   const intervalStr = await getSetting('schedule_check_interval', '60');
   let checkIntervalSeconds = parseInt(intervalStr, 10);
-  
+
   // Validate the interval
   if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
     console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
     checkIntervalSeconds = 60;
   }
-  
+
   // Initialize scheduler manager
   schedulerManager.init({
     checkIntervalSeconds: checkIntervalSeconds
   });
-  
+
   // Start schedulers with dependencies
   schedulerManager.start({
     bot: botInstance,
     checkAllSchedules: checkAllSchedules
   });
-  
+
   console.log(`✅ Планувальник запущено через scheduler manager`);
 }
 
@@ -52,13 +52,13 @@ async function checkAllSchedules() {
     return;
   }
   isCheckingSchedules = true;
-  
+
   try {
     // Use Promise.allSettled for parallel region checking
     const results = await Promise.allSettled(
       REGION_CODES.map(region => checkRegionSchedule(region))
     );
-    
+
     // Log any failures
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
@@ -77,16 +77,16 @@ async function checkRegionSchedule(region) {
   try {
     // Отримуємо дані для регіону
     const data = await fetchScheduleData(region);
-    
+
     // Отримуємо всіх користувачів для цього регіону
     const users = await usersDb.getUsersByRegion(region);
-    
+
     if (users.length === 0) {
       return;
     }
-    
+
     console.log(`Перевірка ${region}: знайдено ${users.length} користувачів`);
-    
+
     for (const user of users) {
       try {
         await checkUserSchedule(user, data);
@@ -94,7 +94,7 @@ async function checkRegionSchedule(region) {
         console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, error.message);
       }
     }
-    
+
   } catch (error) {
     console.error(`Помилка при перевірці графіка для ${region}:`, error.message);
   }
@@ -108,48 +108,48 @@ async function checkUserSchedule(user, data) {
       console.log(`[${user.telegram_id}] Пропущено - канал заблоковано`);
       return;
     }
-    
+
     const queueKey = `GPV${user.queue}`;
-    
+
     // Отримуємо timestamps для сьогодні та завтра
     const availableTimestamps = Object.keys(data?.fact?.data || {}).map(Number).sort((a, b) => a - b);
     const todayTimestamp = availableTimestamps[0] || null;
     const tomorrowTimestamp = availableTimestamps.length > 1 ? availableTimestamps[1] : null;
-    
+
     const newHash = calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp);
-    
+
     // Перевіряємо чи хеш змінився з останньої перевірки
     const hasChanged = newHash !== user.last_hash;
-    
+
     // ВАЖЛИВО: Якщо хеш не змінився - нічого не робимо (запобігає дублікатам при перезапуску)
     if (!hasChanged) {
       return;
     }
-    
+
     // Перевіряємо чи графік вже опублікований з цим хешем
     if (newHash === user.last_published_hash) {
       // Оновлюємо last_hash для синхронізації
       await usersDb.updateUserHash(user.id, newHash);
       return;
     }
-    
+
     // Парсимо графік
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
-    
+
     // Отримуємо налаштування куди публікувати
     const notifyTarget = user.power_notify_target || 'both';
-    
+
     console.log(`[${user.telegram_id}] Графік оновлено, публікуємо (target: ${notifyTarget})`);
-    
+
     // Відправляємо в особистий чат користувача
     if (notifyTarget === 'bot' || notifyTarget === 'both') {
       try {
         const { formatScheduleMessage } = require('./formatter');
         const { fetchScheduleImage } = require('./api');
-        
+
         const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
-        
+
         // Спробуємо з фото
         try {
           const imageBuffer = await fetchScheduleImage(user.region, user.queue);
@@ -162,7 +162,7 @@ async function checkUserSchedule(user, data) {
           // Без фото
           await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
         }
-        
+
         console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
       } catch (error) {
         if (isTelegramUserInactiveError(error)) {
@@ -173,11 +173,11 @@ async function checkUserSchedule(user, data) {
         }
       }
     }
-    
+
     // Оновлюємо хеші після відправки в бот, але перед каналом
     // Це запобігає дублікатам, якщо публікація в канал не вдається
     await usersDb.updateUserHashes(user.id, newHash);
-    
+
     // Відправляємо в канал (незалежно від відправки в бот)
     if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
       try {
@@ -196,7 +196,7 @@ async function checkUserSchedule(user, data) {
         // Channel error doesn't affect hash — prevents duplicates in bot
       }
     }
-    
+
   } catch (error) {
     console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);
   }

@@ -12,10 +12,10 @@ console.log('Test 1: Перевірка назви бота в повідомл�
 try {
   const fs = require('fs');
   const channelGuardContent = fs.readFileSync(path.join(__dirname, '../src/channelGuard.js'), 'utf8');
-  
+
   const hasGridBot = channelGuardContent.includes('GridBot');
   const hasVoltyk = channelGuardContent.includes('СвітлоБот');
-  
+
   if (hasGridBot) {
     console.log('✗ Знайдено "GridBot" в channelGuard.js\n');
     process.exit(1);
@@ -36,7 +36,7 @@ try {
   const db = require('../src/database/db');
   const tableInfo = db.pragma('table_info(users)');
   const columnNames = tableInfo.map(col => col.name);
-  
+
   if (columnNames.includes('channel_branding_updated_at')) {
     console.log('✓ Колонка channel_branding_updated_at додана\n');
   } else {
@@ -52,7 +52,7 @@ try {
 console.log('Test 3: Перевірка методу updateChannelBrandingPartial');
 try {
   const usersDb = require('../src/database/users');
-  
+
   if (typeof usersDb.updateChannelBrandingPartial === 'function') {
     console.log('✓ Метод updateChannelBrandingPartial існує\n');
   } else {
@@ -69,10 +69,10 @@ console.log('Test 4: Перевірка відстеження timestamp в chan
 try {
   const fs = require('fs');
   const channelGuardContent = fs.readFileSync(path.join(__dirname, '../src/channelGuard.js'), 'utf8');
-  
+
   const hasTimestampCheck = channelGuardContent.includes('channel_branding_updated_at') &&
                             channelGuardContent.includes('hoursSinceUpdate');
-  
+
   if (hasTimestampCheck) {
     console.log('✓ Логіка перевірки timestamp додана\n');
   } else {
@@ -89,11 +89,11 @@ console.log('Test 5: Перевірка покращеної обробки по
 try {
   const fs = require('fs');
   const channelHandlerContent = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
-  
+
   const hasOperationsTracking = channelHandlerContent.includes('const operations = {') &&
                                 channelHandlerContent.includes('operations.title') &&
                                 channelHandlerContent.includes('operations.description');
-  
+
   if (hasOperationsTracking) {
     console.log('✓ Відстеження операцій додано\n');
   } else {
@@ -110,11 +110,11 @@ console.log('Test 6: Перевірка валідації каналу в publi
 try {
   const fs = require('fs');
   const publisherContent = fs.readFileSync(path.join(__dirname, '../src/publisher.js'), 'utf8');
-  
+
   const hasChannelValidation = publisherContent.includes('// Validate channel before publishing') &&
                                publisherContent.includes('getChat(user.channel_id)') &&
                                publisherContent.includes('updateChannelStatus');
-  
+
   if (hasChannelValidation) {
     console.log('✓ Валідація каналу додана\n');
   } else {
@@ -131,9 +131,9 @@ console.log('Test 7: Перевірка оновлення timestamp в updateCh
 try {
   const fs = require('fs');
   const usersDbContent = fs.readFileSync(path.join(__dirname, '../src/database/users.js'), 'utf8');
-  
+
   const setsTimestamp = usersDbContent.includes('channel_branding_updated_at = CURRENT_TIMESTAMP');
-  
+
   if (setsTimestamp) {
     console.log('✓ Timestamp оновлюється при зміні брендування\n');
   } else {

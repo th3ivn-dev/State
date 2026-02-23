@@ -1,9 +1,9 @@
 /**
  * IP Monitoring Service
- * 
+ *
  * Handles IP monitoring business logic.
  * Separates ping/availability checking from notification logic.
- * 
+ *
  * Responsibilities:
  * - IP/domain validation
  * - Availability checking (ping)
@@ -19,7 +19,7 @@ class IpMonitoringService {
    */
   validateIpOrDomain(input) {
     const trimmed = input.trim();
-    
+
     // Check for spaces
     if (trimmed.includes(' ')) {
       return {
@@ -27,16 +27,16 @@ class IpMonitoringService {
         error: 'IP address or domain cannot contain spaces'
       };
     }
-    
+
     // Extract host and port
     let host = trimmed;
     let port = null;
-    
+
     const portMatch = trimmed.match(/^(.+):(\d+)$/);
     if (portMatch) {
       host = portMatch[1];
       port = parseInt(portMatch[2], 10);
-      
+
       if (port < 1 || port > 65535) {
         return {
           valid: false,
@@ -44,7 +44,7 @@ class IpMonitoringService {
         };
       }
     }
-    
+
     // Validate IP address
     const ipPattern = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
     if (ipPattern.test(host)) {
@@ -56,7 +56,7 @@ class IpMonitoringService {
         port
       };
     }
-    
+
     // Validate domain
     const domainPattern = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$/;
     if (domainPattern.test(host)) {
@@ -68,7 +68,7 @@ class IpMonitoringService {
         port
       };
     }
-    
+
     return {
       valid: false,
       error: 'Invalid IP address or domain format'
@@ -85,21 +85,21 @@ class IpMonitoringService {
     if (!address) {
       return null;
     }
-    
+
     // Parse address
     let host = address;
     let port = 80;
-    
+
     const portMatch = address.match(/^(.+):(\d+)$/);
     if (portMatch) {
       host = portMatch[1];
       port = parseInt(portMatch[2], 10);
     }
-    
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
-      
+
       try {
         const response = await fetch(`http://${host}:${port}`, {
           signal: controller.signal,
@@ -124,7 +124,7 @@ class IpMonitoringService {
   calculateDebounceState(currentState, isAvailable, debounceSeconds) {
     const now = Date.now();
     const newState = isAvailable ? 'on' : 'off';
-    
+
     // First check
     if (currentState.isFirstCheck) {
       return {
@@ -139,7 +139,7 @@ class IpMonitoringService {
         }
       };
     }
-    
+
     // No change
     if (currentState.currentState === newState) {
       return {
@@ -150,10 +150,10 @@ class IpMonitoringService {
         }
       };
     }
-    
+
     // State changed - check debounce
     const isPending = currentState.pendingState === newState;
-    
+
     if (!isPending) {
       // Start new pending state
       return {
@@ -166,11 +166,11 @@ class IpMonitoringService {
         }
       };
     }
-    
+
     // Check if debounce period has passed
     const debounceMs = debounceSeconds * 1000;
     const pendingDuration = now - currentState.pendingStateTime;
-    
+
     if (pendingDuration >= debounceMs) {
       // Debounce period passed - confirm change
       return {
@@ -190,7 +190,7 @@ class IpMonitoringService {
         newState: newState
       };
     }
-    
+
     // Still within debounce period
     return {
       shouldNotify: false,
@@ -211,15 +211,15 @@ class IpMonitoringService {
         stable: false
       };
     }
-    
+
     return {
       status: state.currentState,
       current: state.currentState,
       stable: !state.pendingState,
       pending: state.pendingState,
       lastChange: state.lastChangeAt,
-      uptime: state.currentState === 'on' 
-        ? Date.now() - state.lastChangeAt 
+      uptime: state.currentState === 'on'
+        ? Date.now() - state.lastChangeAt
         : null
     };
   }

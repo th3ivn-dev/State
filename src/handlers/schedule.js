@@ -9,29 +9,29 @@ const { getUpdateTypeV2 } = require('../publisher');
 async function handleSchedule(bot, msg) {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
-  
+
   try {
     // Отримуємо користувача
     const user = await usersDb.getUserByTelegramId(telegramId);
-    
+
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
       return;
     }
-    
+
     // Delete previous schedule message if exists
     if (user.last_schedule_message_id) {
       await safeDeleteMessage(bot, chatId, user.last_schedule_message_id);
     }
-    
+
     // Показуємо індикатор завантаження
     await bot.api.sendChatAction(chatId, 'typing');
-    
+
     // Отримуємо дані графіка
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
-    
+
     // Get snapshot-based updateType for contextual headers
     const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
     // getUpdateTypeV2 uses snapshot-based logic only (previousSchedule is not used)
@@ -41,11 +41,11 @@ async function handleSchedule(bot, msg) {
       todayUpdated: updateTypeV2.todayChanged,
       todayUnchanged: !updateTypeV2.todayChanged,
     };
-    
+
     // Форматуємо повідомлення
     // Pass null for changes parameter since we're not marking new events in bot view
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
-    
+
     // Спробуємо відправити зображення графіка з caption
     let sentMsg;
     try {
@@ -59,11 +59,11 @@ async function handleSchedule(bot, msg) {
       console.log('Зображення графіка недоступне:', imgError.message);
       sentMsg = await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
     }
-    
+
     if (sentMsg) {
       await usersDb.updateUser(telegramId, { last_schedule_message_id: sentMsg.message_id });
     }
-    
+
   } catch (error) {
     console.error('Помилка в handleSchedule:', error);
     await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
@@ -74,24 +74,24 @@ async function handleSchedule(bot, msg) {
 async function handleNext(bot, msg) {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
-  
+
   try {
     const user = await usersDb.getUserByTelegramId(telegramId);
-    
+
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
       return;
     }
-    
+
     await bot.api.sendChatAction(chatId, 'typing');
-    
+
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
-    
+
     const message = formatNextEventMessage(nextEvent);
     await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
-    
+
   } catch (error) {
     console.error('Помилка в handleNext:', error);
     await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
@@ -102,29 +102,29 @@ async function handleNext(bot, msg) {
 async function handleTimer(bot, msg) {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
-  
+
   try {
     const user = await usersDb.getUserByTelegramId(telegramId);
-    
+
     if (!user) {
       const { getMainMenu } = require('../keyboards/inline');
       await bot.api.sendMessage(
-        chatId, 
+        chatId,
         '❌ Спочатку запустіть бота, натиснувши /start\n\nОберіть наступну дію:',
         getMainMenu('no_channel', false)
       );
       return;
     }
-    
+
     await bot.api.sendChatAction(chatId, 'typing');
-    
+
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
-    
+
     const message = formatTimerMessage(nextEvent);
     await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
-    
+
   } catch (error) {
     console.error('Помилка в handleTimer:', error);
     await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');

@@ -32,7 +32,7 @@ async function getCurrentStage() {
 async function setGrowthStage(stageId) {
   const stage = Object.values(GROWTH_STAGES).find(s => s.id === stageId);
   if (!stage) return false;
-  
+
   const previousStage = await getCurrentStage();
   await setSetting('growth_stage', String(stageId));
   await logGrowthEvent('stage_change', {
@@ -41,7 +41,7 @@ async function setGrowthStage(stageId) {
     stage_name: stage.name,
     timestamp: new Date().toISOString()
   });
-  
+
   return true;
 }
 
@@ -75,7 +75,7 @@ async function checkUserLimit() {
   const current = stats.total;
   const max = stage.maxUsers;
   const remaining = max - current;
-  
+
   return {
     reached: current >= max,
     current,
@@ -102,20 +102,20 @@ async function getGrowthMetrics() {
   const stage = await getCurrentStage();
   const stats = await usersDb.getUserStats();
   const limit = await checkUserLimit();
-  
+
   // Calculate wizard completion rate
-  const wizardCompletionRate = stats.total > 0 
-    ? Math.round((stats.active / stats.total) * 100) 
+  const wizardCompletionRate = stats.total > 0
+    ? Math.round((stats.active / stats.total) * 100)
     : 0;
-  
+
   // Calculate channel adoption rate
   const channelAdoptionRate = stats.total > 0
     ? Math.round((stats.withChannels / stats.total) * 100)
     : 0;
-  
+
   // Get registration status
   const registrationEnabled = await isRegistrationEnabled();
-  
+
   return {
     stage: {
       id: stage.id,
@@ -149,12 +149,12 @@ async function getGrowthMetrics() {
 async function getStageSpecificMetrics() {
   const stage = await getCurrentStage();
   const stats = await usersDb.getUserStats();
-  
+
   const metrics = {
     stageId: stage.id,
     stageName: stage.name
   };
-  
+
   // Stage 0: Closed Testing - Focus on UX and stability
   if (stage.id === 0) {
     metrics.focus = [
@@ -163,7 +163,7 @@ async function getStageSpecificMetrics() {
       { name: 'Bugs in Logs', value: 0, comment: 'Track manually' }
     ];
   }
-  
+
   // Stage 1: Open Test - Focus on real-world scenarios
   if (stage.id === 1) {
     metrics.focus = [
@@ -173,7 +173,7 @@ async function getStageSpecificMetrics() {
       { name: 'IP Monitoring Users', value: 0, comment: 'Track manually' }
     ];
   }
-  
+
   // Stage 2: Controlled Growth - Focus on scaling
   if (stage.id === 2) {
     metrics.focus = [
@@ -183,7 +183,7 @@ async function getStageSpecificMetrics() {
       { name: 'Telegram API Errors', value: 0, comment: 'Track manually' }
     ];
   }
-  
+
   // Stage 3: Active Growth - Focus on peaks
   if (stage.id === 3) {
     metrics.focus = [
@@ -193,7 +193,7 @@ async function getStageSpecificMetrics() {
       { name: 'Lost Events', value: 0, comment: 'Must be 0' }
     ];
   }
-  
+
   // Stage 4: Scale - Focus on reliability
   if (stage.id === 4) {
     const uptime = process.uptime();
@@ -203,7 +203,7 @@ async function getStageSpecificMetrics() {
       { name: 'Mean Time to Incident', value: 0, unit: 'hours', comment: 'Track manually' }
     ];
   }
-  
+
   return metrics;
 }
 
@@ -220,19 +220,19 @@ async function logGrowthEvent(eventType, data) {
     data,
     timestamp
   });
-  
+
   console.log(`📈 GROWTH EVENT: ${logEntry}`);
-  
+
   // Store in settings as recent events (keep last 100)
   try {
     const recentEvents = JSON.parse(await getSetting('growth_events', '[]'));
     recentEvents.push({ eventType, data, timestamp });
-    
+
     // Keep only last 100 events
     if (recentEvents.length > 100) {
       recentEvents.shift();
     }
-    
+
     await setSetting('growth_events', JSON.stringify(recentEvents));
   } catch (error) {
     console.error('Error storing growth event:', error);
@@ -317,24 +317,24 @@ async function getRecentGrowthEvents(limit = 20) {
  */
 async function checkGrowthHealth() {
   const reasons = [];
-  
+
   // Check if pause mode is active (system instability)
   const isPaused = await getSetting('bot_paused', '0') === '1';
   if (isPaused) {
     reasons.push('Бот на паузі (можлива нестабільність)');
   }
-  
+
   // Check if user limit is reached
   const limit = await checkUserLimit();
   if (limit.reached) {
     reasons.push(`Досягнуто ліміт користувачів (${limit.current}/${limit.max})`);
   }
-  
+
   // Check if registration is disabled
   if (!await isRegistrationEnabled()) {
     reasons.push('Реєстрація вимкнена адміністратором');
   }
-  
+
   return {
     shouldStop: reasons.length > 0,
     reasons,

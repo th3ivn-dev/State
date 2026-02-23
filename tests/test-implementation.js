@@ -118,13 +118,13 @@ test('Region/queue update has two navigation buttons', () => {
 // Test 9: Verify keyboards have two buttons
 test('Keyboards updated with two navigation buttons', () => {
   const inlineContent = fs.readFileSync(path.join(__dirname, 'src/keyboards/inline.js'), 'utf8');
-  
+
   // Check getAlertsSettingsKeyboard
   const alertsKeyboard = inlineContent.match(/function getAlertsSettingsKeyboard[\s\S]*?return \{[\s\S]*?\};/);
   if (!alertsKeyboard || !alertsKeyboard[0].includes('⤴︎ Меню')) {
     throw new Error('getAlertsSettingsKeyboard does not have Menu button');
   }
-  
+
   // Check getAlertTimeKeyboard
   const alertTimeKeyboard = inlineContent.match(/function getAlertTimeKeyboard[\s\S]*?return \{[\s\S]*?\};/);
   if (!alertTimeKeyboard || !alertTimeKeyboard[0].includes('⤴︎ Меню')) {

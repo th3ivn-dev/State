@@ -18,7 +18,7 @@ const regionRequestCode = fs.readFileSync(path.join(__dirname, '../src/handlers/
 console.log('Test 1: Verify handleRegionRequestConfirm checks wizard state');
 assert(
   regionRequestCode.includes("const wizardState = getState('wizard', telegramId);") &&
-  regionRequestCode.includes("const isInWizardFlow = !!(wizardState && wizardState.step);"),
+  regionRequestCode.includes('const isInWizardFlow = !!(wizardState && wizardState.step);'),
   'handleRegionRequestConfirm should check wizard state'
 );
 console.log('✓ handleRegionRequestConfirm checks wizard state\n');
@@ -26,7 +26,7 @@ console.log('✓ handleRegionRequestConfirm checks wizard state\n');
 // Test 2: Check handleRegionRequestConfirm has conditional navigation button
 console.log('Test 2: Verify handleRegionRequestConfirm has conditional navigation');
 assert(
-  regionRequestCode.includes("const navigationButton = isInWizardFlow") &&
+  regionRequestCode.includes('const navigationButton = isInWizardFlow') &&
   regionRequestCode.includes("? [{ text: '← Назад', callback_data: 'back_to_region' }]") &&
   regionRequestCode.includes(": [{ text: '⤴ Меню', callback_data: 'back_to_main' }]"),
   'handleRegionRequestConfirm should have conditional navigation button'
@@ -40,7 +40,7 @@ assert(cancelFunctionMatch, 'handleRegionRequestCancel function should exist');
 const cancelFunction = cancelFunctionMatch[0];
 assert(
   cancelFunction.includes("const wizardState = getState('wizard', telegramId);") &&
-  cancelFunction.includes("const isInWizardFlow = !!(wizardState && wizardState.step);"),
+  cancelFunction.includes('const isInWizardFlow = !!(wizardState && wizardState.step);'),
   'handleRegionRequestCancel should check wizard state'
 );
 console.log('✓ handleRegionRequestCancel checks wizard state\n');
@@ -48,7 +48,7 @@ console.log('✓ handleRegionRequestCancel checks wizard state\n');
 // Test 4: Check handleRegionRequestCancel has conditional navigation button
 console.log('Test 4: Verify handleRegionRequestCancel has conditional navigation');
 assert(
-  cancelFunction.includes("const navigationButton = isInWizardFlow") &&
+  cancelFunction.includes('const navigationButton = isInWizardFlow') &&
   cancelFunction.includes("? [{ text: '← Назад', callback_data: 'back_to_region' }]") &&
   cancelFunction.includes(": [{ text: '⤴ Меню', callback_data: 'back_to_main' }]"),
   'handleRegionRequestCancel should have conditional navigation button'
@@ -62,7 +62,7 @@ assert(timeoutMatch, 'Timeout handler should exist');
 const timeoutHandler = timeoutMatch[0];
 assert(
   timeoutHandler.includes("const wizardState = getState('wizard', telegramId);") &&
-  timeoutHandler.includes("const isInWizardFlow = !!(wizardState && wizardState.step);"),
+  timeoutHandler.includes('const isInWizardFlow = !!(wizardState && wizardState.step);'),
   'Timeout handler should check wizard state'
 );
 console.log('✓ Timeout handler checks wizard state\n');
@@ -70,7 +70,7 @@ console.log('✓ Timeout handler checks wizard state\n');
 // Test 6: Check timeout handler has conditional navigation button
 console.log('Test 6: Verify timeout handler has conditional navigation');
 assert(
-  timeoutHandler.includes("const navigationButton = isInWizardFlow") &&
+  timeoutHandler.includes('const navigationButton = isInWizardFlow') &&
   timeoutHandler.includes("? [{ text: '← Назад', callback_data: 'back_to_region' }]") &&
   timeoutHandler.includes(": [{ text: '⤴ Меню', callback_data: 'back_to_main' }]"),
   'Timeout handler should have conditional navigation button'

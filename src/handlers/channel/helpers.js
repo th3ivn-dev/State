@@ -39,20 +39,20 @@ function isTelegramNotModifiedError(error) {
 // Helper function to generate channel welcome message
 function getChannelWelcomeMessage(user) {
   const botLink = '<b><a href="https://t.me/VoltykBot">СвітлоБота</a></b>';
-  
+
   let features = '• 📊 Графіки відключень';
-  
+
   // Додаємо рядок про сповіщення світла тільки якщо IP налаштований
   if (user.router_ip) {
     features += '\n• ⚡ Сповіщення про стан світла';
   }
-  
-  const message = 
+
+  const message =
     `👋 Цей канал підключено до ${botLink} — чат-бота для моніторингу світла.\n\n` +
     `Тут публікуватимуться:\n` +
     `${features}\n\n` +
     `Черга: ${user.queue}`;
-  
+
   return message;
 }
 
@@ -134,16 +134,16 @@ async function validateChannelConnection(bot, channelId, telegramId) {
                `Якщо це ваш канал — зверніться до підтримки.`
     };
   }
-  
+
   // Check bot permissions in the channel
   try {
     if (!bot.options.id) {
       const botInfo = await bot.api.getMe();
       bot.options.id = botInfo.id;
     }
-    
+
     const botMember = await bot.api.getChatMember(channelId, bot.options.id);
-    
+
     if (botMember.status !== 'administrator' || !botMember.can_post_messages || !botMember.can_change_info) {
       return {
         valid: false,
@@ -162,7 +162,7 @@ async function validateChannelConnection(bot, channelId, telegramId) {
       message: '😅 Щось пішло не так при перевірці прав'
     };
   }
-  
+
   return { valid: true };
 }
 
@@ -182,7 +182,7 @@ function removePendingChannelByTelegramId(telegramId) {
 // Callbacks that need custom popup messages and should not get early answer
 const CALLBACKS_WITH_CUSTOM_ANSWER = [
   'format_reset_caption',
-  'format_reset_periods', 
+  'format_reset_periods',
   'format_reset_power_off',
   'format_reset_power_on',
   'format_reset_all_schedule',

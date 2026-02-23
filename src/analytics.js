@@ -52,7 +52,7 @@ async function getIpMonitoringCount() {
 async function getAnalytics() {
   const stats = await usersDb.getUserStats();
   const ipCount = await getIpMonitoringCount();
-  
+
   return {
     users: {
       total: stats.total || 0,
@@ -76,23 +76,23 @@ async function getAnalytics() {
  */
 async function formatAnalytics() {
   const analytics = await getAnalytics();
-  
+
   let message = '📊 <b>Аналітика v2</b>\n\n';
-  
+
   // Users
   message += '<b>👥 Користувачі</b>\n';
   message += `• Всього: ${analytics.users.total}\n`;
   message += `• Активні: ${analytics.users.active}\n`;
   message += `• Неактивні: ${analytics.users.inactive}\n\n`;
-  
+
   // Channels
   message += '<b>📺 Канали</b>\n';
   message += `• Підключені: ${analytics.channels.connected} (${analytics.channels.percentage}%)\n\n`;
-  
+
   // IP Monitoring
   message += '<b>📡 IP-моніторинг</b>\n';
   message += `• Налаштовано: ${analytics.ipMonitoring.configured} (${analytics.ipMonitoring.percentage}%)\n\n`;
-  
+
   // Regions
   if (analytics.regions.length > 0) {
     message += '<b>🗺 Регіони</b>\n';
@@ -102,7 +102,7 @@ async function formatAnalytics() {
       message += `• ${regionName}: ${region.count}\n`;
     });
   }
-  
+
   return message;
 }
 

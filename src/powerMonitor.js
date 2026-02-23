@@ -4,9 +4,9 @@ const { addOutageRecord } = require('./statistics');
 const { formatExactDuration, formatTime, formatInterval } = require('./utils');
 const { formatTemplate } = require('./formatter');
 const { pool, getSetting } = require('./database/db');
-const { 
-  POWER_MAX_CONCURRENT_PINGS, 
-  POWER_PING_TIMEOUT_MS 
+const {
+  POWER_MAX_CONCURRENT_PINGS,
+  POWER_PING_TIMEOUT_MS
 } = require('./constants/timeouts');
 const logger = require('./utils/logger').createLogger('PowerMonitor');
 const { isTelegramUserInactiveError } = require('./utils/errorHandler');
@@ -57,31 +57,31 @@ function normalizeTimestamp(value) {
 // Перевірка доступності роутера за IP
 async function checkRouterAvailability(routerAddress = null) {
   const addressToCheck = routerAddress || config.ROUTER_HOST;
-  
+
   if (!addressToCheck) {
     return null; // Моніторинг вимкнено
   }
-  
+
   // Розділяємо на хост і порт
   let host = addressToCheck;
   let port = config.ROUTER_PORT || 80;
-  
+
   // Перевіряємо чи є порт в адресі
   const portMatch = addressToCheck.match(/^(.+):(\d+)$/);
   if (portMatch) {
     host = portMatch[1];
     port = parseInt(portMatch[2], 10);
   }
-  
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), POWER_PING_TIMEOUT_MS);
-    
+
     const response = await fetch(`http://${host}:${port}`, {
       signal: controller.signal,
       method: 'HEAD'
     });
-    
+
     clearTimeout(timeout);
     return true; // Роутер доступний = світло є
   } catch (error) {
@@ -117,11 +117,11 @@ async function getNextScheduledTime(user) {
   try {
     const { fetchScheduleData } = require('./api');
     const { parseScheduleForQueue, findNextEvent } = require('./parser');
-    
+
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
-    
+
     return nextEvent;
   } catch (error) {
     console.error('Error getting next scheduled time:', error);
@@ -133,17 +133,17 @@ async function getNextScheduledTime(user) {
 async function handlePowerStateChange(user, newState, oldState, userState, originalChangeTime = null) {
   try {
     const now = new Date();
-    
+
     // Track IP monitoring event
     if (metricsCollector) {
       if (oldState === 'off' && newState === 'on') {
         metricsCollector.trackIPEvent('offlineToOnline');
       }
     }
-    
+
     // Check minimum cooldown to prevent notification spam
     let shouldNotify = true;
-    
+
     if (userState.lastNotificationAt) {
       const timeSinceLastNotification = now - new Date(userState.lastNotificationAt);
       if (timeSinceLastNotification < NOTIFICATION_COOLDOWN_MS) {
@@ -152,20 +152,20 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
         console.log(`User ${user.id}: Пропуск сповіщення через cooldown (залишилось ${remainingSeconds}с)`);
       }
     }
-    
+
     // Атомарно оновлюємо стан і отримуємо тривалість — все в одному SQL запиті
     const powerResult = await usersDb.changePowerStateAndGetDuration(user.telegram_id, newState);
-    
+
     const changedAt = powerResult ? powerResult.power_changed_at : new Date().toISOString();
     const changeTime = new Date(changedAt);
-    
+
     // Якщо є попередній стан, обчислюємо тривалість
     let durationText = '';
-    
+
     if (powerResult && powerResult.duration_minutes !== null) {
       const totalDurationMinutes = Math.floor(powerResult.duration_minutes);
       logger.debug(`User ${user.id}: Duration calc from PostgreSQL: ${totalDurationMinutes}min`);
-      
+
       // Захист від некоректних даних: якщо тривалість від'ємна або дуже мала
       if (totalDurationMinutes < 1) {
         durationText = 'менше хвилини';
@@ -173,12 +173,12 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
         durationText = formatExactDuration(totalDurationMinutes);
       }
     }
-    
+
     // Отримуємо графік для визначення чи це запланований період
     const nextEvent = await getNextScheduledTime(user);
     const { fetchScheduleData } = require('./api');
     const { parseScheduleForQueue, isCurrentlyOff } = require('./parser');
-    
+
     let isScheduledOutage = false;
     try {
       const data = await fetchScheduleData(user.region);
@@ -187,9 +187,9 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
     } catch (error) {
       console.error('Error checking schedule:', error);
     }
-    
+
     let scheduleText = '';
-    
+
     if (newState === 'off') {
       // Світло зникло
       // Показуємо "Світло має з'явитися" тільки якщо це запланований період
@@ -218,13 +218,13 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
         }
       }
     }
-    
+
     // Формуємо повідомлення в простому форматі згідно вимог
     let message = '';
     const kyivTime = new Date(changeTime.toLocaleString('en-US', { timeZone: 'Europe/Kyiv' }));
     const timeStr = `${String(kyivTime.getHours()).padStart(2, '0')}:${String(kyivTime.getMinutes()).padStart(2, '0')}`;
     const dateStr = `${String(kyivTime.getDate()).padStart(2, '0')}.${String(kyivTime.getMonth() + 1).padStart(2, '0')}.${kyivTime.getFullYear()}`;
-    
+
     if (newState === 'off') {
       // Світло зникло - use custom template if available
       if (user.power_off_text) {
@@ -239,7 +239,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
         message += `🕓 Воно було ${durationText || '—'}`;
         message += scheduleText; // Додаємо інфо про наступне включення
       }
-      
+
       // Якщо є попередній стан 'on', зберігаємо запис про відключення
       if (oldState === 'on' && userState.lastStableAt) {
         await addOutageRecord(user.id, userState.lastStableAt, changedAt);
@@ -259,10 +259,10 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
         message += scheduleText; // Додаємо інфо про наступне відключення
       }
     }
-    
+
     // Отримуємо налаштування куди публікувати
     const notifyTarget = user.power_notify_target || 'both';
-    
+
     // Send notifications only if cooldown elapsed
     if (shouldNotify) {
       // Відправляємо в особистий чат користувача
@@ -279,14 +279,14 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
           }
           // Track error
           if (metricsCollector) {
-            metricsCollector.trackError(error, { 
-              context: 'power_notification', 
-              userId: user.telegram_id 
+            metricsCollector.trackError(error, {
+              context: 'power_notification',
+              userId: user.telegram_id
             });
           }
         }
       }
-      
+
       // Відправляємо в канал користувача, якщо він налаштований і відрізняється від особистого чату
       if (user.channel_id && user.channel_id !== user.telegram_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
         // Check if channel is paused
@@ -305,27 +305,27 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
             // Track channel error
             if (metricsCollector) {
               metricsCollector.trackChannelEvent('publishErrors');
-              metricsCollector.trackError(error, { 
-                context: 'channel_power_notification', 
-                channelId: user.channel_id 
+              metricsCollector.trackError(error, {
+                context: 'channel_power_notification',
+                channelId: user.channel_id
               });
             }
           }
         }
       }
-      
+
       // Update lastNotificationAt after successful notification
       userState.lastNotificationAt = now.toISOString();
     }
-    
+
     // Оновлюємо стан користувача
     userState.lastStableAt = changedAt;
     userState.lastStableState = newState;
-    
+
     // Скидаємо лічильники нестабільності
     userState.instabilityStart = null;
     userState.switchCount = 0;
-    
+
   } catch (error) {
     console.error('Error handling power state change:', error);
   }
@@ -335,21 +335,21 @@ async function handlePowerStateChange(user, newState, oldState, userState, origi
 async function checkUserPower(user) {
   try {
     const isAvailable = await checkRouterAvailability(user.router_ip);
-    
+
     // Get or create user state before processing availability result
     // This ensures we have a state object to update with ping information
     const userState = getUserState(user.telegram_id);
-    
+
     // Update last ping time
     userState.lastPingTime = new Date().toISOString();
     userState.lastPingSuccess = isAvailable !== null;
-    
+
     if (isAvailable === null) {
       return; // Не вдалося перевірити
     }
-    
+
     const newState = isAvailable ? 'on' : 'off';
-    
+
     // Перша перевірка - читаємо останній стан з БД
     if (userState.isFirstCheck) {
       // Читаємо з БД останній збережений стан
@@ -371,54 +371,54 @@ async function checkUserPower(user) {
         userState.lastStableAt = null; // Не встановлюємо, бо немає попереднього стану
         userState.isFirstCheck = false;
         userState.consecutiveChecks = 0;
-        
+
         // Оновлюємо БД з поточним часом як початковим станом
         await usersDb.updateUserPowerState(user.telegram_id, newState);
       }
       return;
     }
-    
+
     // Якщо стан такий же як поточний стабільний - скидаємо все
     if (userState.currentState === newState) {
       userState.consecutiveChecks = 0;
-      
+
       // Якщо був pending стан, скасовуємо його
       if (userState.pendingState !== null && userState.pendingState !== newState) {
         console.log(`User ${user.id}: Скасування pending стану ${userState.pendingState} -> повернення до ${newState}`);
-        
+
         // Скасовуємо таймер
         if (userState.debounceTimer) {
           clearTimeout(userState.debounceTimer);
           userState.debounceTimer = null;
         }
-        
+
         // Рахуємо як ще одне перемикання
         userState.switchCount++;
-        
+
         userState.pendingState = null;
         userState.pendingStateTime = null;
         await usersDb.clearPendingPowerChange(user.telegram_id);
       }
-      
+
       return;
     }
-    
+
     // Стан відрізняється від поточного
     // Перевіряємо чи це той самий pending стан що вже очікує
     if (userState.pendingState === newState) {
       // Продовжуємо очікувати - нічого не робимо
       return;
     }
-    
+
     // Новий стан відрізняється і від поточного, і від pending (якщо він є)
     // Це означає зміну стану
-    
+
     // Скасовуємо попередній таймер, якщо він є
     if (userState.debounceTimer) {
       clearTimeout(userState.debounceTimer);
       userState.debounceTimer = null;
     }
-    
+
     // Якщо це перша зміна стану (початок нестабільності)
     if (userState.pendingState === null) {
       userState.instabilityStart = new Date().toISOString();
@@ -429,20 +429,20 @@ async function checkUserPower(user) {
       userState.switchCount++;
       console.log(`User ${user.id}: Перемикання #${userState.switchCount} на ${newState}`);
     }
-    
+
     // Встановлюємо новий pending стан
     userState.pendingState = newState;
     userState.pendingStateTime = new Date().toISOString();
     await usersDb.setPendingPowerChange(user.telegram_id, newState); // зберігаємо в БД
-    
+
     // Отримуємо час debounce з бази даних (щоб враховувати зміни адміністратора)
     const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
-    
+
     // Визначаємо час затримки:
     // - Якщо debounce = 0, використовуємо мінімальну затримку для захисту від флаппінгу
     // - Інакше використовуємо налаштований debounce
     let debounceMs;
-    
+
     if (debounceMinutes === 0) {
       debounceMs = MIN_STABILIZATION_MS;
       console.log(`User ${user.id}: Debounce=0, використання мінімальної затримки 30с для захисту від флаппінгу`);
@@ -450,24 +450,24 @@ async function checkUserPower(user) {
       debounceMs = debounceMinutes * 60 * 1000;
       console.log(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
     }
-    
+
     // Створюємо таймер для підтвердження зміни
     userState.debounceTimer = setTimeout(async () => {
       console.log(`User ${user.id}: Debounce завершено, підтвердження стану ${newState}`);
-      
+
       // Стан був стабільний протягом debounce часу
       const oldState = userState.currentState;
-      
+
       userState.currentState = newState;
       userState.consecutiveChecks = 0;
       userState.debounceTimer = null;
       userState.pendingState = null;
       userState.pendingStateTime = null;
-      
+
       // Обробляємо зміну стану — час і тривалість розраховує PostgreSQL
       await handlePowerStateChange(user, newState, oldState, userState);
     }, debounceMs);
-    
+
   } catch (error) {
     console.error(`Помилка перевірки живлення для користувача ${user.telegram_id}:`, error.message);
   }
@@ -483,20 +483,20 @@ async function checkAllUsers() {
     return;
   }
   isCheckingAllUsers = true;
-  
+
   try {
     const users = await usersDb.getUsersWithRouterIp();
-    
+
     if (!users || users.length === 0) {
       return;
     }
-    
+
     logger.debug(`Перевірка ${users.length} користувачів з обмеженням ${POWER_MAX_CONCURRENT_PINGS} одночасних пінгів`);
-    
+
     // Семафор для обмеження конкурентних пінгів
     const results = [];
     let index = 0;
-    
+
     // Функція-воркер для обробки користувачів
     const worker = async () => {
       while (index < users.length) {
@@ -504,16 +504,16 @@ async function checkAllUsers() {
         await checkUserPower(user);
       }
     };
-    
+
     // Створюємо пул воркерів (max POWER_MAX_CONCURRENT_PINGS одночасно)
     const workerCount = Math.min(POWER_MAX_CONCURRENT_PINGS, users.length);
     for (let i = 0; i < workerCount; i++) {
       results.push(worker());
     }
-    
+
     // Чекаємо завершення всіх воркерів
     await Promise.all(results);
-    
+
   } catch (error) {
     logger.error('Помилка при перевірці користувачів', { error: error.message });
   } finally {
@@ -541,20 +541,20 @@ async function startPowerMonitoring(botInstance) {
     logger.warn('Power monitoring already running, skipping');
     return;
   }
-  
+
   bot = botInstance;
-  
+
   // Отримуємо кількість користувачів для розрахунку інтервалу
   const users = await usersDb.getUsersWithRouterIp();
   const userCount = users ? users.length : 0;
-  
+
   // Перевіряємо, чи адмін встановив власний інтервал
   const adminInterval = await getSetting('power_check_interval', null);
   const adminIntervalNum = parseInt(adminInterval, 10) || 0;
-  
+
   let checkInterval;
   let intervalMode;
-  
+
   // Якщо адмін встановив значення > 0, використовуємо його
   // Якщо 0 або null - використовуємо динамічний розрахунок
   if (adminIntervalNum > 0) {
@@ -564,44 +564,44 @@ async function startPowerMonitoring(botInstance) {
     checkInterval = calculateCheckInterval(userCount);
     intervalMode = 'dynamic';
   }
-  
+
   // Отримуємо час debounce з бази даних для логування
   const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
-  const debounceText = debounceMinutes === 0 
-    ? 'вимкнено (миттєві сповіщення)' 
+  const debounceText = debounceMinutes === 0
+    ? 'вимкнено (миттєві сповіщення)'
     : `${debounceMinutes} хв (очікування стабільного стану)`;
-  
+
   logger.info('⚡ Запуск системи моніторингу живлення...');
   logger.info(`   Користувачів з IP: ${userCount}`);
-  
+
   if (intervalMode === 'admin') {
     logger.info(`   Інтервал перевірки: ${checkInterval}с (встановлено адміном)`);
   } else {
     logger.info(`   Інтервал перевірки: ${checkInterval}с (динамічний, на основі ${userCount} користувачів)`);
   }
-  
+
   logger.info(`   Макс. одночасних пінгів: ${POWER_MAX_CONCURRENT_PINGS}`);
   logger.info(`   Таймаут пінга: ${POWER_PING_TIMEOUT_MS}мс`);
   logger.info(`   Debounce: ${debounceText}`);
-  
+
   // Відновлюємо стани з БД (асинхронно, не блокуємо запуск)
   restoreUserStates().catch(error => {
     logger.error('Помилка відновлення станів', { error });
   });
-  
+
   // Запускаємо періодичну перевірку з динамічним інтервалом
   monitoringInterval = setInterval(async () => {
     await checkAllUsers();
   }, checkInterval * 1000);
-  
+
   // Запускаємо періодичне збереження станів (кожні 5 хвилин)
   periodicSaveInterval = setInterval(async () => {
     await saveAllUserStates();
   }, 5 * 60 * 1000);
-  
+
   // Перша перевірка відразу
   checkAllUsers();
-  
+
   logger.success('✅ Система моніторингу живлення запущена');
 }
 
@@ -669,7 +669,7 @@ async function saveUserStateToDb(userId, state) {
 // Зберегти всі стани користувачів
 async function saveAllUserStates() {
   const SAVE_TIMEOUT_MS = 10000; // 10 second timeout
-  
+
   const savePromise = (async () => {
     let savedCount = 0;
     for (const [userId, state] of userStates) {
@@ -679,18 +679,18 @@ async function saveAllUserStates() {
     console.log(`💾 Збережено ${savedCount} станів користувачів`);
     return savedCount;
   })();
-  
+
   try {
     return await Promise.race([
       savePromise,
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('saveAllUserStates timed out')), SAVE_TIMEOUT_MS)
       )
     ]);
   } catch (error) {
     const isTimeout = error.message.includes('timed out');
-    console.error(isTimeout 
-      ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)` 
+    console.error(isTimeout
+      ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)`
       : `Помилка збереження станів: ${error.message}`);
     return 0;
   }
@@ -703,7 +703,7 @@ async function restoreUserStates() {
       SELECT * FROM user_power_states 
       WHERE updated_at > NOW() - INTERVAL '1 hour'
     `);
-    
+
     for (const row of result.rows) {
       userStates.set(row.telegram_id, {
         currentState: row.current_state,
@@ -719,7 +719,7 @@ async function restoreUserStates() {
         debounceTimer: null  // Таймери не відновлюємо
       });
     }
-    
+
     console.log(`🔄 Відновлено ${result.rows.length} станів користувачів`);
     return result.rows.length;
   } catch (error) {
@@ -761,10 +761,10 @@ function getUserIpStatus(userId) {
       lastPingSuccess: null,
     };
   }
-  
+
   const { getIpState, getIpStateLabel, formatLastPing } = require('./constants/ipStates');
   const state = getIpState(userState);
-  
+
   return {
     state,
     label: getIpStateLabel(state),

@@ -8,21 +8,21 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   if (!region || !queue) {
     return '⚠️ Помилка: відсутні дані про регіон або чергу';
   }
-  
+
   if (!scheduleData || typeof scheduleData !== 'object') {
     return '⚠️ Помилка: невірний формат даних графіка';
   }
-  
+
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
-  
+
   if (!scheduleData.hasData) {
     lines.push(`<i>💡 Графік відключень для черги ${queue}</i>`);
     lines.push('');
     lines.push('ℹ️ Немає даних про відключення');
     return lines.join('\n');
   }
-  
+
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -31,20 +31,20 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   const tomorrowEnd = new Date(tomorrowStart);
   tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
   tomorrowEnd.setMilliseconds(-1);
-  
+
   // Get day name
   const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
   const todayName = dayNames[now.getDay()];
   const tomorrowName = dayNames[(now.getDay() + 1) % 7];
-  
+
   // Format dates
   const todayDate = formatDate(now);
   const tomorrowDate = formatDate(tomorrowStart);
-  
+
   // Day boundary for filtering (tomorrow's start)
   const dayAfterTomorrowStart = new Date(tomorrowStart);
   dayAfterTomorrowStart.setDate(dayAfterTomorrowStart.getDate() + 1);
-  
+
   // Create a set of new event keys for marking
   const newEventKeys = new Set();
   if (changes && changes.added) {
@@ -53,12 +53,12 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       newEventKeys.add(key);
     });
   }
-  
+
   // Split events by day using event.start only (not event.end)
   // This fixes the hour=24 boundary issue where end can be in the next day
   const todayEvents = [];
   const tomorrowEvents = [];
-  
+
   scheduleData.events.forEach(event => {
     const eventStart = new Date(event.start);
     if (eventStart >= todayStart && eventStart < tomorrowStart) {
@@ -67,21 +67,21 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       tomorrowEvents.push(event);
     }
   });
-  
+
   // Calculate total duration for today
   let todayTotalMinutes = 0;
   todayEvents.forEach(event => {
     const durationMs = new Date(event.end) - new Date(event.start);
     todayTotalMinutes += durationMs / 60000;
   });
-  
-  // Calculate total duration for tomorrow  
+
+  // Calculate total duration for tomorrow
   let tomorrowTotalMinutes = 0;
   tomorrowEvents.forEach(event => {
     const durationMs = new Date(event.end) - new Date(event.start);
     tomorrowTotalMinutes += durationMs / 60000;
   });
-  
+
   // Tomorrow's schedule - show if there are actual outages
   if (tomorrowEvents.length > 0) {
     // Determine header based on update type
@@ -93,7 +93,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     }
     lines.push(header);
     lines.push('');
-    
+
     tomorrowEvents.forEach(event => {
       const start = formatTime(event.start);
       const end = formatTime(event.end);
@@ -104,7 +104,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       const possibleLabel = event.isPossible ? ' ⚠️' : '';
       lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
     });
-    
+
     // Add total duration for tomorrow
     const totalHours = Math.floor(tomorrowTotalMinutes / 60);
     const totalMins = Math.round(tomorrowTotalMinutes % 60);
@@ -118,7 +118,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     lines.push(`Загалом без світла:<b> ~${totalStr}</b>`);
     lines.push('');
   }
-  
+
   // Today's schedule
   if (todayEvents.length > 0) {
     // Determine header based on update type:
@@ -141,7 +141,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     }
     lines.push(header);
     lines.push('');
-    
+
     todayEvents.forEach(event => {
       const start = formatTime(event.start);
       const end = formatTime(event.end);
@@ -152,7 +152,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
       const possibleLabel = event.isPossible ? ' ⚠️' : '';
       lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>${possibleLabel}${isNew ? ' 🆕' : ''}`);
     });
-    
+
     // Add total duration for today
     const totalHours = Math.floor(todayTotalMinutes / 60);
     const totalMins = Math.round(todayTotalMinutes % 60);
@@ -169,7 +169,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
     lines.push('');
     lines.push('✅ Відключень не заплановано');
   }
-  
+
   return lines.join('\n');
 }
 
@@ -178,9 +178,9 @@ function formatNextEventMessage(nextEvent) {
   if (!nextEvent) {
     return '✅ Наступні відключення не заплановані';
   }
-  
+
   const lines = [];
-  
+
   if (nextEvent.type === 'power_off') {
     lines.push('⏰ <b>Наступне відключення</b>');
     lines.push(`🔴 Через: ${formatTimeRemaining(nextEvent.minutes)}`);
@@ -196,7 +196,7 @@ function formatNextEventMessage(nextEvent) {
       lines.push('⚠️ Можливе включення');
     }
   }
-  
+
   return lines.join('\n');
 }
 
@@ -205,9 +205,9 @@ function formatTimerMessage(nextEvent) {
   if (!nextEvent) {
     return '✅ Наступні відключення не заплановані';
   }
-  
+
   const lines = [];
-  
+
   if (nextEvent.type === 'power_off') {
     lines.push('⏰ <b>Відключення через:</b>');
     lines.push(`🔴 ${formatTimeRemaining(nextEvent.minutes)}`);
@@ -215,9 +215,9 @@ function formatTimerMessage(nextEvent) {
     lines.push('⏰ <b>Включення через:</b>');
     lines.push(`🟢 ${formatTimeRemaining(nextEvent.minutes)}`);
   }
-  
+
   lines.push(`🕐 ${formatTime(nextEvent.time)}`);
-  
+
   return lines.join('\n');
 }
 
@@ -263,7 +263,7 @@ function formatHelpMessage() {
   lines.push('• Можна підключити бота до свого каналу');
   lines.push('• Можна моніторити наявність світла через роутер');
   lines.push('');
-  
+
   // Add bot version from package.json
   try {
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
@@ -272,7 +272,7 @@ function formatHelpMessage() {
   } catch (e) {
     lines.push('<i>СвітлоБот</i>');
   }
-  
+
   return lines.join('\n');
 }
 
@@ -280,28 +280,28 @@ function formatHelpMessage() {
 function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
-  
+
   // Заголовок
   const date = todayDate || new Date();
   const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
   const dayName = dayNames[date.getDay()];
   const dateStr = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
-  
+
   lines.push(`💡 Графік відключень <b>на сьогодні, ${dateStr} (${dayName})</b>, для черги ${queue}:`);
   lines.push('');
-  
+
   if (!scheduleData.hasData || scheduleData.events.length === 0) {
     lines.push('✅ Відключень не заплановано');
     return lines.join('\n');
   }
-  
+
   // Розділяємо події на планові та можливі (тільки на сьогодні)
   const todayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const todayEnd = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
-  
+
   const todayPlanned = [];
   const todayPossible = [];
-  
+
   scheduleData.events.forEach(event => {
     if (event.start >= todayStart && event.start <= todayEnd) {
       if (event.isPossible) {
@@ -311,7 +311,7 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
       }
     }
   });
-  
+
   // Планові відключення
   if (todayPlanned.length > 0) {
     todayPlanned.forEach(event => {
@@ -322,7 +322,7 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
       lines.push(`🪫 <b>${start} - ${end} (~${durationStr})</b>`);
     });
   }
-  
+
   return lines.join('\n');
 }
 
@@ -331,20 +331,20 @@ function formatStatsForChannelPopup(stats) {
   if (stats.count === 0) {
     return '📊 За тиждень:\n\n✅ Відключень не було';
   }
-  
+
   const lines = [];
   lines.push('📊 За тиждень:');
   lines.push('');
   lines.push(`⚡ Відключень: ${stats.count}`);
-  
+
   // Форматувати загальний час
   const totalDuration = formatExactDuration(stats.totalMinutes);
   lines.push(`🕓 Загальний час без світла: ${totalDuration}`);
-  
+
   // Середня тривалість
   const avgDuration = formatExactDuration(stats.avgMinutes);
   lines.push(`📉 Середня тривалість: ${avgDuration}`);
-  
+
   // Найдовше відключення
   if (stats.longest) {
     const longDuration = formatExactDuration(stats.longest.duration_minutes);
@@ -353,10 +353,10 @@ function formatStatsForChannelPopup(stats) {
     const longStartTime = `${String(longDate.getHours()).padStart(2, '0')}:${String(longDate.getMinutes()).padStart(2, '0')}`;
     const longEndDate = new Date(stats.longest.end_time);
     const longEndTime = `${String(longEndDate.getHours()).padStart(2, '0')}:${String(longEndDate.getMinutes()).padStart(2, '0')}`;
-    
+
     lines.push(`🏆 Найдовше: ${longDuration} (${longDateStr} ${longStartTime}-${longEndTime})`);
   }
-  
+
   // Найкоротше відключення
   if (stats.shortest) {
     const shortDuration = formatExactDuration(stats.shortest.duration_minutes);
@@ -365,10 +365,10 @@ function formatStatsForChannelPopup(stats) {
     const shortStartTime = `${String(shortDate.getHours()).padStart(2, '0')}:${String(shortDate.getMinutes()).padStart(2, '0')}`;
     const shortEndDate = new Date(stats.shortest.end_time);
     const shortEndTime = `${String(shortEndDate.getHours()).padStart(2, '0')}:${String(shortEndDate.getMinutes()).padStart(2, '0')}`;
-    
+
     lines.push(`🔋 Найкоротше: ${shortDuration} (${shortDateStr} ${shortStartTime}-${shortEndTime})`);
   }
-  
+
   return lines.join('\n');
 }
 
@@ -377,11 +377,11 @@ function formatScheduleChanges(changes) {
   if (!changes || (!changes.added.length && !changes.removed.length && !changes.modified.length)) {
     return 'Немає змін';
   }
-  
+
   const lines = [];
   lines.push('📝 <b>Зміни:</b>');
   lines.push('');
-  
+
   // Added periods
   if (changes.added.length > 0) {
     changes.added.forEach(event => {
@@ -390,7 +390,7 @@ function formatScheduleChanges(changes) {
       lines.push(`➕ ${start}-${end}`);
     });
   }
-  
+
   // Removed periods
   if (changes.removed.length > 0) {
     changes.removed.forEach(event => {
@@ -399,7 +399,7 @@ function formatScheduleChanges(changes) {
       lines.push(`➖ ${start}-${end}`);
     });
   }
-  
+
   // Modified periods
   if (changes.modified.length > 0) {
     changes.modified.forEach(({ old, new: newEvent }) => {
@@ -410,12 +410,12 @@ function formatScheduleChanges(changes) {
       lines.push(`🔄 ${oldStart}-${oldEnd} → ${newStart}-${newEnd}`);
     });
   }
-  
+
   if (changes.summary) {
     lines.push('');
     lines.push(`Всього: ${changes.summary}`);
   }
-  
+
   return lines.join('\n');
 }
 
@@ -522,9 +522,9 @@ function formatTimerPopup(nextEvent, scheduleData) {
 function formatTemplate(template, variables = {}) {
   if (!template || typeof template !== 'string') return '';
   if (!variables || typeof variables !== 'object') return template;
-  
+
   let result = template;
-  
+
   // Заміна змінних - use simple string replace for better performance
   for (const [key, value] of Object.entries(variables)) {
     const placeholder = `{${key}}`;
@@ -534,10 +534,10 @@ function formatTemplate(template, variables = {}) {
       result = result.replace(placeholder, replacement);
     }
   }
-  
+
   // Заміна <br> на новий рядок
   result = result.replace(/<br>/g, '\n');
-  
+
   return result;
 }
 

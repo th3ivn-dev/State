@@ -102,7 +102,7 @@ async function safeEditMessageText(bot, text, options = {}) {
     const errorMessage = error.message || '';
     // grammY includes the Telegram description in error.message; node-telegram-bot-api uses error.response
     const errorDescription = error.response?.body?.description || '';
-    
+
     // Ігноруємо помилку "message is not modified" — це нормальна ситуація
     // Виникає коли користувач натискає ту саму кнопку двічі
     if (errorDescription.includes('message is not modified') ||
@@ -110,7 +110,7 @@ async function safeEditMessageText(bot, text, options = {}) {
       // Повідомлення вже актуальне, нічого робити не потрібно
       return null;
     }
-    
+
     // Обробляємо помилку "there is no text in the message to edit" — це очікувана ситуація
     // Виникає коли намагаємось редагувати повідомлення з фото (яке має caption замість тексту)
     // Викидаємо без логування, оскільки викликач (напр. bot.js:back_to_main) обробляє
@@ -119,9 +119,9 @@ async function safeEditMessageText(bot, text, options = {}) {
         errorMessage.includes('there is no text in the message to edit')) {
       throw error;
     }
-    
+
     // Інші помилки логуємо з повним контекстом
-    logger.error(`Помилка редагування тексту повідомлення:`, { 
+    logger.error(`Помилка редагування тексту повідомлення:`, {
       error: error.message,
       code: error.code,
       description: errorDescription

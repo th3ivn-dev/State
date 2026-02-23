@@ -18,7 +18,7 @@ async function isBotPaused() {
  * @returns {String} Текст повідомлення паузи
  */
 async function getPauseMessage() {
-  return await getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
+  return getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
 }
 
 /**

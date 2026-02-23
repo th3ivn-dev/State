@@ -3,7 +3,7 @@
 const path = require('path');
 /**
  * Test script for wizard channel branding fix
- * 
+ *
  * This test verifies that when a user goes through the wizard and confirms
  * a channel connection, the channel branding flow is initiated instead of
  * showing the main menu immediately.
@@ -17,9 +17,9 @@ try {
   const fs = require('fs');
   const startJsPath = path.join(__dirname, 'src/handlers/start.js');
   const startJsContent = fs.readFileSync(startJsPath, 'utf8');
-  
+
   const hasImport = startJsContent.includes("const { setConversationState } = require('./channel')");
-  
+
   if (hasImport) {
     console.log('✓ setConversationState імпортовано з ./channel\n');
   } else {
@@ -37,33 +37,33 @@ try {
   const fs = require('fs');
   const startJsPath = path.join(__dirname, 'src/handlers/start.js');
   const startJsContent = fs.readFileSync(startJsPath, 'utf8');
-  
+
   // Find the wizard_channel_confirm_ handler
   const handlerStart = startJsContent.indexOf("if (data.startsWith('wizard_channel_confirm_'))");
   if (handlerStart === -1) {
     console.log('✗ wizard_channel_confirm_ handler не знайдено\n');
     process.exit(1);
   }
-  
+
   // Find the end of the handler (next if statement)
   const nextHandler = startJsContent.indexOf("if (data === 'wizard_channel_cancel')", handlerStart);
   if (nextHandler === -1) {
     console.log('✗ Не вдалося знайти кінець handler\n');
     process.exit(1);
   }
-  
+
   const handlerCode = startJsContent.substring(handlerStart, nextHandler);
-  
+
   // Check that it calls setConversationState
   const callsSetConversationState = handlerCode.includes('setConversationState(telegramId,');
   const setsWaitingForTitle = handlerCode.includes("state: 'waiting_for_title'");
   const showsTitlePrompt = handlerCode.includes('Введіть назву для каналу');
   const usesChannelNamePrefix = handlerCode.includes('CHANNEL_NAME_PREFIX');
-  
+
   // Check that it does NOT show main menu
   const doesNotShowMainMenu = !handlerCode.includes('getMainMenu(');
   const doesNotShowNewsChannel = !handlerCode.includes('NEWS_CHANNEL_MESSAGE');
-  
+
   const allChecks = [
     { name: 'Викликає setConversationState', value: callsSetConversationState },
     { name: "Встановлює state: 'waiting_for_title'", value: setsWaitingForTitle },
@@ -72,9 +72,9 @@ try {
     { name: 'НЕ показує головне меню', value: doesNotShowMainMenu },
     { name: 'НЕ показує канал новин', value: doesNotShowNewsChannel }
   ];
-  
+
   const failedChecks = allChecks.filter(check => !check.value);
-  
+
   if (failedChecks.length === 0) {
     console.log('✓ wizard_channel_confirm_ правильно запускає branding flow\n');
     console.log('  Перевірки:');
@@ -101,9 +101,9 @@ try {
   const fs = require('fs');
   const startJsPath = path.join(__dirname, 'src/handlers/start.js');
   const startJsContent = fs.readFileSync(startJsPath, 'utf8');
-  
+
   const hasChannelNamePrefix = startJsContent.includes("CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ '");
-  
+
   if (hasChannelNamePrefix) {
     console.log('✓ CHANNEL_NAME_PREFIX визначено в start.js\n');
   } else {
@@ -121,11 +121,11 @@ try {
   const fs = require('fs');
   const channelJsPath = path.join(__dirname, 'src/handlers/channel.js');
   const channelJsContent = fs.readFileSync(channelJsPath, 'utf8');
-  
+
   // Check that setConversationState is exported
-  const exportsSetConversationState = channelJsContent.includes('setConversationState,') && 
+  const exportsSetConversationState = channelJsContent.includes('setConversationState,') &&
                                        channelJsContent.includes('module.exports');
-  
+
   if (exportsSetConversationState) {
     console.log('✓ setConversationState експортовано з channel.js\n');
   } else {
@@ -143,11 +143,11 @@ try {
   const fs = require('fs');
   const channelJsPath = path.join(__dirname, 'src/handlers/channel.js');
   const channelJsContent = fs.readFileSync(channelJsPath, 'utf8');
-  
+
   // Check that handleConversation is exported
-  const exportsHandleConversation = channelJsContent.includes('handleConversation,') && 
+  const exportsHandleConversation = channelJsContent.includes('handleConversation,') &&
                                      channelJsContent.includes('module.exports');
-  
+
   if (exportsHandleConversation) {
     console.log('✓ handleConversation експортовано з channel.js\n');
   } else {
@@ -165,18 +165,18 @@ try {
   const fs = require('fs');
   const botJsPath = path.join(__dirname, 'src/bot.js');
   const botJsContent = fs.readFileSync(botJsPath, 'utf8');
-  
+
   // Find my_chat_member handler
   const myChatMemberStart = botJsContent.indexOf("bot.on('my_chat_member'");
   if (myChatMemberStart === -1) {
     console.log('✗ my_chat_member handler не знайдено\n');
     process.exit(1);
   }
-  
+
   // Check that it uses wizard_channel_confirm_ callback
-  const usesWizardCallback = botJsContent.includes('wizard_channel_confirm_') && 
+  const usesWizardCallback = botJsContent.includes('wizard_channel_confirm_') &&
                               botJsContent.includes('${channelId}');
-  
+
   if (usesWizardCallback) {
     console.log('✓ my_chat_member handler використовує wizard_channel_confirm_ callback\n');
     console.log('  (Це означає що branding flow також працюватиме для автопідключення)\n');

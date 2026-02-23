@@ -14,7 +14,7 @@ const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000;
  */
 async function getSupportButton() {
   const mode = await getSetting('support_mode', 'channel');
-  
+
   if (mode === 'channel') {
     const channelUrl = await getSetting('support_channel_url', 'https://t.me/Voltyk_news?direct');
     return { text: '✉️ Підтримка', url: channelUrl };  // URL button
@@ -100,7 +100,7 @@ async function handleFeedbackStart(bot, query) {
     // Очистимо попередній стан якщо є
     await clearFeedbackState(telegramId);
 
-    await safeEditMessageText(bot, 
+    await safeEditMessageText(bot,
       '💬 <b>Підтримка</b>\n\n' +
       'Оберіть тип вашого звернення:',
       {
@@ -242,7 +242,7 @@ async function handleFeedbackMessage(bot, msg) {
 
     // Показуємо preview з підтвердженням
     let previewText = `${state.emoji} <b>${state.label}</b>\n\n`;
-    
+
     if (messageType === 'text') {
       previewText += `📝 Ваше повідомлення:\n${content}\n\n`;
     } else if (messageType === 'photo') {
@@ -250,7 +250,7 @@ async function handleFeedbackMessage(bot, msg) {
     } else if (messageType === 'video') {
       previewText += `🎥 Відео${content ? ' з підписом:\n' + content : ''}\n\n`;
     }
-    
+
     previewText += 'Надіслати це звернення?';
 
     const sentMessage = await safeSendMessage(bot, chatId, previewText, {
@@ -320,7 +320,7 @@ async function handleFeedbackConfirm(bot, query) {
       `✅ <b>Дякуємо за звернення!</b>\n\n` +
       `Ваше звернення #${ticket.id} прийнято.\n` +
       `Ми розглянемо його найближчим часом.`,
-      { 
+      {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
@@ -357,7 +357,7 @@ async function handleFeedbackCancel(bot, query) {
 
     // Видаляємо повідомлення
     await safeDeleteMessage(bot, chatId, messageId);
-    
+
     // Видаляємо оригінальне повідомлення якщо є
     if (state && state.originalMessageId) {
       await safeDeleteMessage(bot, chatId, state.originalMessageId);
@@ -388,7 +388,7 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
       allAdmins.push(config.ownerId);
     }
 
-    let message = 
+    let message =
       `🎫 <b>Нове звернення #${ticket.id}</b>\n\n` +
       `${state.emoji} <b>Тип:</b> ${state.label}\n` +
       `👤 <b>Від:</b> @${username} (ID: <code>${ticket.telegram_id}</code>)\n` +
@@ -458,12 +458,12 @@ async function handleFeedbackCallback(bot, query) {
     const chatId = query.message.chat.id;
     const messageId = query.message.message_id;
     const telegramId = String(query.from.id);
-    
+
     await clearFeedbackState(telegramId);
-    
+
     // Повернутися до допомоги
     const helpKeyboard = await getHelpKeyboard();
-    await safeEditMessageText(bot, 
+    await safeEditMessageText(bot,
       '❓ <b>Допомога</b>\n\n' +
       'ℹ️ Тут ви можете дізнатися як\n' +
       'користуватися ботом.',

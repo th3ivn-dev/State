@@ -31,7 +31,7 @@ async function getPauseLog(limit = 20) {
       ORDER BY created_at DESC
       LIMIT $1
     `, [limit]);
-    
+
     return result.rows;
   } catch (error) {
     console.error('Error getting pause log:', error);
@@ -52,7 +52,7 @@ async function getPauseLogStats() {
         MAX(created_at) as last_event_at
       FROM pause_log
     `);
-    
+
     return result.rows[0] || { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   } catch (error) {
     console.error('Error getting pause log stats:', error);
@@ -69,7 +69,7 @@ async function cleanOldPauseLog() {
       DELETE FROM pause_log
       WHERE created_at < NOW() - INTERVAL '30 days'
     `);
-    
+
     const deletedCount = result.rowCount || 0;
     console.log(`🧹 Cleaned ${deletedCount} old pause log entries`);
     return deletedCount;

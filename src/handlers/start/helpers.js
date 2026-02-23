@@ -22,7 +22,7 @@ const NEWS_CHANNEL_MESSAGE = {
 };
 
 // Development phase warning text
-const DEVELOPMENT_WARNING = 
+const DEVELOPMENT_WARNING =
   '⚠️ Бот знаходиться в активній фазі розробки.\n\n' +
   'Наразі підтримуються такі регіони:\n' +
   '• Київ\n' +
@@ -62,38 +62,38 @@ function restoreWizardStates() {
 // Helper function to create pause mode keyboard
 async function createPauseKeyboard(showSupport) {
   const buttons = [];
-  
+
   if (showSupport) {
     const supportButton = await getSupportButton();
     buttons.push([supportButton]);
   }
-  
+
   buttons.push([{ text: '← Назад', callback_data: 'wizard_notify_back' }]);
-  
+
   return { inline_keyboard: buttons };
 }
 
 // Helper function to notify admins about new user
 async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue) {
   try {
-    
+
     const stats = await usersDb.getUserStats();
     const regionName = REGIONS[region]?.name || region;
-    
-    const message = 
+
+    const message =
       `🆕 <b>Новий користувач!</b>\n\n` +
       `👤 ${username ? '@' + username : 'без username'} (ID: <code>${telegramId}</code>)\n` +
       `🏙 Регіон: ${regionName}\n` +
       `⚡ Черга: ${queue}\n` +
       `📅 ${new Date().toLocaleString('uk-UA', { timeZone: 'Europe/Kyiv' })}\n\n` +
       `📊 Всього користувачів: ${stats.total}`;
-    
+
     // Надсилаємо всім адмінам
     const allAdmins = [...config.adminIds];
     if (config.ownerId && !allAdmins.includes(config.ownerId)) {
       allAdmins.push(config.ownerId);
     }
-    
+
     for (const adminId of allAdmins) {
       try {
         await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });

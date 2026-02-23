@@ -1,9 +1,9 @@
 /**
  * User Service
- * 
+ *
  * Handles all user-related business logic.
  * This service is Telegram-agnostic and can be used independently.
- * 
+ *
  * Responsibilities:
  * - User CRUD operations
  * - User settings management
@@ -49,7 +49,7 @@ class UserService {
    */
   async saveUser(userData) {
     const { telegramId, username, region, queue } = userData;
-    
+
     // Validate required fields
     if (!telegramId || !region || !queue) {
       throw new Error('Missing required fields: telegramId, region, queue');
@@ -62,7 +62,7 @@ class UserService {
 
     // Save to database
     await usersDb.saveUser(telegramId, username, region, queue);
-    
+
     return await this.getUserByTelegramId(telegramId);
   }
 
@@ -74,7 +74,7 @@ class UserService {
    */
   async updateUserSettings(telegramId, settings) {
     const user = await this.getUserByTelegramId(telegramId);
-    
+
     if (!user) {
       throw new Error(`User not found: ${telegramId}`);
     }
@@ -151,7 +151,7 @@ class UserService {
    */
   async getUserStats() {
     const allUsers = await usersDb.getAllUsers();
-    
+
     return {
       total: allUsers.length,
       active: allUsers.filter(u => u.is_active).length,

@@ -1,9 +1,9 @@
 /**
  * Centralized State Manager
- * 
+ *
  * This module provides centralized state management for the bot.
  * All in-memory state should be managed through this module.
- * 
+ *
  * Key principles:
  * - Single source of truth for state
  * - Consistent API for all state operations
@@ -61,13 +61,13 @@ let cleanupInterval = null;
  */
 async function initStateManager() {
   console.log('🔄 Initializing state manager...');
-  
+
   // Start automatic cleanup
   startCleanup();
-  
+
   // Restore persisted states
   await restoreStates();
-  
+
   console.log('✅ State manager initialized');
 }
 
@@ -78,7 +78,7 @@ function startCleanup() {
   if (cleanupInterval) {
     return; // Already running
   }
-  
+
   // Run cleanup every hour
   cleanupInterval = setInterval(async () => {
     await cleanupExpiredStates();
@@ -101,20 +101,20 @@ function stopCleanup() {
 async function cleanupExpiredStates() {
   const now = Date.now();
   let cleanedCount = 0;
-  
+
   for (const [stateType, store] of Object.entries(states)) {
     const expirationTime = EXPIRATION_TIMES[stateType];
-    
+
     if (!expirationTime) {
       continue; // Skip states that don't expire
     }
-    
+
     for (const [key, value] of store.entries()) {
       // Check if state has timestamp and is expired
       if (value && value.timestamp && (now - value.timestamp) > expirationTime) {
         store.delete(key);
         cleanedCount++;
-        
+
         // Also delete from DB if it's a persisted state
         if (['wizard', 'conversation', 'ipSetup'].includes(stateType)) {
           await deleteUserState(key, stateType);
@@ -122,7 +122,7 @@ async function cleanupExpiredStates() {
       }
     }
   }
-  
+
   if (cleanedCount > 0) {
     console.log(`🧹 Cleaned up ${cleanedCount} expired states`);
   }
@@ -134,16 +134,16 @@ async function cleanupExpiredStates() {
 async function restoreStates() {
   const stateTypes = ['wizard', 'conversation', 'ipSetup'];
   let totalRestored = 0;
-  
+
   for (const stateType of stateTypes) {
     const stateRecords = await getAllUserStates(stateType);
-    
+
     // Safety check: ensure stateRecords is an array
     if (!stateRecords || !Array.isArray(stateRecords)) {
       console.warn(`⚠️ No valid state records found for ${stateType}`);
       continue;
     }
-    
+
     for (const { telegram_id, state_data } of stateRecords) {
       try {
         const data = JSON.parse(state_data);
@@ -158,7 +158,7 @@ async function restoreStates() {
       }
     }
   }
-  
+
   console.log(`✅ Restored ${totalRestored} persisted states`);
 }
 
@@ -172,7 +172,7 @@ function getState(stateType, userId) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
-  
+
   return states[stateType].get(userId) || null;
 }
 
@@ -187,7 +187,7 @@ async function setState(stateType, userId, data, persist = null) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
-  
+
   // Enforce max size limit (evict oldest inserted entry if over limit)
   const maxSize = MAX_STATE_SIZES[stateType];
   if (maxSize && !states[stateType].has(userId) && states[stateType].size >= maxSize) {
@@ -195,18 +195,18 @@ async function setState(stateType, userId, data, persist = null) {
     const firstKey = states[stateType].keys().next().value;
     states[stateType].delete(firstKey);
   }
-  
+
   // Add timestamp
   const stateData = { ...data, timestamp: Date.now() };
-  
+
   // Set in memory
   states[stateType].set(userId, stateData);
-  
+
   // Determine if we should persist
-  const shouldPersist = persist !== null 
-    ? persist 
+  const shouldPersist = persist !== null
+    ? persist
     : ['wizard', 'conversation', 'ipSetup'].includes(stateType);
-  
+
   // Persist to DB if needed (persist the timestamped data for consistency)
   if (shouldPersist) {
     await saveUserState(userId, stateType, stateData);
@@ -222,9 +222,9 @@ async function clearState(stateType, userId) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
-  
+
   states[stateType].delete(userId);
-  
+
   // Also delete from DB if it's a persisted state
   if (['wizard', 'conversation', 'ipSetup'].includes(stateType)) {
     await deleteUserState(userId, stateType);
@@ -241,7 +241,7 @@ function hasState(stateType, userId) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
-  
+
   return states[stateType].has(userId);
 }
 
@@ -254,7 +254,7 @@ function getAllStates(stateType) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
-  
+
   return states[stateType];
 }
 
@@ -266,7 +266,7 @@ function clearAllStates(stateType) {
   if (!states[stateType]) {
     throw new Error(`Invalid state type: ${stateType}`);
   }
-  
+
   states[stateType].clear();
 }
 
@@ -276,11 +276,11 @@ function clearAllStates(stateType) {
  */
 function getStateStats() {
   const stats = {};
-  
+
   for (const [stateType, store] of Object.entries(states)) {
     stats[stateType] = store.size;
   }
-  
+
   return stats;
 }
 

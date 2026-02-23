@@ -1,6 +1,6 @@
 /**
  * Test for graceful shutdown functionality
- * 
+ *
  * This test verifies:
  * 1. User states are saved to database on shutdown
  * 2. User states are restored from database on startup
@@ -122,12 +122,12 @@ async function runTests() {
   try {
     const allStates = db.prepare('SELECT * FROM user_power_states').all();
     console.log(`✅ Знайдено ${allStates.length} станів в БД`);
-    
+
     if (allStates.length !== 3) {
       console.error(`❌ Очікувалось 3 стани, знайдено ${allStates.length}`);
       process.exit(1);
     }
-    
+
     for (const state of allStates) {
       console.log(`   User ${state.telegram_id}: ${state.current_state}, switches: ${state.switch_count}`);
     }
@@ -160,7 +160,7 @@ async function runTests() {
       (telegram_id, current_state, pending_state, updated_at)
       VALUES (99999, 'on', null, datetime('now', '-2 hours'))
     `).run();
-    
+
     const restoredCount = await restoreUserStates();
     // Should still be 3, not 4, because the old state should be ignored
     if (restoredCount === 3) {

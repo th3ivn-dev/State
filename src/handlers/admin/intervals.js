@@ -12,11 +12,11 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
   if (data === 'admin_intervals') {
     const scheduleInterval = parseInt(await getSetting('schedule_check_interval', '60'), 10);
     const ipInterval = parseInt(await getSetting('power_check_interval', '2'), 10);
-    
+
     const scheduleMinutes = Math.round(scheduleInterval / 60);
     const ipFormatted = formatInterval(ipInterval);
-    
-    await safeEditMessageText(bot, 
+
+    await safeEditMessageText(bot,
       '⏱️ <b>Налаштування інтервалів</b>\n\n' +
       `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
       `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
@@ -30,10 +30,10 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
     );
     return;
   }
-  
+
   // Show schedule interval options
   if (data === 'admin_interval_schedule') {
-    await safeEditMessageText(bot, 
+    await safeEditMessageText(bot,
       '⏱ <b>Інтервал перевірки графіків</b>\n\n' +
       'Як часто бот має перевіряти оновлення графіків?\n\n' +
       'Оберіть інтервал:',
@@ -46,10 +46,10 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
     );
     return;
   }
-  
+
   // Show IP interval options
   if (data === 'admin_interval_ip') {
-    await safeEditMessageText(bot, 
+    await safeEditMessageText(bot,
       '📡 <b>Інтервал IP моніторингу</b>\n\n' +
       'Як часто бот має перевіряти доступність IP?\n\n' +
       'Оберіть інтервал:',
@@ -62,34 +62,34 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
     );
     return;
   }
-  
+
   // Set schedule interval
   if (data.startsWith('admin_schedule_')) {
     const minutes = parseInt(data.replace('admin_schedule_', ''), 10);
     const seconds = minutes * 60;
-    
+
     await setSetting('schedule_check_interval', String(seconds));
-    
+
     // Update scheduler interval and restart immediately
     schedulerManager.updateScheduleCheckInterval(seconds);
     schedulerManager.restart({
       bot: bot,
       checkAllSchedules: checkAllSchedules
     });
-    
+
     await safeAnswerCallbackQuery(bot, query.id, {
       text: `✅ Інтервал графіків: ${minutes} хв. Застосовано!`,
       show_alert: true
     });
-    
+
     // Return to intervals menu
     const scheduleInterval = parseInt(await getSetting('schedule_check_interval', '60'), 10);
     const ipInterval = parseInt(await getSetting('power_check_interval', '2'), 10);
-    
+
     const scheduleMinutes = Math.round(scheduleInterval / 60);
     const ipFormatted = formatInterval(ipInterval);
-    
-    await safeEditMessageText(bot, 
+
+    await safeEditMessageText(bot,
       '⏱️ <b>Налаштування інтервалів</b>\n\n' +
       `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
       `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +
@@ -103,13 +103,13 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
     );
     return;
   }
-  
+
   // Set IP interval
   if (data.startsWith('admin_ip_')) {
     const seconds = parseInt(data.replace('admin_ip_', ''), 10);
-    
+
     await setSetting('power_check_interval', String(seconds));
-    
+
     // Restart power monitoring to apply the new interval immediately
     try {
       stopPowerMonitoring();
@@ -118,25 +118,25 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
     } catch (error) {
       logger.error('Failed to restart power monitoring', { error });
     }
-    
+
     const formatted = formatInterval(seconds);
-    const message = seconds === 0 
+    const message = seconds === 0
       ? '✅ Інтервал IP: Динамічний режим. Застосовано!'
       : `✅ Інтервал IP: ${formatted}. Застосовано!`;
-    
+
     await safeAnswerCallbackQuery(bot, query.id, {
       text: message,
       show_alert: true
     });
-    
+
     // Return to intervals menu
     const scheduleInterval = parseInt(await getSetting('schedule_check_interval', '60'), 10);
     const ipInterval = parseInt(await getSetting('power_check_interval', '2'), 10);
-    
+
     const scheduleMinutes = Math.round(scheduleInterval / 60);
     const ipFormatted = formatInterval(ipInterval);
-    
-    await safeEditMessageText(bot, 
+
+    await safeEditMessageText(bot,
       '⏱️ <b>Налаштування інтервалів</b>\n\n' +
       `⏱ Інтервал перевірки графіків: ${scheduleMinutes} хв\n` +
       `📡 Інтервал IP моніторингу: ${ipFormatted}\n\n` +

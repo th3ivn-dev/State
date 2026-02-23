@@ -1,6 +1,6 @@
 /**
  * Monitoring Manager
- * 
+ *
  * Central hub for monitoring and alerting system
  * Coordinates metrics collection, alert generation, and health checks
  */
@@ -17,7 +17,7 @@ class MonitoringManager {
     this.isInitialized = false;
     this.monitoringInterval = null;
     this.alertDeliveryBot = null;
-    
+
     // Monitoring configuration
     this.config = {
       checkIntervalMinutes: 5, // How often to run health checks
@@ -39,15 +39,15 @@ class MonitoringManager {
       logger.warn('Monitoring manager already initialized');
       return;
     }
-    
+
     this.alertDeliveryBot = bot;
-    
+
     // Merge configuration
     this.config = { ...this.config, ...options };
-    
+
     // Set up alert delivery
     alertManager.setDeliveryCallback(this.deliverAlert.bind(this));
-    
+
     this.isInitialized = true;
     logger.info('Monitoring manager initialized', this.config);
   }
@@ -59,28 +59,28 @@ class MonitoringManager {
     if (!this.isInitialized) {
       throw new Error('Monitoring manager not initialized');
     }
-    
+
     if (this.monitoringInterval) {
       logger.warn('Monitoring already running');
       return;
     }
-    
+
     // Track start as state transition
     metricsCollector.trackStateTransition('monitoring_start', {
       timestamp: new Date().toISOString()
     });
-    
+
     // Run initial health check
     await this.runHealthCheck();
-    
+
     // Schedule periodic health checks
     const intervalMs = this.config.checkIntervalMinutes * 60 * 1000;
     this.monitoringInterval = setInterval(() => {
       this.runHealthCheck().catch(err => logger.error('Health check failed', { error: err.message }));
     }, intervalMs);
-    
-    logger.info('Monitoring started', { 
-      intervalMinutes: this.config.checkIntervalMinutes 
+
+    logger.info('Monitoring started', {
+      intervalMinutes: this.config.checkIntervalMinutes
     });
   }
 
@@ -91,12 +91,12 @@ class MonitoringManager {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      
+
       // Track stop as state transition
       metricsCollector.trackStateTransition('monitoring_stop', {
         timestamp: new Date().toISOString()
       });
-      
+
       logger.info('Monitoring stopped');
     }
   }
@@ -107,28 +107,28 @@ class MonitoringManager {
   async runHealthCheck() {
     try {
       logger.debug('Running health check...');
-      
+
       // Collect all metrics
       const metrics = await metricsCollector.collectAllMetrics();
-      
+
       // Check system health
       this.checkSystemHealth(metrics.system);
-      
+
       // Check application health
       this.checkApplicationHealth(metrics.application);
-      
+
       // Check business health
       this.checkBusinessHealth(metrics.business);
-      
+
       // Check UX health
       this.checkUXHealth(metrics.ux);
-      
+
       // Check IP monitoring health
       this.checkIPHealth(metrics.ip);
-      
+
       // Check channel health
       this.checkChannelHealth(metrics.channel);
-      
+
       logger.debug('Health check completed');
     } catch (error) {
       logger.error('Error during health check', { error: error.message });
@@ -156,7 +156,7 @@ class MonitoringManager {
         'Розгляньте можливість перезапуску або оптимізації'
       );
     }
-    
+
     // Check uptime
     const uptimeDays = systemMetrics.uptime / (24 * 60 * 60);
     if (uptimeDays > this.config.maxUptimeDays) {
@@ -184,7 +184,7 @@ class MonitoringManager {
       this.config.errorSpikeThreshold,
       this.config.errorSpikeWindow
     );
-    
+
     if (errorSpike.hasSpike) {
       alertManager.generateAlert(
         ALERT_TYPES.APPLICATION,
@@ -199,12 +199,12 @@ class MonitoringManager {
         'Перевірте логи та розгляньте увімкнення режиму паузи'
       );
     }
-    
+
     // Check for repeated errors
     const repeatedErrors = metricsCollector.checkRepeatedErrors(
       this.config.repeatedErrorThreshold
     );
-    
+
     if (repeatedErrors.length > 0) {
       for (const err of repeatedErrors.slice(0, 3)) { // Limit to 3 alerts
         alertManager.generateAlert(
@@ -221,7 +221,7 @@ class MonitoringManager {
         );
       }
     }
-    
+
     // Check if bot is paused
     if (appMetrics.botPaused) {
       logger.info('Bot is in pause mode');
@@ -247,7 +247,7 @@ class MonitoringManager {
         'Перевірте підключення до Telegram API та стан бота'
       );
     }
-    
+
     // Log business metrics periodically
     logger.debug('Business metrics', businessMetrics);
   }
@@ -259,11 +259,11 @@ class MonitoringManager {
   checkUXHealth(uxMetrics) {
     // Check for high cancel/abort rate
     const totalInteractions = uxMetrics.cancel + uxMetrics.abort + uxMetrics.timeout;
-    
+
     if (totalInteractions > 10) {
       const abortRate = (uxMetrics.abort / totalInteractions) * 100;
       const cancelRate = (uxMetrics.cancel / totalInteractions) * 100;
-      
+
       if (abortRate > 30) {
         alertManager.generateAlert(
           ALERT_TYPES.UX,
@@ -278,7 +278,7 @@ class MonitoringManager {
           'Перевірте UX wizard flows та зробіть їх простішими'
         );
       }
-      
+
       if (cancelRate > 40) {
         alertManager.generateAlert(
           ALERT_TYPES.UX,
@@ -315,7 +315,7 @@ class MonitoringManager {
         'Можлива глобальна проблема з електропостачанням'
       );
     }
-    
+
     // Check for excessive debounce
     if (ipMetrics.debounceCount > 50) {
       alertManager.generateAlert(
@@ -349,7 +349,7 @@ class MonitoringManager {
         'Зверніться до власників каналів для відновлення прав'
       );
     }
-    
+
     // Check for publish errors
     if (channelMetrics.publishErrors > 10) {
       alertManager.generateAlert(
@@ -375,24 +375,24 @@ class MonitoringManager {
       logger.warn('Alert delivery bot not configured');
       return;
     }
-    
+
     const alertChannelId = alertManager.config.alertChannelId;
-    
+
     if (!alertChannelId) {
       // No alert channel configured, just log
       logger.info('Alert generated (no channel configured)', { alert });
       return;
     }
-    
+
     try {
       await this.alertDeliveryBot.api.sendMessage(alertChannelId, formattedAlert, {
         parse_mode: 'HTML'
       });
       logger.debug('Alert delivered', { channel: alertChannelId, level: alert.level });
     } catch (error) {
-      logger.error('Failed to deliver alert', { 
-        error: error.message, 
-        alertChannelId 
+      logger.error('Failed to deliver alert', {
+        error: error.message,
+        alertChannelId
       });
     }
   }

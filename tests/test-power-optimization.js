@@ -41,26 +41,26 @@ console.log('Test 2: Semaphore pattern for concurrent pings');
 async function testSemaphore() {
   const MAX_CONCURRENT = 50;
   const TOTAL_USERS = 200;
-  
+
   let activeConcurrent = 0;
   let maxConcurrent = 0;
   const users = Array.from({ length: TOTAL_USERS }, (_, i) => i);
   let index = 0;
   const processedUsers = [];
-  
+
   // Mock user check function
   const checkUser = async (userId) => {
     activeConcurrent++;
     maxConcurrent = Math.max(maxConcurrent, activeConcurrent);
-    
+
     // Simulate ping delay
     await new Promise(resolve => setTimeout(resolve, 10));
-    
+
     activeConcurrent--;
     processedUsers.push(userId);
     return { userId, success: true };
   };
-  
+
   // Worker function
   const worker = async () => {
     while (index < users.length) {
@@ -68,19 +68,19 @@ async function testSemaphore() {
       await checkUser(userId);
     }
   };
-  
+
   // Create pool of workers
   const workerCount = Math.min(MAX_CONCURRENT, users.length);
   const workers = [];
   for (let i = 0; i < workerCount; i++) {
     workers.push(worker());
   }
-  
+
   await Promise.all(workers);
-  
+
   assert.strictEqual(processedUsers.length, TOTAL_USERS, 'All users should be processed');
   assert(maxConcurrent <= MAX_CONCURRENT, `Max concurrent should not exceed ${MAX_CONCURRENT}, got ${maxConcurrent}`);
-  
+
   console.log(`   Processed ${TOTAL_USERS} users with max ${maxConcurrent} concurrent`);
   console.log('✓ Semaphore pattern works correctly\n');
 }
@@ -88,17 +88,17 @@ async function testSemaphore() {
 testSemaphore().then(() => {
   // Test 3: Verify constants are imported correctly
   console.log('Test 3: Verify constants');
-  const { 
-    POWER_MAX_CONCURRENT_PINGS, 
-    POWER_PING_TIMEOUT_MS 
+  const {
+    POWER_MAX_CONCURRENT_PINGS,
+    POWER_PING_TIMEOUT_MS
   } = require('../src/constants/timeouts');
-  
+
   assert.strictEqual(POWER_MAX_CONCURRENT_PINGS, 50, 'Max concurrent pings should be 50');
   assert.strictEqual(POWER_PING_TIMEOUT_MS, 3000, 'Ping timeout should be 3000ms');
   console.log(`   POWER_MAX_CONCURRENT_PINGS: ${POWER_MAX_CONCURRENT_PINGS}`);
   console.log(`   POWER_PING_TIMEOUT_MS: ${POWER_PING_TIMEOUT_MS}ms`);
   console.log('✓ Constants are correct\n');
-  
+
   console.log('✅ All power monitoring optimization tests passed!');
 }).catch(error => {
   console.error('❌ Test failed:', error.message);

@@ -40,7 +40,7 @@ const shouldRouteCallbacks = [
 ];
 
 for (const callback of shouldRouteCallbacks) {
-  assert(shouldRouteToChannelCallback(callback), 
+  assert(shouldRouteToChannelCallback(callback),
     `Callback '${callback}' має роутитися до handleChannelCallback`);
 }
 
@@ -56,7 +56,7 @@ const shouldNotRouteCallbacks = [
 ];
 
 for (const callback of shouldNotRouteCallbacks) {
-  assert(!shouldRouteToChannelCallback(callback), 
+  assert(!shouldRouteToChannelCallback(callback),
     `Callback '${callback}' не повинен роутитися до handleChannelCallback`);
 }
 

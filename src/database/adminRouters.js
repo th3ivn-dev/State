@@ -149,7 +149,7 @@ async function getAdminRouterStats(adminTelegramId, hours = 24) {
          AND event_at >= NOW() - INTERVAL '1 hour' * $2`,
       [adminTelegramId, hours]
     );
-    
+
     if (result.rows.length > 0) {
       const stats = result.rows[0];
       return {
@@ -159,7 +159,7 @@ async function getAdminRouterStats(adminTelegramId, hours = 24) {
         avg_offline_minutes: parseFloat(stats.avg_offline_minutes) || 0,
       };
     }
-    
+
     return {
       offline_count: 0,
       total_offline_minutes: 0,

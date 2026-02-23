@@ -14,24 +14,24 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       });
       return true;
     }
-    
+
     const statusText = user.channel_status === 'blocked' ? '🔴 Заблокований' : '🟢 Активний';
-    const infoText = 
+    const infoText =
       `📺 <b>Інформація про канал</b>\n\n` +
       `ID: <code>${user.channel_id}</code>\n` +
       `Назва: ${user.channel_title || 'Не налаштовано'}\n` +
       `Статус: ${statusText}\n\n` +
-      (user.channel_status === 'blocked' 
+      (user.channel_status === 'blocked'
         ? `⚠️ Канал заблокований через ручну зміну налаштувань.\nВикористайте "Перепідключити канал" для відновлення.`
         : `✅ Канал активний і готовий до публікацій.`);
-    
+
     await safeAnswerCallbackQuery(bot, query.id, {
       text: infoText.replace(/[<>]/g, ''), // Remove angle brackets for plain-text popup
       show_alert: true
     });
     return true;
   }
-  
+
   // Handle channel_disable - show confirmation first
   if (data === 'channel_disable') {
     if (!user || !user.channel_id) {
@@ -41,7 +41,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       });
       return true;
     }
-    
+
     // Show confirmation dialog
     const confirmKeyboard = {
       inline_keyboard: [
@@ -51,8 +51,8 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
         ]
       ]
     };
-    
-    await safeEditMessageText(bot, 
+
+    await safeEditMessageText(bot,
       `⚠️ <b>Точно вимкнути публікації?</b>\n\n` +
       `Канал буде відключено від бота.\n` +
       `Графіки більше не будуть публікуватись.\n\n` +
@@ -67,7 +67,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
     );
     return true;
   }
-  
+
   // Handle confirmed channel disable
   if (data === 'channel_disable_confirm') {
     if (!user || !user.channel_id) {
@@ -77,11 +77,11 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       });
       return true;
     }
-    
+
     // Remove channel from user
     await usersDb.updateUserChannel(telegramId, null);
-    
-    await safeEditMessageText(bot, 
+
+    await safeEditMessageText(bot,
       `✅ <b>Публікації вимкнено</b>\n\n` +
       `Канал відключено. Графіки більше не будуть публікуватись.\n\n` +
       `Для повторного підключення перейдіть у:\n` +
@@ -100,7 +100,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
     await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Канал відключено' });
     return true;
   }
-  
+
   // Handle channel_format - show format settings menu (Level 1)
   if (data === 'channel_format') {
     if (!user || !user.channel_id) {
@@ -110,8 +110,8 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       });
       return true;
     }
-    
-    await safeEditMessageText(bot, 
+
+    await safeEditMessageText(bot,
       FORMAT_SETTINGS_MESSAGE,
       {
         chat_id: chatId,
@@ -122,7 +122,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
     );
     return true;
   }
-  
+
   // Handle format_menu - show format settings menu (Level 1)
   if (data === 'format_menu') {
     if (!user || !user.channel_id) {
@@ -132,8 +132,8 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       });
       return true;
     }
-    
-    await safeEditMessageText(bot, 
+
+    await safeEditMessageText(bot,
       FORMAT_SETTINGS_MESSAGE,
       {
         chat_id: chatId,
@@ -144,7 +144,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
     );
     return true;
   }
-  
+
   return false;
 }
 

@@ -7,7 +7,7 @@ const { saveAllUserStates, stopPowerMonitoring } = require('../../powerMonitor')
 async function handleDatabaseCallback(bot, query, chatId, userId, data) {
   // Clear DB handlers
   if (data === 'admin_clear_db') {
-    await safeEditMessageText(bot, 
+    await safeEditMessageText(bot,
       `⚠️ <b>УВАГА: Очищення бази даних</b>\n\n` +
       `Ця дія видалить ВСІХ користувачів з бази.\n` +
       `Це потрібно при переході на новий бот.\n\n` +
@@ -31,7 +31,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
 
   if (data === 'admin_clear_db_confirm') {
     // Очистити таблицю users з транзакцією для атомарності
-    
+
     try {
       // Використовуємо транзакцію для забезпечення атомарності
       const client = await pool.connect();
@@ -47,8 +47,8 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       } finally {
         client.release();
       }
-      
-      await safeEditMessageText(bot, 
+
+      await safeEditMessageText(bot,
         `✅ <b>База очищена</b>\n\n` +
         `Всі користувачі видалені.\n` +
         `Нові користувачі можуть починати з /start`,
@@ -62,16 +62,16 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       await safeAnswerCallbackQuery(bot, query.id, { text: '✅ База очищена' });
     } catch (error) {
       console.error('Error clearing database:', error);
-      await safeAnswerCallbackQuery(bot, query.id, { 
-        text: '❌ Помилка очищення бази', 
-        show_alert: true 
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Помилка очищення бази',
+        show_alert: true
       });
     }
     return;
   }
-  
+
   if (data === 'admin_restart') {
-    
+
     await safeEditMessageText(bot,
       '🔄 <b>Перезапуск бота</b>\n\n' +
       '⚠️ Бот буде недоступний ~10-15 секунд.\n' +
@@ -86,13 +86,13 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
     );
     return;
   }
-  
+
   if (data === 'admin_restart_confirm') {
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '🔄 Перезапуск бота...',
       show_alert: false
     });
-    
+
     await safeEditMessageText(bot,
       '🔄 <b>Перезапуск бота через 3 секунди...</b>\n\n' +
       '⏳ Бот буде доступний через ~10-15 секунд.',
@@ -102,7 +102,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
         parse_mode: 'HTML',
       }
     );
-    
+
     // Graceful shutdown: зберігаємо стани перед виходом
     setTimeout(() => {
       // Wrap everything in try-catch to handle any unhandled promise rejections
@@ -120,7 +120,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
         }
       })();
     }, 3000);
-    
+
     return;
   }
 }

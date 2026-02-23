@@ -10,11 +10,11 @@ const { isValidIPorDomain } = require('../settings');
 // Callback handler for router monitoring callbacks
 async function handleRouterCallback(bot, query, chatId, userId, data) {
   if (data === 'admin_router') {
-    
+
     const routerData = await adminRoutersDb.getAdminRouter(userId);
-    
+
     let message = '📡 <b>Моніторинг роутера</b>\n\n';
-    
+
     if (!routerData || !routerData.router_ip) {
       message += '❌ IP роутера не налаштовано\n\n';
       message += 'Налаштуйте IP адресу вашого роутера\n';
@@ -23,10 +23,10 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
       const isOnline = routerData.last_state === 'online';
       const statusIcon = isOnline ? '🟢' : '🔴';
       const statusText = isOnline ? 'онлайн' : 'офлайн';
-      
+
       message += `${statusIcon} Роутер ${statusText}\n`;
       message += `📍 IP: ${routerData.router_ip}\n`;
-      
+
       // Calculate duration
       if (routerData.last_change_at) {
         const changeTime = new Date(routerData.last_change_at);
@@ -35,22 +35,22 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
         const durationStr = formatExactDuration(durationSeconds);
         message += `⏱️ ${isOnline ? 'Онлайн' : 'Офлайн'} вже: ${durationStr}\n`;
       }
-      
+
       message += `🔔 Сповіщення: ${routerData.notifications_on ? 'увімк' : 'вимк'}\n`;
-      
+
       // Show last offline event
       const history = await adminRoutersDb.getAdminRouterHistory(userId, 1);
       if (history.length > 0 && history[0].event_type === 'offline') {
         const event = history[0];
         const eventTime = new Date(event.event_at);
         const timeStr = formatTime(eventTime);
-        const durationStr = event.duration_minutes 
+        const durationStr = event.duration_minutes
           ? formatExactDuration(event.duration_minutes * 60)
           : 'невідомо';
         message += `\nОстаннє відключення: ${timeStr} (тривалість ${durationStr})`;
       }
     }
-    
+
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
@@ -59,17 +59,17 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     });
     return;
   }
-  
+
   if (data === 'admin_router_set_ip') {
-    
+
     const routerData = await adminRoutersDb.getAdminRouter(userId);
     const currentIp = routerData?.router_ip || 'не налаштовано';
-    
+
     await setState('conversation', userId, {
       state: 'waiting_for_admin_router_ip',
       messageId: query.message.message_id,
     });
-    
+
     await safeEditMessageText(bot,
       `✏️ <b>Введіть IP адресу роутера</b>\n\n` +
       `Приклад: 192.168.1.1\n\n` +
@@ -83,27 +83,27 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     );
     return;
   }
-  
+
   if (data === 'admin_router_toggle_notify') {
-    
+
     const newState = await adminRoutersDb.toggleAdminRouterNotifications(userId);
-    
+
     if (newState !== null) {
       await safeAnswerCallbackQuery(bot, query.id, {
         text: newState ? '✅ Сповіщення увімкнено' : '❌ Сповіщення вимкнено',
       });
-      
+
       // Refresh the screen
       const routerData = await adminRoutersDb.getAdminRouter(userId);
-      
+
       let message = '📡 <b>Моніторинг роутера</b>\n\n';
       const isOnline = routerData.last_state === 'online';
       const statusIcon = isOnline ? '🟢' : '🔴';
       const statusText = isOnline ? 'онлайн' : 'офлайн';
-      
+
       message += `${statusIcon} Роутер ${statusText}\n`;
       message += `📍 IP: ${routerData.router_ip}\n`;
-      
+
       if (routerData.last_change_at) {
         const changeTime = new Date(routerData.last_change_at);
         const now = new Date();
@@ -111,20 +111,20 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
         const durationStr = formatExactDuration(durationSeconds);
         message += `⏱️ ${isOnline ? 'Онлайн' : 'Офлайн'} вже: ${durationStr}\n`;
       }
-      
+
       message += `🔔 Сповіщення: ${routerData.notifications_on ? 'увімк' : 'вимк'}\n`;
-      
+
       const history = await adminRoutersDb.getAdminRouterHistory(userId, 1);
       if (history.length > 0 && history[0].event_type === 'offline') {
         const event = history[0];
         const eventTime = new Date(event.event_at);
         const timeStr = formatTime(eventTime);
-        const durationStr = event.duration_minutes 
+        const durationStr = event.duration_minutes
           ? formatExactDuration(event.duration_minutes * 60)
           : 'невідомо';
         message += `\nОстаннє відключення: ${timeStr} (тривалість ${durationStr})`;
       }
-      
+
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
@@ -134,15 +134,15 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     }
     return;
   }
-  
+
   if (data === 'admin_router_stats') {
-    
+
     const stats24h = await adminRoutersDb.getAdminRouterStats(userId, 24);
     const stats7d = await adminRoutersDb.getAdminRouterStats(userId, 24 * 7);
     const history = await adminRoutersDb.getAdminRouterHistory(userId, 5);
-    
+
     let message = '📊 <b>Статистика роутера</b>\n\n';
-    
+
     // 24 hours stats
     message += '<b>За останні 24 години:</b>\n';
     message += `• Відключень: ${stats24h.offline_count}\n`;
@@ -151,7 +151,7 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
       message += `• Найдовше відключення: ${formatExactDuration(stats24h.longest_offline_minutes * 60)}\n`;
     }
     message += '\n';
-    
+
     // 7 days stats
     message += '<b>За останні 7 днів:</b>\n';
     message += `• Відключень: ${stats7d.offline_count}\n`;
@@ -159,7 +159,7 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     if (stats7d.avg_offline_minutes > 0) {
       message += `• Середня тривалість: ${formatExactDuration(Math.round(stats7d.avg_offline_minutes) * 60)}\n`;
     }
-    
+
     // Recent events
     if (history.length > 0) {
       message += '\n<b>Останні 5 подій:</b>\n';
@@ -167,13 +167,13 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
         const eventTime = new Date(event.event_at);
         const timeStr = formatTime(eventTime);
         const icon = event.event_type === 'offline' ? '🔴' : '🟢';
-        const durationStr = event.duration_minutes 
+        const durationStr = event.duration_minutes
           ? ` (${formatExactDuration(event.duration_minutes * 60)})`
           : '';
         message += `${icon} ${timeStr}${durationStr}\n`;
       }
     }
-    
+
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
@@ -182,23 +182,23 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     });
     return;
   }
-  
+
   if (data === 'admin_router_refresh') {
-    
+
     // Force check
     await forceCheckAdminRouter(userId);
-    
+
     // Get updated data
     const routerData = await adminRoutersDb.getAdminRouter(userId);
-    
+
     let message = '📡 <b>Моніторинг роутера</b>\n\n';
     const isOnline = routerData.last_state === 'online';
     const statusIcon = isOnline ? '🟢' : '🔴';
     const statusText = isOnline ? 'онлайн' : 'офлайн';
-    
+
     message += `${statusIcon} Роутер ${statusText}\n`;
     message += `📍 IP: ${routerData.router_ip}\n`;
-    
+
     if (routerData.last_change_at) {
       const changeTime = new Date(routerData.last_change_at);
       const now = new Date();
@@ -206,27 +206,27 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
       const durationStr = formatExactDuration(durationSeconds);
       message += `⏱️ ${isOnline ? 'Онлайн' : 'Офлайн'} вже: ${durationStr}\n`;
     }
-    
+
     message += `🔔 Сповіщення: ${routerData.notifications_on ? 'увімк' : 'вимк'}\n`;
-    
+
     const history = await adminRoutersDb.getAdminRouterHistory(userId, 1);
     if (history.length > 0 && history[0].event_type === 'offline') {
       const event = history[0];
       const eventTime = new Date(event.event_at);
       const timeStr = formatTime(eventTime);
-      const durationStr = event.duration_minutes 
+      const durationStr = event.duration_minutes
         ? formatExactDuration(event.duration_minutes * 60)
         : 'невідомо';
       message += `\nОстаннє відключення: ${timeStr} (тривалість ${durationStr})`;
     }
-    
+
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
       ...getAdminRouterKeyboard(routerData),
     });
-    
+
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '🔄 Оновлено',
     });
@@ -241,45 +241,45 @@ async function handleAdminRouterIpConversation(bot, msg) {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
   const text = msg.text;
-  
+
   // Check if admin
   if (!isAdmin(telegramId, config.adminIds, config.ownerId)) {
     return false;
   }
-  
+
   // Check conversation state
   const state = getState('conversation', telegramId);
   if (!state || state.state !== 'waiting_for_admin_router_ip') {
     return false;
   }
-  
+
   try {
     // Validate IP address
     const validationResult = isValidIPorDomain(text);
-    
+
     if (!validationResult.valid) {
       await safeSendMessage(bot, chatId, `❌ ${validationResult.error}`);
       return true;
     }
-    
+
     // Save router IP
     await adminRoutersDb.setAdminRouterIP(telegramId, validationResult.address);
     await clearState('conversation', telegramId);
-    
+
     // Get router data
     const routerData = await adminRoutersDb.getAdminRouter(telegramId);
-    
+
     let message = '📡 <b>Моніторинг роутера</b>\n\n';
     message += `✅ IP адресу збережено: ${validationResult.address}\n\n`;
-    
+
     if (routerData.last_state) {
       const isOnline = routerData.last_state === 'online';
       const statusIcon = isOnline ? '🟢' : '🔴';
       const statusText = isOnline ? 'онлайн' : 'офлайн';
-      
+
       message += `${statusIcon} Роутер ${statusText}\n`;
       message += `📍 IP: ${routerData.router_ip}\n`;
-      
+
       if (routerData.last_change_at) {
         const changeTime = new Date(routerData.last_change_at);
         const now = new Date();
@@ -287,12 +287,12 @@ async function handleAdminRouterIpConversation(bot, msg) {
         const durationStr = formatExactDuration(durationSeconds);
         message += `⏱️ ${isOnline ? 'Онлайн' : 'Офлайн'} вже: ${durationStr}\n`;
       }
-      
+
       message += `🔔 Сповіщення: ${routerData.notifications_on ? 'увімк' : 'вимк'}\n`;
     } else {
       message += 'Моніторинг почнеться протягом 5 хвилин.';
     }
-    
+
     // Edit the message if we have the message ID
     if (state.messageId) {
       await safeEditMessageText(bot, message, {
@@ -307,7 +307,7 @@ async function handleAdminRouterIpConversation(bot, msg) {
         ...getAdminRouterKeyboard(routerData),
       });
     }
-    
+
     return true;
   } catch (error) {
     console.error('Помилка в handleAdminRouterIpConversation:', error);

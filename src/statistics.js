@@ -6,17 +6,17 @@ async function addOutageRecord(userId, startTime, endTime) {
     const start = new Date(startTime);
     const end = new Date(endTime);
     const durationMinutes = Math.floor((end - start) / (1000 * 60));
-    
+
     if (durationMinutes < 0) {
       console.error('Invalid outage duration: end time before start time');
       return false;
     }
-    
+
     await pool.query(`
       INSERT INTO outage_history (user_id, start_time, end_time, duration_minutes)
       VALUES ($1, $2, $3, $4)
     `, [userId, startTime, endTime, durationMinutes]);
-    
+
     return true;
   } catch (error) {
     console.error('Error adding outage record:', error);
@@ -29,15 +29,15 @@ async function getWeeklyStats(userId) {
   try {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
+
     const result = await pool.query(`
       SELECT * FROM outage_history
       WHERE user_id = $1 AND start_time >= $2
       ORDER BY start_time DESC
     `, [userId, weekAgo.toISOString()]);
-    
+
     const records = result.rows;
-    
+
     if (records.length === 0) {
       return {
         count: 0,
@@ -47,14 +47,14 @@ async function getWeeklyStats(userId) {
         shortest: null,
       };
     }
-    
+
     const totalMinutes = records.reduce((sum, r) => sum + r.duration_minutes, 0);
     const avgMinutes = Math.floor(totalMinutes / records.length);
-    
+
     // Знайти найдовше і найкоротше
     let longest = records[0];
     let shortest = records[0];
-    
+
     records.forEach(record => {
       if (record.duration_minutes > longest.duration_minutes) {
         longest = record;
@@ -63,7 +63,7 @@ async function getWeeklyStats(userId) {
         shortest = record;
       }
     });
-    
+
     return {
       count: records.length,
       totalMinutes,
@@ -88,22 +88,22 @@ function formatStatsMessage(stats) {
   if (stats.count === 0) {
     return '📊 За тиждень:\n\n✅ Відключень не було';
   }
-  
+
   const { formatExactDuration } = require('./utils');
-  
+
   const lines = [];
   lines.push('📊 За тиждень:');
   lines.push('');
   lines.push(`⚡ Відключень: ${stats.count}`);
-  
+
   // Форматувати загальний час
   const totalDuration = formatExactDuration(stats.totalMinutes);
   lines.push(`🕓 Загальний час без світла: ${totalDuration}`);
-  
+
   // Середня тривалість
   const avgDuration = formatExactDuration(stats.avgMinutes);
   lines.push(`📉 Середня тривалість: ${avgDuration}`);
-  
+
   // Найдовше відключення
   if (stats.longest) {
     const longDuration = formatExactDuration(stats.longest.duration_minutes);
@@ -112,10 +112,10 @@ function formatStatsMessage(stats) {
     const longStartTime = `${String(longDate.getHours()).padStart(2, '0')}:${String(longDate.getMinutes()).padStart(2, '0')}`;
     const longEndDate = new Date(stats.longest.end_time);
     const longEndTime = `${String(longEndDate.getHours()).padStart(2, '0')}:${String(longEndDate.getMinutes()).padStart(2, '0')}`;
-    
+
     lines.push(`🏆 Найдовше: ${longDuration} (${longDateStr} ${longStartTime}-${longEndTime})`);
   }
-  
+
   // Найкоротше відключення
   if (stats.shortest) {
     const shortDuration = formatExactDuration(stats.shortest.duration_minutes);
@@ -124,17 +124,17 @@ function formatStatsMessage(stats) {
     const shortStartTime = `${String(shortDate.getHours()).padStart(2, '0')}:${String(shortDate.getMinutes()).padStart(2, '0')}`;
     const shortEndDate = new Date(stats.shortest.end_time);
     const shortEndTime = `${String(shortEndDate.getHours()).padStart(2, '0')}:${String(shortEndDate.getMinutes()).padStart(2, '0')}`;
-    
+
     lines.push(`🔋 Найкоротше: ${shortDuration} (${shortDateStr} ${shortStartTime}-${shortEndTime})`);
   }
-  
+
   return lines.join('\n');
 }
 
 // Форматувати повідомлення статистики для popup (коротка версія до 200 символів)
 function formatStatsPopup(stats, isChannel = false) {
   let message = '📈 Статистика за 7 днів\n\n';
-  
+
   if (stats.count === 0) {
     message += '📊 Дані ще не зібрані\n';
     message += 'ℹ️ Статистика з\'явиться після першого\n';
@@ -146,14 +146,14 @@ function formatStatsPopup(stats, isChannel = false) {
     }
     return message;
   }
-  
+
   const totalHours = Math.floor(stats.totalMinutes / 60);
   const totalMins = stats.totalMinutes % 60;
   const avgHours = Math.floor(stats.avgMinutes / 60);
   const avgMins = stats.avgMinutes % 60;
-  
+
   message += `⚡ Відключень: ${stats.count}\n`;
-  
+
   // Format total time
   let totalStr = '';
   if (totalHours > 0) {
@@ -163,7 +163,7 @@ function formatStatsPopup(stats, isChannel = false) {
     totalStr = `${totalMins} хв`;
   }
   message += `🕓 Загальний час без світла: ${totalStr}\n`;
-  
+
   // Format average time
   let avgStr = '';
   if (avgHours > 0) {
@@ -173,9 +173,9 @@ function formatStatsPopup(stats, isChannel = false) {
     avgStr = `${avgMins} хв`;
   }
   message += `📉 Середня тривалість: ${avgStr}`;
-  
+
   // TODO: Add longest and shortest outages if we have that data
-  
+
   return message;
 }
 

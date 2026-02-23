@@ -7,7 +7,7 @@ const MAX_HOUR = 24;
 function createEventDate(baseDate, hourValue) {
   const hour = Math.floor(hourValue);
   const minute = (hourValue % 1) * 60;
-  
+
   // Hour=24 means end of day. JavaScript's Date constructor automatically
   // rolls hour=24 to 00:00 of the next day, which is the correct behavior.
   // The formatter.js uses event.start (not event.end) for day assignment,
@@ -27,7 +27,7 @@ function parseScheduleForQueue(data, queue) {
         hasData: false,
       };
     }
-    
+
     if (!queue || typeof queue !== 'string') {
       return {
         queue: 'unknown',
@@ -35,9 +35,9 @@ function parseScheduleForQueue(data, queue) {
         hasData: false,
       };
     }
-    
+
     const queueKey = `GPV${queue}`;
-    
+
     // Перевірка структури даних
     if (!data.fact || typeof data.fact !== 'object' || !data.fact.data || typeof data.fact.data !== 'object') {
       return {
@@ -46,11 +46,11 @@ function parseScheduleForQueue(data, queue) {
         hasData: false,
       };
     }
-    
+
     // Візьмемо перші два доступні timestamp з даних
     // Дані зберігаються в порядку: сьогодні, завтра
     const availableTimestamps = Object.keys(data.fact.data).map(Number).sort((a, b) => a - b);
-    
+
     if (availableTimestamps.length === 0) {
       return {
         queue,
@@ -58,16 +58,16 @@ function parseScheduleForQueue(data, queue) {
         hasData: false,
       };
     }
-    
+
     // Просто використовуємо перші доступні timestamp
     // Перший - це дані для сьогодні (або останній доступний день)
     // Другий - це дані для завтра (якщо є)
     const todayTimestamp = availableTimestamps[0];
     const tomorrowTimestamp = availableTimestamps.length > 1 ? availableTimestamps[1] : null;
-    
+
     const todaySchedule = data.fact.data[todayTimestamp]?.[queueKey];
     const tomorrowSchedule = data.fact.data[tomorrowTimestamp]?.[queueKey];
-    
+
     if (!todaySchedule) {
       return {
         queue,
@@ -75,15 +75,15 @@ function parseScheduleForQueue(data, queue) {
         hasData: false,
       };
     }
-    
+
     // Парсимо години для сьогодні та завтра
     const todayParsed = parseHourlySchedule(todaySchedule);
     const tomorrowParsed = tomorrowSchedule ? parseHourlySchedule(tomorrowSchedule) : { planned: [], possible: [] };
-    
+
     // Конвертуємо періоди в події з абсолютними timestamp
     const events = [];
     const todayDate = new Date(todayTimestamp * 1000);
-    
+
     // Додаємо події сьогодні
     todayParsed.planned.forEach(period => {
       events.push({
@@ -93,7 +93,7 @@ function parseScheduleForQueue(data, queue) {
         isPossible: false,
       });
     });
-    
+
     todayParsed.possible.forEach(period => {
       events.push({
         type: 'outage',
@@ -102,11 +102,11 @@ function parseScheduleForQueue(data, queue) {
         isPossible: true,
       });
     });
-    
+
     // Додаємо події завтра (тільки якщо є дані для завтра)
     if (tomorrowTimestamp && tomorrowSchedule) {
       const tomorrowDateObj = new Date(tomorrowTimestamp * 1000);
-      
+
       tomorrowParsed.planned.forEach(period => {
         events.push({
           type: 'outage',
@@ -115,7 +115,7 @@ function parseScheduleForQueue(data, queue) {
           isPossible: false,
         });
       });
-      
+
       tomorrowParsed.possible.forEach(period => {
         events.push({
           type: 'outage',
@@ -125,10 +125,10 @@ function parseScheduleForQueue(data, queue) {
         });
       });
     }
-    
+
     // Сортуємо події по часу початку
     events.sort((a, b) => a.start - b.start);
-    
+
     return {
       queue,
       queueKey,
@@ -150,17 +150,17 @@ function parseScheduleForQueue(data, queue) {
 function parseHourlySchedule(hourlyData) {
   const planned = [];
   const possible = [];
-  
+
   for (let hour = MIN_HOUR; hour <= MAX_HOUR; hour++) {
     const factValue = hourlyData[hour];
-    
+
     if (factValue === 'no' || factValue === 'first' || factValue === 'second') {
       addOutagePeriod(planned, hour, factValue);
     } else if (factValue === 'maybe' || factValue === 'mfirst' || factValue === 'msecond') {
       addOutagePeriod(possible, hour, factValue);
     }
   }
-  
+
   return {
     planned: mergeConsecutivePeriods(planned),
     possible: mergeConsecutivePeriods(possible),
@@ -187,7 +187,7 @@ function addOutagePeriod(periods, hour, value) {
 // Додати або розширити період
 function addOrExtendPeriod(periods, start, end) {
   const lastPeriod = periods[periods.length - 1];
-  
+
   if (lastPeriod && lastPeriod.end === start) {
     // Розширюємо існуючий період
     lastPeriod.end = end;
@@ -200,17 +200,17 @@ function addOrExtendPeriod(periods, start, end) {
 // Об'єднати послідовні періоди
 function mergeConsecutivePeriods(periods) {
   const merged = [];
-  
+
   for (const period of periods) {
     const last = merged[merged.length - 1];
-    
+
     if (last && last.end === period.start) {
       last.end = period.end;
     } else {
       merged.push({ ...period });
     }
   }
-  
+
   return merged;
 }
 
@@ -218,7 +218,7 @@ function mergeConsecutivePeriods(periods) {
 function findNextEvent(scheduleData) {
   const now = getCurrentTime();
   const events = scheduleData.events || [];
-  
+
   for (let i = 0; i < events.length; i++) {
     const event = events[i];
     // Перевіряємо чи ми зараз у періоді відключення
@@ -239,7 +239,7 @@ function findNextEvent(scheduleData) {
         isPossible: event.isPossible,
       };
     }
-    
+
     // Перевіряємо чи відключення ще попереду
     if (now < event.start) {
       return {
@@ -251,7 +251,7 @@ function findNextEvent(scheduleData) {
       };
     }
   }
-  
+
   return null;
 }
 
@@ -260,9 +260,9 @@ function getTodayEvents(scheduleData) {
   const now = getCurrentTime();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-  
+
   const events = scheduleData.events || [];
-  
+
   return events.filter(event => {
     return event.start <= todayEnd && event.end >= todayStart;
   });
@@ -273,9 +273,9 @@ function getTomorrowEvents(scheduleData) {
   const now = getCurrentTime();
   const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
   const tomorrowEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59);
-  
+
   const events = scheduleData.events || [];
-  
+
   return events.filter(event => {
     return event.start <= tomorrowEnd && event.end >= tomorrowStart;
   });
@@ -285,13 +285,13 @@ function getTomorrowEvents(scheduleData) {
 function isCurrentlyOff(scheduleData) {
   const now = getCurrentTime();
   const events = scheduleData.events || [];
-  
+
   for (const event of events) {
     if (now >= event.start && now < event.end) {
       return true;
     }
   }
-  
+
   return false;
 }
 

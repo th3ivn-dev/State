@@ -10,7 +10,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   botRef = bot;
   const useWebhook = config.USE_WEBHOOK;
   const webhookPath = config.WEBHOOK_PATH;
-  
+
   server = http.createServer(async (req, res) => {
     // Webhook endpoint
     if (useWebhook && req.method === 'POST' && req.url === webhookPath) {
@@ -30,7 +30,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       });
       return;
     }
-    
+
     // Health check endpoint
     if (req.url === '/health' || req.url === '/') {
       try {
@@ -39,7 +39,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
           return false;
         });
         const userCount = await getUserCount();
-        
+
         const health = {
           status: 'ok',
           uptime: Math.floor(process.uptime()),
@@ -53,7 +53,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
             heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
           },
         };
-        
+
         const statusCode = dbCheck ? 200 : 503;
         res.writeHead(statusCode, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(health));
@@ -66,10 +66,10 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       res.end('Not Found');
     }
   });
-  
+
   server.listen(port, () => {
     console.log(`🏥 Health check server running on port ${port}`);
-    
+
     if (useWebhook && config.WEBHOOK_URL) {
       // Set webhook with Telegram
       const fullWebhookUrl = `${config.WEBHOOK_URL}${webhookPath}`;

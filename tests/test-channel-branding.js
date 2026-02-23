@@ -13,7 +13,7 @@ try {
   const db = require('../src/database/db');
   const tableInfo = db.pragma('table_info(users)');
   const columnNames = tableInfo.map(col => col.name);
-  
+
   const requiredColumns = [
     'channel_title',
     'channel_description',
@@ -23,9 +23,9 @@ try {
     'channel_status',
     'channel_branding_updated_at'
   ];
-  
+
   const missingColumns = requiredColumns.filter(col => !columnNames.includes(col));
-  
+
   if (missingColumns.length === 0) {
     console.log('✓ Всі необхідні колонки присутні\n');
   } else {
@@ -41,7 +41,7 @@ try {
 console.log('Test 2: Перевірка методів бази даних');
 try {
   const usersDb = require('../src/database/users');
-  
+
   const requiredMethods = [
     'resetUserChannel',
     'updateChannelBranding',
@@ -50,9 +50,9 @@ try {
     'getUsersWithActiveChannels',
     'getUsersWithChannelsForVerification'
   ];
-  
+
   const missingMethods = requiredMethods.filter(method => typeof usersDb[method] !== 'function');
-  
+
   if (missingMethods.length === 0) {
     console.log('✓ Всі методи присутні\n');
   } else {
@@ -68,7 +68,7 @@ try {
 console.log('Test 3: Перевірка обробників каналу');
 try {
   const channelHandlers = require('../src/handlers/channel');
-  
+
   const requiredHandlers = [
     'handleChannel',
     'handleSetChannel',
@@ -77,9 +77,9 @@ try {
     'handleCancelChannel',
     'handleForwardedMessage'
   ];
-  
+
   const missingHandlers = requiredHandlers.filter(handler => typeof channelHandlers[handler] !== 'function');
-  
+
   if (missingHandlers.length === 0) {
     console.log('✓ Всі обробники присутні\n');
   } else {
@@ -95,15 +95,15 @@ try {
 console.log('Test 4: Перевірка модуля захисту каналів');
 try {
   const channelGuard = require('../src/channelGuard');
-  
+
   const requiredFunctions = [
     'initChannelGuard',
     'verifyAllChannels',
     'checkExistingUsers'
   ];
-  
+
   const missingFunctions = requiredFunctions.filter(func => typeof channelGuard[func] !== 'function');
-  
+
   if (missingFunctions.length === 0) {
     console.log('✓ Всі функції присутні\n');
   } else {
@@ -120,7 +120,7 @@ console.log('Test 5: Перевірка наявності фото');
 try {
   const fs = require('fs');
   const photoPath = path.join(__dirname, 'photo_for_channels.PNG.jpg');
-  
+
   if (fs.existsSync(photoPath)) {
     const stats = fs.statSync(photoPath);
     console.log(`✓ Файл фото знайдено (${(stats.size / 1024).toFixed(2)} KB)\n`);
@@ -139,11 +139,11 @@ try {
   const channelHandlers = require('../src/handlers/channel');
   const fs = require('fs');
   const content = fs.readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
-  
+
   const hasPrefix = content.includes("CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ '");
   const hasDescription = content.includes('CHANNEL_DESCRIPTION_BASE');
   const hasPhotoPath = content.includes('PHOTO_PATH');
-  
+
   if (hasPrefix && hasDescription && hasPhotoPath) {
     console.log('✓ Всі константи визначені\n');
   } else {

@@ -22,15 +22,15 @@ async function handleChannelCallback(bot, query) {
   const chatId = query.message.chat.id;
   const telegramId = String(query.from.id);
   const data = query.data;
-  
+
   // Skip early answer for callbacks that need custom popup messages
   if (!CALLBACKS_WITH_CUSTOM_ANSWER.includes(data)) {
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
   }
-  
+
   try {
     const user = await usersDb.getUserByTelegramId(telegramId);
-    
+
     // Route to connect sub-handler
     if (
       data === 'channel_connect' ||
@@ -42,7 +42,7 @@ async function handleChannelCallback(bot, query) {
     ) {
       if (await handleConnectCallbacks(bot, query, data, chatId, telegramId, user)) return;
     }
-    
+
     // Route to branding sub-handler
     if (
       data === 'channel_edit_title' ||
@@ -52,7 +52,7 @@ async function handleChannelCallback(bot, query) {
     ) {
       if (await handleBrandingCallbacks(bot, query, data, chatId, telegramId, user)) return;
     }
-    
+
     // Route to settings sub-handler
     if (
       data === 'channel_info' ||
@@ -63,7 +63,7 @@ async function handleChannelCallback(bot, query) {
     ) {
       if (await handleSettingsCallbacks(bot, query, data, chatId, telegramId, user)) return;
     }
-    
+
     // Route to pause sub-handler
     if (
       data === 'channel_pause' ||
@@ -73,7 +73,7 @@ async function handleChannelCallback(bot, query) {
     ) {
       if (await handlePauseCallbacks(bot, query, data, chatId, telegramId, user)) return;
     }
-    
+
     // Route to test sub-handler
     if (
       data === 'channel_test' ||
@@ -84,12 +84,12 @@ async function handleChannelCallback(bot, query) {
     ) {
       if (await handleTestCallbacks(bot, query, data, chatId, telegramId, user)) return;
     }
-    
+
     // Route to format sub-handler
     if (data.startsWith('format_')) {
       if (await handleFormatCallbacks(bot, query, data, chatId, telegramId, user)) return;
     }
-    
+
   } catch (error) {
     console.error('Помилка в handleChannelCallback:', error);
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });

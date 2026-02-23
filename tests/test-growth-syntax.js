@@ -33,7 +33,7 @@ try {
 console.log('\nTest 3: Modified files structure');
 try {
   const fs = require('fs');
-  
+
   // Check admin.js has growth imports
   const adminJs = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
   if (adminJs.includes('getGrowthMetrics')) {
@@ -41,7 +41,7 @@ try {
   } else {
     console.warn('⚠️  admin.js missing growth metrics imports');
   }
-  
+
   // Check start.js has registration limits
   const startJs = fs.readFileSync(path.join(__dirname, '../src/handlers/start/notify.js'), 'utf8');
   if (startJs.includes('isRegistrationEnabled')) {
@@ -49,7 +49,7 @@ try {
   } else {
     console.warn('⚠️  start.js missing registration checks');
   }
-  
+
   // Check keyboards have growth keyboards
   const keyboardsJs = fs.readFileSync(path.join(__dirname, '../src/keyboards/inline.js'), 'utf8');
   if (keyboardsJs.includes('getGrowthKeyboard')) {
@@ -57,7 +57,7 @@ try {
   } else {
     console.warn('⚠️  keyboards missing growth keyboards');
   }
-  
+
 } catch (error) {
   console.error('❌ Failed to check files:', error.message);
   process.exit(1);

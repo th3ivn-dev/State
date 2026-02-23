@@ -14,7 +14,7 @@ async function createTicket(telegramId, type, subject) {
       VALUES ($1, $2, $3, 'open', NOW(), NOW())
       RETURNING *
     `, [telegramId, type, subject]);
-    
+
     return result.rows[0];
   } catch (error) {
     console.error('Помилка створення тикета:', error.message);
@@ -39,12 +39,12 @@ async function addTicketMessage(ticketId, senderType, senderId, messageType, con
       VALUES ($1, $2, $3, $4, $5, $6, NOW())
       RETURNING *
     `, [ticketId, senderType, senderId, messageType, content, fileId]);
-    
+
     // Оновити updated_at в тикеті
     await pool.query(`
       UPDATE tickets SET updated_at = NOW() WHERE id = $1
     `, [ticketId]);
-    
+
     return result.rows[0];
   } catch (error) {
     console.error('Помилка додавання повідомлення до тикета:', error.message);
@@ -159,16 +159,16 @@ async function getTicketStats() {
   try {
     const totalResult = await pool.query('SELECT COUNT(*) as count FROM tickets');
     const total = parseInt(totalResult.rows[0].count);
-    
+
     const openResult = await pool.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'open'");
     const open = parseInt(openResult.rows[0].count);
-    
+
     const inProgressResult = await pool.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'in_progress'");
     const inProgress = parseInt(inProgressResult.rows[0].count);
-    
+
     const closedResult = await pool.query("SELECT COUNT(*) as count FROM tickets WHERE status = 'closed'");
     const closed = parseInt(closedResult.rows[0].count);
-    
+
     return { total, open, inProgress, closed };
   } catch (error) {
     console.error('Помилка отримання статистики тикетів:', error.message);
