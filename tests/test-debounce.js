@@ -72,13 +72,21 @@ assert(typeof adminHandlers.handleGetDebounce === 'function', 'handleGetDebounce
 console.log('✓ Admin handlers для debounce присутні\n');
 
 console.log('Test 6: Перевірка коду powerMonitor на наявність debounce логіки');
-const powerMonitorCode = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+// Read the modular source files that together implement power monitoring
+const pmDir = path.join(__dirname, '../src/powerMonitor');
+const powerMonitorCode = [
+  fs.readFileSync(path.join(pmDir, 'state.js'), 'utf8'),
+  fs.readFileSync(path.join(pmDir, 'detector.js'), 'utf8'),
+  fs.readFileSync(path.join(pmDir, 'notifier.js'), 'utf8'),
+  fs.readFileSync(path.join(pmDir, 'scheduler.js'), 'utf8'),
+  fs.readFileSync(path.join(pmDir, 'index.js'), 'utf8'),
+].join('\n');
 
 assert(powerMonitorCode.includes('pendingState'), 'PowerMonitor має містити pendingState');
 assert(powerMonitorCode.includes('instabilityStart'), 'PowerMonitor має містити instabilityStart');
 assert(powerMonitorCode.includes('switchCount'), 'PowerMonitor має містити switchCount');
 assert(powerMonitorCode.includes('debounceTimer'), 'PowerMonitor має містити debounceTimer');
-assert(powerMonitorCode.includes('POWER_DEBOUNCE_MINUTES'), 'PowerMonitor має використовувати POWER_DEBOUNCE_MINUTES');
+assert(powerMonitorCode.includes('power_debounce_minutes'), 'PowerMonitor має використовувати power_debounce_minutes');
 assert(powerMonitorCode.includes('setTimeout'), 'PowerMonitor має використовувати setTimeout для debounce');
 assert(powerMonitorCode.includes('clearTimeout'), 'PowerMonitor має очищати таймери');
 assert(powerMonitorCode.includes('isCurrentlyOff'), 'PowerMonitor має перевіряти чи зараз запланований період відключення');
