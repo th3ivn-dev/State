@@ -1,4 +1,5 @@
-const { formatTime, formatDate, formatTimeRemaining, escapeHtml, formatDurationFromMs } = require('./utils');
+const path = require('path');
+const { formatTime, formatDate, formatTimeRemaining, escapeHtml, formatDurationFromMs, formatExactDuration } = require('./utils');
 const { REGIONS } = require('./constants/regions');
 
 // Форматувати повідомлення про графік
@@ -265,7 +266,6 @@ function formatHelpMessage() {
   
   // Add bot version from package.json
   try {
-    const path = require('path');
     const packageJsonPath = path.join(__dirname, '..', 'package.json');
     const packageJson = require(packageJsonPath);
     lines.push(`<i>СвітлоБот v${packageJson.version}</i>`);
@@ -278,9 +278,6 @@ function formatHelpMessage() {
 
 // Форматувати повідомлення про графік для каналу (новий формат)
 function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
-  const { REGIONS } = require('./constants/regions');
-  const { formatDurationFromMs } = require('./utils');
-  
   const regionName = REGIONS[region]?.name || region;
   const lines = [];
   
@@ -334,8 +331,6 @@ function formatStatsForChannelPopup(stats) {
   if (stats.count === 0) {
     return '📊 За тиждень:\n\n✅ Відключень не було';
   }
-  
-  const { formatExactDuration } = require('./utils');
   
   const lines = [];
   lines.push('📊 За тиждень:');
@@ -424,7 +419,106 @@ function formatScheduleChanges(changes) {
   return lines.join('\n');
 }
 
-// Форматувати шаблон з підставленням змінних
+// Форматувати таймер для popup (канальні кнопки timer_userId)
+function formatTimerPopup(nextEvent, scheduleData) {
+  const lines = [];
+
+  if (!nextEvent) {
+    // No outages today
+    lines.push('🎉 Сьогодні без відключень!');
+    lines.push('');
+
+    // Try to show tomorrow's schedule
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
+    const tomorrowEnd = new Date(tomorrowStart);
+    tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
+
+    const tomorrowEvents = scheduleData.events.filter(event => {
+      const eventStart = new Date(event.start);
+      return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
+    });
+
+    if (tomorrowEvents.length > 0) {
+      lines.push('📅 Завтра:');
+      tomorrowEvents.forEach(event => {
+        const start = formatTime(event.start);
+        const end = formatTime(event.end);
+        lines.push(`• ${start}–${end}`);
+      });
+    } else {
+      lines.push('ℹ️ Дані на завтра ще не опубліковані');
+    }
+  } else if (nextEvent.type === 'power_off') {
+    // Light is currently on
+    lines.push('За графіком зараз:');
+    lines.push('🟢 Світло зараз є');
+    lines.push('');
+
+    const hours = Math.floor(nextEvent.minutes / 60);
+    const mins = nextEvent.minutes % 60;
+    let timeStr = '';
+    if (hours > 0) {
+      timeStr = `${hours} год`;
+      if (mins > 0) timeStr += ` ${mins} хв`;
+    } else {
+      timeStr = `${mins} хв`;
+    }
+
+    lines.push(`⏳ Вимкнення через ${timeStr}`);
+    const start = formatTime(nextEvent.time);
+    const end = nextEvent.endTime ? formatTime(nextEvent.endTime) : '?';
+    lines.push(`📅 Очікуємо - ${start}–${end}`);
+
+    // Show other outages today
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(todayStart);
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const otherOutages = scheduleData.events.filter(event => {
+      const eventStart = new Date(event.start);
+      return eventStart > new Date(nextEvent.time) &&
+             eventStart >= todayStart &&
+             eventStart <= todayEnd;
+    });
+
+    if (otherOutages.length > 0) {
+      lines.push('');
+      lines.push('Інші відключення сьогодні:');
+      otherOutages.forEach(event => {
+        const s = formatTime(event.start);
+        const e = formatTime(event.end);
+        lines.push(`• ${s}–${e}`);
+      });
+    }
+  } else {
+    // Light is currently off
+    lines.push('За графіком зараз:');
+    lines.push('🔴 Світла немає');
+    lines.push('');
+
+    const hours = Math.floor(nextEvent.minutes / 60);
+    const mins = nextEvent.minutes % 60;
+    let timeStr = '';
+    if (hours > 0) {
+      timeStr = `${hours} год`;
+      if (mins > 0) timeStr += ` ${mins} хв`;
+    } else {
+      timeStr = `${mins} хв`;
+    }
+
+    lines.push(`⏳ До увімкнення ${timeStr}`);
+    const start = nextEvent.startTime ? formatTime(nextEvent.startTime) : '?';
+    const end = formatTime(nextEvent.time);
+    lines.push(`📅 Поточне - ${start}–${end}`);
+  }
+
+  return lines.join('\n');
+}
+
+
 function formatTemplate(template, variables = {}) {
   if (!template || typeof template !== 'string') return '';
   if (!variables || typeof variables !== 'object') return template;
@@ -470,6 +564,7 @@ module.exports = {
   formatScheduleMessage,
   formatNextEventMessage,
   formatTimerMessage,
+  formatTimerPopup,
   formatScheduleUpdateMessage,
   formatWelcomeMessage,
   formatHelpMessage,

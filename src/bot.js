@@ -1,4 +1,4 @@
-const { Bot, InputFile } = require('grammy');
+const { Bot } = require('grammy');
 const { hydrate } = require('@grammyjs/hydrate');
 const { autoRetry } = require('@grammyjs/auto-retry');
 const config = require('./config');
@@ -32,17 +32,24 @@ const {
 } = require('./handlers/channel');
 const { handleFeedbackCallback, handleFeedbackMessage, getSupportButton } = require('./handlers/feedback');
 const { handleRegionRequestCallback, handleRegionRequestMessage } = require('./handlers/regionRequest');
-const { getMainMenu, getHelpKeyboard, getStatisticsKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('./keyboards/inline');
-const { REGIONS } = require('./constants/regions');
-const { formatErrorMessage, formatScheduleMessage, formatTimerMessage } = require('./formatter');
-const { generateLiveStatusMessage, escapeHtml, formatTime } = require('./utils');
-const { safeEditMessageText, safeAnswerCallbackQuery, isTelegramUserInactiveError } = require('./utils/errorHandler');
+const {
+  handleMenuSchedule,
+  handleMenuTimer,
+  handleMenuStats,
+  handleMenuHelp,
+  handleMenuSettings,
+  handleBackToMain,
+  handleHelpHowto,
+  handleHelpFaq,
+  handleTimerCallback,
+  handleStatsCallback,
+} = require('./handlers/menu');
+const { getMainMenu } = require('./keyboards/inline');
+const { escapeHtml } = require('./utils');
+const { safeAnswerCallbackQuery, isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 const usersDb = require('./database/users');
-const { fetchScheduleData, fetchScheduleImage } = require('./api');
-const { parseScheduleForQueue, findNextEvent } = require('./parser');
-const { getWeeklyStats, formatStatsPopup } = require('./statistics');
 const { checkPauseForChannelActions } = require('./utils/guards');
 
 // Store pending channel connections
@@ -139,10 +146,6 @@ Object.defineProperty(bot.options, 'id', {
   get() { return bot.botInfo?.id; },
   set(val) { /* ignore, grammY manages this */ }
 });
-
-// Help messages (must be under 200 characters for show_alert: true)
-const help_howto = `📖 Як користуватись:\n\n1. Оберіть регіон та чергу\n2. Підключіть канал (опційно)\n3. Додайте IP роутера (опційно)\n4. Готово! Бот сповіщатиме про відключення`;
-const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевірте налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
 // Command handlers
 bot.command('start', (ctx) => handleStart(bot, ctx.message));
@@ -298,306 +301,50 @@ bot.on('callback_query:data', async (ctx) => {
     
     // Menu callbacks
     if (data === 'menu_schedule') {
-      try {
-        const telegramId = String(query.from.id);
-        const user = await usersDb.getUserByTelegramId(telegramId);
-        
-        if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
-            text: '❌ Користувач не знайдений',
-            show_alert: true
-          });
-          return;
-        }
-        
-        // Answer Telegram immediately to avoid timeout (after user validation)
-        await bot.api.answerCallbackQuery(query.id).catch(() => {});
-        
-        // Get schedule data
-        const data = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(data, user.queue);
-        const nextEvent = findNextEvent(scheduleData);
-        
-        // Check if data exists
-        if (!scheduleData || !scheduleData.events || scheduleData.events.length === 0) {
-          await safeEditMessageText(bot, 
-            '📊 <b>Графік</b>\n\n' +
-            'ℹ️ Дані ще не опубліковані.\n' +
-            'Спробуйте пізніше.',
-            {
-              chat_id: query.message.chat.id,
-              message_id: query.message.message_id,
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: '⤴︎ Меню', callback_data: 'back_to_main' }]
-                ]
-              }
-            }
-          );
-          return;
-        }
-        
-        // Format message
-        const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
-        const scheduleKeyboard = {
-          inline_keyboard: [
-            [
-              { text: '⏱ Таймер', callback_data: 'menu_timer' },
-              { text: '⤴︎ Меню', callback_data: 'back_to_main' }
-            ]
-          ]
-        };
-        
-        // Try to get and send image with edit
-        let messageDeleted = false;
-        try {
-          const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-          
-          // Delete the old message and send new one with photo
-          await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-          messageDeleted = true;
-          const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-          await bot.api.sendPhoto(query.message.chat.id, photoInput, {
-            caption: message,
-            parse_mode: 'HTML',
-            reply_markup: scheduleKeyboard
-          });
-        } catch (imgError) {
-          // If image unavailable, send/edit text message
-          console.log('Schedule image unavailable:', imgError.message);
-          if (messageDeleted) {
-            await bot.api.sendMessage(query.message.chat.id, message, {
-              parse_mode: 'HTML',
-              reply_markup: scheduleKeyboard
-            });
-          } else {
-            await safeEditMessageText(bot, 
-              message,
-              {
-                chat_id: query.message.chat.id,
-                message_id: query.message.message_id,
-                parse_mode: 'HTML',
-                reply_markup: scheduleKeyboard
-              }
-            );
-          }
-        }
-      } catch (error) {
-        console.error('Помилка отримання графіка:', error);
-        
-        const errorKeyboard = await getErrorKeyboard();
-        await safeEditMessageText(bot, 
-          formatErrorMessage(),
-          {
-            chat_id: query.message.chat.id,
-            message_id: query.message.message_id,
-            parse_mode: 'HTML',
-            reply_markup: errorKeyboard.reply_markup
-          }
-        );
-      }
+      await handleMenuSchedule(bot, query);
       return;
     }
 
     if (data === 'menu_timer') {
-      // Show timer as popup instead of sending a new message
-      try {
-        const telegramId = String(query.from.id);
-        const user = await usersDb.getUserByTelegramId(telegramId);
-        
-        if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
-            text: '❌ Користувач не знайдений',
-            show_alert: true
-          });
-          return;
-        }
-        
-        const data = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(data, user.queue);
-        const nextEvent = findNextEvent(scheduleData);
-        
-        const message = formatTimerMessage(nextEvent);
-        // Remove HTML tags for popup
-        const cleanMessage = message.replace(/<[^>]*>/g, '');
-        
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: cleanMessage,
-          show_alert: true
-        });
-      } catch (error) {
-        console.error('Помилка отримання таймера:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: '😅 Щось пішло не так. Спробуйте ще раз!',
-          show_alert: true
-        });
-      }
+      await handleMenuTimer(bot, query);
       return;
     }
 
     if (data === 'menu_stats') {
-      // Show statistics as popup
-      try {
-        const telegramId = String(query.from.id);
-        const user = await usersDb.getUserByTelegramId(telegramId);
-        
-        if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
-            text: '❌ Користувач не знайдений',
-            show_alert: true
-          });
-          return;
-        }
-        
-        const stats = await getWeeklyStats(user.id);
-        const message = formatStatsPopup(stats);
-        
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: message,
-          show_alert: true
-        });
-      } catch (error) {
-        console.error('Помилка отримання статистики:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: '😅 Щось пішло не так. Спробуйте ще раз!',
-          show_alert: true
-        });
-      }
+      await handleMenuStats(bot, query);
       return;
     }
 
     if (data === 'menu_help') {
-      // Answer Telegram immediately to avoid timeout
-      await bot.api.answerCallbackQuery(query.id).catch(() => {});
-      
-      const helpKeyboard = await getHelpKeyboard();
-      await safeEditMessageText(bot, 
-        '❓ <b>Допомога</b>\n\n' +
-        'ℹ️ Тут ви можете дізнатися як\n' +
-        'користуватися ботом.',
-        {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: helpKeyboard.reply_markup,
-        }
-      );
+      await handleMenuHelp(bot, query);
       return;
     }
 
     if (data === 'menu_settings') {
-      const telegramId = String(query.from.id);
-      const user = await usersDb.getUserByTelegramId(telegramId);
-      
-      if (!user) {
-        await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
-        return;
-      }
-      
-      // Answer Telegram immediately to avoid timeout (after user validation)
-      await bot.api.answerCallbackQuery(query.id).catch(() => {});
-      
-      const isAdmin = config.adminIds.includes(telegramId) || telegramId === config.ownerId;
-      const regionName = REGIONS[user.region]?.name || user.region;
-      
-      // Generate Live Status message using helper function
-      const message = generateLiveStatusMessage(user, regionName);
-      
-      await safeEditMessageText(bot, 
-        message,
-        {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
-        }
-      );
+      await handleMenuSettings(bot, query);
       return;
     }
 
     if (data === 'back_to_main') {
-      // Answer Telegram immediately to avoid timeout
-      await bot.api.answerCallbackQuery(query.id).catch(() => {});
-      
-      const telegramId = String(query.from.id);
-      const user = await usersDb.getUserByTelegramId(telegramId);
-      
-      if (user) {
-        const region = REGIONS[user.region]?.name || user.region;
-        
-        // Determine bot status
-        let botStatus = 'active';
-        if (!user.channel_id) {
-          botStatus = 'no_channel';
-        } else if (!user.is_active) {
-          botStatus = 'paused';
-        }
-        
-        const channelPaused = user.channel_paused === true;
-        
-        // Build main menu message with beta warning
-        let message = '<b>🚧 Бот у розробці</b>\n';
-        message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
-        message += '🏠 <b>Головне меню</b>\n\n';
-        message += `📍 Регіон: ${region} • ${user.queue}\n`;
-        message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
-        message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
-        
-        // If current message is a photo/media, skip editMessageText and go straight to delete+send
-        const isMediaMessage = !!(query.message.photo || query.message.document ||
-                                  query.message.video || query.message.animation);
-        
-        if (isMediaMessage) {
-          // Delete the media message and send a new text message
-          try {
-            await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-          } catch (deleteError) {
-            // Ignore delete errors - message may already be deleted or inaccessible
-          }
-          await bot.api.sendMessage(
-            query.message.chat.id,
-            message,
-            {
-              parse_mode: 'HTML',
-              ...getMainMenu(botStatus, channelPaused)
-            }
-          );
-        } else {
-          // Try to edit message text first
-          try {
-            await safeEditMessageText(bot, 
-              message,
-              {
-                chat_id: query.message.chat.id,
-                message_id: query.message.message_id,
-                parse_mode: 'HTML',
-                reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
-              }
-            );
-          } catch (error) {
-            // If edit fails for other reasons (e.g., message deleted, permission issues), delete and send new message
-            try {
-              await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-            } catch (deleteError) {
-              // Ignore delete errors - message may already be deleted or inaccessible
-            }
-            await bot.api.sendMessage(
-              query.message.chat.id,
-              message,
-              {
-                parse_mode: 'HTML',
-                ...getMainMenu(botStatus, channelPaused)
-              }
-            );
-          }
-        }
-      }
+      await handleBackToMain(bot, query);
       return;
     }
-    
+
+    // Handle inline button callbacks from channel schedule messages
+    // These callbacks include user_id like: timer_123, stats_123
+
+    if (data.startsWith('timer_')) {
+      await handleTimerCallback(bot, query, data);
+      return;
+    }
+
+    if (data.startsWith('stats_')) {
+      await handleStatsCallback(bot, query, data);
+      return;
+    }
+
     // Settings callbacks
-    if (data.startsWith('settings_') || 
+    if (data.startsWith('settings_') ||
         data.startsWith('alert_') ||
         data.startsWith('ip_') ||
         data.startsWith('notify_target_') ||
@@ -610,236 +357,19 @@ bot.on('callback_query:data', async (ctx) => {
       await handleSettingsCallback(bot, query);
       return;
     }
-    
+
     // Feedback callbacks
     if (data.startsWith('feedback_')) {
       await handleFeedbackCallback(bot, query);
       return;
     }
-    
+
     // Admin callbacks (including pause mode, debounce, and growth)
     if (data.startsWith('admin_') || data.startsWith('pause_') || data.startsWith('debounce_') || data.startsWith('growth_')) {
       await handleAdminCallback(bot, query);
       return;
     }
-    
-    // Handle inline button callbacks from channel schedule messages
-    // These callbacks include user_id like: timer_123, stats_123
-    
-    if (data.startsWith('timer_')) {
-      try {
-        const userId = parseInt(data.replace('timer_', ''));
-        
-        const user = await usersDb.getUserById(userId);
-        if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
-            text: '❌ Користувач не знайдений',
-            show_alert: true
-          });
-          return;
-        }
-        
-        const scheduleRawData = await fetchScheduleData(user.region);
-        const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
-        const nextEvent = findNextEvent(scheduleData);
-        
-        // Format timer message according to the new requirements
-        const lines = [];
-        
-        if (!nextEvent) {
-          // No outages today
-          lines.push('🎉 Сьогодні без відключень!');
-          lines.push('');
-          
-          // Try to show tomorrow's schedule
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          const tomorrowStart = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate());
-          const tomorrowEnd = new Date(tomorrowStart);
-          tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
-          
-          const tomorrowEvents = scheduleData.events.filter(event => {
-            const eventStart = new Date(event.start);
-            return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
-          });
-          
-          if (tomorrowEvents.length > 0) {
-            lines.push('📅 Завтра:');
-            tomorrowEvents.forEach(event => {
-              const start = formatTime(event.start);
-              const end = formatTime(event.end);
-              lines.push(`• ${start}–${end}`);
-            });
-          } else {
-            lines.push('ℹ️ Дані на завтра ще не опубліковані');
-          }
-        } else if (nextEvent.type === 'power_off') {
-          // Light is currently on
-          lines.push('За графіком зараз:');
-          lines.push('🟢 Світло зараз є');
-          lines.push('');
-          
-          const hours = Math.floor(nextEvent.minutes / 60);
-          const mins = nextEvent.minutes % 60;
-          let timeStr = '';
-          if (hours > 0) {
-            timeStr = `${hours} год`;
-            if (mins > 0) timeStr += ` ${mins} хв`;
-          } else {
-            timeStr = `${mins} хв`;
-          }
-          
-          lines.push(`⏳ Вимкнення через ${timeStr}`);
-          const start = formatTime(nextEvent.time);
-          const end = nextEvent.endTime ? formatTime(nextEvent.endTime) : '?';
-          lines.push(`📅 Очікуємо - ${start}–${end}`);
-          
-          // Show other outages today
-          const now = new Date();
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const todayEnd = new Date(todayStart);
-          todayEnd.setHours(23, 59, 59, 999);
-          
-          const otherOutages = scheduleData.events.filter(event => {
-            const eventStart = new Date(event.start);
-            return eventStart > new Date(nextEvent.time) && 
-                   eventStart >= todayStart && 
-                   eventStart <= todayEnd;
-          });
-          
-          if (otherOutages.length > 0) {
-            lines.push('');
-            lines.push('Інші відключення сьогодні:');
-            otherOutages.forEach(event => {
-              const start = formatTime(event.start);
-              const end = formatTime(event.end);
-              lines.push(`• ${start}–${end}`);
-            });
-          }
-        } else {
-          // Light is currently off
-          lines.push('За графіком зараз:');
-          lines.push('🔴 Світла немає');
-          lines.push('');
-          
-          const hours = Math.floor(nextEvent.minutes / 60);
-          const mins = nextEvent.minutes % 60;
-          let timeStr = '';
-          if (hours > 0) {
-            timeStr = `${hours} год`;
-            if (mins > 0) timeStr += ` ${mins} хв`;
-          } else {
-            timeStr = `${mins} хв`;
-          }
-          
-          lines.push(`⏳ До увімкнення ${timeStr}`);
-          const start = nextEvent.startTime ? formatTime(nextEvent.startTime) : '?';
-          const end = formatTime(nextEvent.time);
-          lines.push(`📅 Поточне - ${start}–${end}`);
-        }
-        
-        const message = lines.join('\n');
-        
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: message,
-          show_alert: true
-        });
-      } catch (error) {
-        console.error('Помилка обробки timer callback:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: '😅 Щось пішло не так. Спробуйте ще раз!',
-          show_alert: true
-        });
-      }
-      return;
-    }
-    
-    if (data.startsWith('stats_')) {
-      try {
-        const userId = parseInt(data.replace('stats_', ''));
-        
-        // Ігноруємо некоректні stats_ callback (наприклад, stats_week, stats_device)
-        if (isNaN(userId)) {
-          await safeAnswerCallbackQuery(bot, query.id, {
-            text: '⚠️ Ця функція в розробці',
-            show_alert: false
-          });
-          return;
-        }
-        
-        
-        const user = await usersDb.getUserById(userId);
-        if (!user) {
-          await safeAnswerCallbackQuery(bot, query.id, {
-            text: '❌ Користувач не знайдений',
-            show_alert: true
-          });
-          return;
-        }
-        
-        const stats = await getWeeklyStats(userId);
-        
-        // Check if this is from a channel (Telegram uses negative IDs for channels/groups, positive for private chats)
-        const isChannel = query.message.chat.id < 0;
-        
-        // Format stats message according to the new requirements
-        const lines = [];
-        lines.push('📈 Статистика за 7 днів');
-        lines.push('');
-        
-        if (stats.count === 0) {
-          lines.push('📊 Дані ще не зібрані');
-          lines.push('ℹ️ Статистика з\'явиться після першого');
-          lines.push('зафіксованого відключення.');
-          // Only show IP monitoring suggestion in bot, not in channel
-          if (!isChannel) {
-            lines.push('');
-            lines.push('💡 Підключіть IP-моніторинг для');
-            lines.push('автоматичного збору даних.');
-          }
-        } else {
-          const totalHours = Math.floor(stats.totalMinutes / 60);
-          const totalMins = stats.totalMinutes % 60;
-          const avgHours = Math.floor(stats.avgMinutes / 60);
-          const avgMins = stats.avgMinutes % 60;
-          
-          lines.push(`⚡ Відключень: ${stats.count}`);
-          
-          let totalStr = '';
-          if (totalHours > 0) {
-            totalStr = `${totalHours} год`;
-            if (totalMins > 0) totalStr += ` ${totalMins} хв`;
-          } else {
-            totalStr = `${totalMins} хв`;
-          }
-          lines.push(`⏱ Без світла: ${totalStr}`);
-          
-          let avgStr = '';
-          if (avgHours > 0) {
-            avgStr = `${avgHours} год`;
-            if (avgMins > 0) avgStr += ` ${avgMins} хв`;
-          } else {
-            avgStr = `${avgMins} хв`;
-          }
-          lines.push(`📈 Середнє: ${avgStr}`);
-        }
-        
-        const message = lines.join('\n');
-        
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: message,
-          show_alert: true
-        });
-      } catch (error) {
-        console.error('Помилка обробки stats callback:', error);
-        await safeAnswerCallbackQuery(bot, query.id, {
-          text: '😅 Щось пішло не так. Спробуйте ще раз!',
-          show_alert: true
-        });
-      }
-      return;
-    }
-    
+
     // Channel callbacks (including auto-connect, test, and format)
     if (data.startsWith('channel_') ||
         data.startsWith('brand_') ||
@@ -852,43 +382,15 @@ bot.on('callback_query:data', async (ctx) => {
       await handleChannelCallback(bot, query);
       return;
     }
-    
+
     // Help callbacks
     if (data === 'help_howto') {
-      // Answer Telegram immediately to avoid timeout
-      await bot.api.answerCallbackQuery(query.id).catch(() => {});
-      
-      await safeEditMessageText(bot, 
-        '📖 <b>Як користуватися ботом:</b>\n\n' +
-        '1. Оберіть регіон і чергу\n' +
-        '2. Увімкніть сповіщення\n' +
-        '3. (Опціонально) Підключіть канал\n' +
-        '4. (Опціонально) Налаштуйте IP моніторинг\n\n' +
-        'Бот автоматично сповістить про:\n' +
-        '• Зміни в графіку\n' +
-        '• Фактичні відключення (з IP)',
-        {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [
-                { text: '← Назад', callback_data: 'menu_help' },
-                { text: '⤴ Меню', callback_data: 'back_to_main' }
-              ]
-            ]
-          }
-        }
-      );
+      await handleHelpHowto(bot, query);
       return;
     }
-    
+
     if (data === 'help_faq') {
-      await safeAnswerCallbackQuery(bot, query.id, {
-        text: help_faq,
-        show_alert: true
-      });
+      await handleHelpFaq(bot, query);
       return;
     }
     

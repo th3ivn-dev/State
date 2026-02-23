@@ -17,11 +17,11 @@ console.log('🧪 Запуск тестів для виправлення про
 
 // Test 1: Verify back_to_main handler has beta message
 console.log('Test 1: Перевірка наявності повідомлення про бета-версію в back_to_main');
-const botJs = fs.readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
+const menuJs = fs.readFileSync(path.join(__dirname, '../src/handlers/menu.js'), 'utf8');
 
-// Check that back_to_main builds message with beta warning
-const backToMainMatch = botJs.match(/if \(data === 'back_to_main'\) \{[\s\S]*?return;\s*\}/);
-assert(backToMainMatch, 'back_to_main handler не знайдено');
+// Check that back_to_main builds message with beta warning (now in menu.js)
+const backToMainMatch = menuJs.match(/async function handleBackToMain[\s\S]*?\n\}/);
+assert(backToMainMatch, 'handleBackToMain не знайдено в src/handlers/menu.js');
 
 const backToMainCode = backToMainMatch[0];
 assert(backToMainCode.includes('🚧 Бот у розробці'), 
@@ -41,15 +41,17 @@ console.log('Test 2: Перевірка обробки фото-повідомл
 // Check for try/catch around editMessageText
 assert(backToMainCode.includes('try {') && backToMainCode.includes('catch (error)'), 
   'back_to_main повинен містити try/catch блок');
-assert(backToMainCode.includes('bot.editMessageText'), 
-  'back_to_main повинен спробувати editMessageText');
-assert(backToMainCode.includes('bot.deleteMessage') && backToMainCode.includes('bot.sendMessage'), 
+assert(backToMainCode.includes('safeEditMessageText'), 
+  'back_to_main повинен спробувати safeEditMessageText');
+assert(backToMainCode.includes('bot.api.deleteMessage') && backToMainCode.includes('bot.api.sendMessage'), 
   'back_to_main повинен видаляти і створювати нове повідомлення при помилці');
 
 console.log('✓ back_to_main коректно обробляє фото-повідомлення\n');
 
 // Test 3: Verify delete_data_step2 is in callback routing
 console.log('Test 3: Перевірка маршрутизації delete_data_step2');
+
+const botJs = fs.readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
 
 // Find the settings callbacks routing section - look for the broader pattern
 const settingsCallbackMatch = botJs.match(/\/\/ Settings callbacks[\s\S]{0,500}handleSettingsCallback/);
