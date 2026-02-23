@@ -94,15 +94,15 @@ async function handleRegionRequestStart(bot, query) {
     const timeout = setTimeout(async () => {
       await clearRegionRequestState(telegramId);
       await safeDeleteMessage(bot, chatId, sentMessage.message_id);
-      
+
       // Перевіряємо чи користувач в wizard
       const wizardState = getState('wizard', telegramId);
       const isInWizardFlow = !!(wizardState && wizardState.step);
-      
+
       const navigationButton = isInWizardFlow
         ? [{ text: '← Назад', callback_data: 'back_to_region' }]
         : [{ text: '⤴ Меню', callback_data: 'back_to_main' }];
-      
+
       await safeSendMessage(
         bot,
         chatId,
@@ -189,7 +189,7 @@ async function handleRegionRequestMessage(bot, msg) {
     });
 
     // Показуємо preview з підтвердженням
-    const previewText = 
+    const previewText =
       '🏙 <b>Запит на новий регіон</b>\n\n' +
       `📍 <b>Регіон:</b> ${regionName}\n\n` +
       'Надіслати цей запит?';
@@ -268,7 +268,7 @@ async function handleRegionRequestConfirm(bot, query) {
       `✅ <b>Дякуємо за запит!</b>\n\n` +
       `Ваш запит #${ticket.id} на додавання регіону "<b>${state.regionName}</b>" прийнято.\n\n` +
       `Ми розглянемо його найближчим часом.`,
-      { 
+      {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [navigationButton]
@@ -302,7 +302,7 @@ async function handleRegionRequestCancel(bot, query) {
 
     // Видаляємо повідомлення
     await safeDeleteMessage(bot, chatId, messageId);
-    
+
     // Видаляємо оригінальне повідомлення якщо є
     if (state && state.originalMessageId) {
       await safeDeleteMessage(bot, chatId, state.originalMessageId);
@@ -339,7 +339,7 @@ async function notifyAdminsAboutRegionRequest(bot, ticket, state, username) {
       allAdmins.push(config.ownerId);
     }
 
-    const message = 
+    const message =
       `🏙 <b>Запит на новий регіон #${ticket.id}</b>\n\n` +
       `📍 <b>Регіон:</b> ${state.regionName}\n` +
       `👤 <b>Від:</b> @${username} (ID: <code>${ticket.telegram_id}</code>)\n` +

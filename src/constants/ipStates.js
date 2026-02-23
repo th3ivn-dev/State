@@ -22,16 +22,16 @@ const IP_STATE_LABELS = {
  */
 function getIpState(userState) {
   if (!userState) return IP_STATES.UNKNOWN;
-  
+
   // If there's a pending state that's different from current, we're unstable
   if (userState.pendingState !== null && userState.pendingState !== userState.currentState) {
     return IP_STATES.UNSTABLE;
   }
-  
+
   // If we have a stable state
   if (userState.currentState === 'on') return IP_STATES.ONLINE;
   if (userState.currentState === 'off') return IP_STATES.OFFLINE;
-  
+
   return IP_STATES.UNKNOWN;
 }
 
@@ -47,18 +47,18 @@ function getIpStateLabel(state) {
  */
 function formatLastPing(timestamp) {
   if (!timestamp) return 'невідомо';
-  
+
   const now = new Date();
   const then = new Date(timestamp);
   const diffMs = now - then;
   const diffSec = Math.floor(diffMs / 1000);
   const diffMin = Math.floor(diffSec / 60);
   const diffHour = Math.floor(diffMin / 60);
-  
+
   if (diffSec < 60) return `${diffSec} сек тому`;
   if (diffMin < 60) return `${diffMin} хв тому`;
   if (diffHour < 24) return `${diffHour} год тому`;
-  
+
   const diffDays = Math.floor(diffHour / 24);
   return `${diffDays} дн тому`;
 }

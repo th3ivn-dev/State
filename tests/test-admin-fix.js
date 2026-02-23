@@ -22,12 +22,12 @@ const settingsContent = [
 ].map(f => require('fs').readFileSync(path.join(__dirname, '../src/handlers/', f), 'utf8')).join('\n');
 
 // Check that the problematic handleAdmin call is removed
-const hasProblematicCall = settingsContent.includes("await handleAdmin(bot, query.message);");
+const hasProblematicCall = settingsContent.includes('await handleAdmin(bot, query.message);');
 assert(!hasProblematicCall, 'settings.js should NOT call handleAdmin with query.message');
 
 // Check that the fix is in place
-const hasDirectEditCall = settingsContent.includes("bot.editMessageText") && 
-                          settingsContent.includes("getAdminKeyboard");
+const hasDirectEditCall = settingsContent.includes('bot.editMessageText') &&
+                          settingsContent.includes('getAdminKeyboard');
 assert(hasDirectEditCall, 'settings.js should use editMessageText with getAdminKeyboard');
 
 console.log('✓ Admin panel fix is correctly implemented\n');
@@ -36,11 +36,11 @@ console.log('✓ Admin panel fix is correctly implemented\n');
 console.log('Test 2: Verify main menu is sent after successful actions');
 
 // Check settings.js
-const hasMainMenuAfterDeactivate = settingsContent.includes("confirm_deactivate") && 
+const hasMainMenuAfterDeactivate = settingsContent.includes('confirm_deactivate') &&
                                    settingsContent.match(/confirm_deactivate[\s\S]*?getMainMenu/);
 assert(hasMainMenuAfterDeactivate, 'Main menu should be sent after deactivation');
 
-const hasMainMenuAfterIP = settingsContent.includes("updateUserRouterIp") && 
+const hasMainMenuAfterIP = settingsContent.includes('updateUserRouterIp') &&
                            settingsContent.match(/updateUserRouterIp[\s\S]*?getMainMenu/);
 assert(hasMainMenuAfterIP, 'Main menu should be sent after IP setup');
 
@@ -50,7 +50,7 @@ console.log('✓ settings.js sends main menu after successful actions\n');
 console.log('Test 3: Verify channel.js sends main menu after setup');
 const channelContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/channel.js'), 'utf8');
 
-const hasMainMenuAfterChannel = channelContent.includes("Канал успішно налаштовано") && 
+const hasMainMenuAfterChannel = channelContent.includes('Канал успішно налаштовано') &&
                                 channelContent.match(/Канал успішно налаштовано[\s\S]*?getMainMenu/);
 assert(hasMainMenuAfterChannel, 'Main menu should be sent after channel setup');
 
@@ -60,7 +60,7 @@ console.log('✓ channel.js sends main menu after successful setup\n');
 console.log('Test 4: Verify start.js sends main menu after region/queue update');
 const startContent = require('fs').readFileSync(path.join(__dirname, '../src/handlers/start/region.js'), 'utf8');
 
-const hasMainMenuAfterEdit = startContent.includes("Налаштування оновлено") && 
+const hasMainMenuAfterEdit = startContent.includes('Налаштування оновлено') &&
                              startContent.match(/Налаштування оновлено[\s\S]*?getMainMenu/);
 assert(hasMainMenuAfterEdit, 'Main menu should be sent after region/queue update');
 
@@ -72,8 +72,8 @@ const editModeSection = startContent.match(/mode === 'edit'[\s\S]*?} else {/);
 if (editModeSection) {
   const editModeText = editModeSection[0];
   // Should not have inline_keyboard with back buttons inside editMessageText for edit mode
-  const hasInlineKeyboardInEdit = editModeText.includes("reply_markup: {") && 
-                                  editModeText.includes("inline_keyboard:") &&
+  const hasInlineKeyboardInEdit = editModeText.includes('reply_markup: {') &&
+                                  editModeText.includes('inline_keyboard:') &&
                                   editModeText.includes("'← Назад'");
   assert(!hasInlineKeyboardInEdit, 'Edit mode should not have inline keyboard buttons in editMessageText');
 }

@@ -1,14 +1,14 @@
 /**
  * Scheduler Manager
- * 
+ *
  * Centralized management of all scheduled tasks and background jobs.
- * 
+ *
  * Responsibilities:
  * - Initialize all schedulers
  * - Lifecycle management (start, stop, restart)
  * - Prevent duplicate schedulers
  * - Idempotent start/stop operations
- * 
+ *
  * Key Principles:
  * - Single source of truth for all scheduled tasks
  * - Safe restart without duplicates
@@ -33,17 +33,17 @@ class SchedulerManager {
       scheduleChecker: null,
       // Future schedulers can be added here
     };
-    
+
     // Track intervals for non-cron tasks
     this.intervals = {
       scheduleChecker: null,
     };
-    
+
     // Configuration
     this.config = {
       scheduleCheckInterval: null, // Will be set during init
     };
-    
+
     // State
     this.isInitialized = false;
     this.isRunning = false;
@@ -59,10 +59,10 @@ class SchedulerManager {
       console.log('⚠️ Scheduler manager already initialized');
       return;
     }
-    
+
     this.config.scheduleCheckInterval = config.checkIntervalSeconds;
     this.isInitialized = true;
-    
+
     console.log('✅ Scheduler manager initialized');
   }
 
@@ -77,14 +77,14 @@ class SchedulerManager {
     if (!this.isInitialized) {
       throw new Error('Scheduler manager not initialized. Call init() first.');
     }
-    
+
     if (this.isRunning) {
       console.log('⚠️ Schedulers already running');
       return;
     }
-    
+
     console.log('🚀 Starting schedulers...');
-    
+
     // Track scheduler start
     if (metricsCollector) {
       metricsCollector.trackStateTransition('scheduler_start', {
@@ -92,10 +92,10 @@ class SchedulerManager {
         timestamp: new Date().toISOString()
       });
     }
-    
+
     // Start schedule checker
     this._startScheduleChecker(dependencies.checkAllSchedules);
-    
+
     this.isRunning = true;
     console.log('✅ All schedulers started');
   }
@@ -109,19 +109,19 @@ class SchedulerManager {
       console.log('⚠️ Schedulers not running');
       return;
     }
-    
+
     console.log('🛑 Stopping schedulers...');
-    
+
     // Track scheduler stop
     if (metricsCollector) {
       metricsCollector.trackStateTransition('scheduler_stop', {
         timestamp: new Date().toISOString()
       });
     }
-    
+
     // Stop schedule checker
     this._stopScheduleChecker();
-    
+
     this.isRunning = false;
     console.log('✅ All schedulers stopped');
   }
@@ -143,14 +143,14 @@ class SchedulerManager {
    */
   _startScheduleChecker(checkFunction) {
     const intervalSeconds = this.config.scheduleCheckInterval;
-    
+
     console.log(`📅 Starting schedule checker (every ${formatInterval(intervalSeconds)})`);
-    
+
     // If interval >= 60 seconds and divides evenly into 60, use cron
     if (intervalSeconds >= 60 && intervalSeconds % 60 === 0) {
       const intervalMinutes = intervalSeconds / 60;
       const cronExpression = `*/${intervalMinutes} * * * *`;
-      
+
       this.schedulers.scheduleChecker = cron.schedule(cronExpression, async () => {
         console.log(`🔄 Schedule check triggered (every ${formatInterval(intervalSeconds)})`);
         try {
@@ -178,7 +178,7 @@ class SchedulerManager {
         }
       }, intervalSeconds * 1000);
     }
-    
+
     console.log(`✅ Schedule checker started`);
   }
 
@@ -191,7 +191,7 @@ class SchedulerManager {
       this.schedulers.scheduleChecker.stop();
       this.schedulers.scheduleChecker = null;
     }
-    
+
     if (this.intervals.scheduleChecker) {
       clearInterval(this.intervals.scheduleChecker);
       this.intervals.scheduleChecker = null;
@@ -224,7 +224,7 @@ class SchedulerManager {
     if (seconds < 1) {
       throw new Error('Interval must be at least 1 second');
     }
-    
+
     this.config.scheduleCheckInterval = seconds;
     console.log(`✅ Schedule check interval updated to ${formatInterval(seconds)}`);
     console.log('⚠️ Restart schedulers for changes to take effect');

@@ -1,13 +1,13 @@
 /**
  * Schedule Service
- * 
+ *
  * Handles schedule-related business logic.
  * This service is Telegram-agnostic and focuses on:
  * - Fetching schedule data
  * - Parsing schedules
  * - Detecting schedule changes
  * - Computing next events
- * 
+ *
  * Separates data operations from presentation/notification
  */
 
@@ -59,26 +59,26 @@ class ScheduleService {
    */
   async detectScheduleChange(user, data) {
     const queueKey = `GPV${user.queue}`;
-    
+
     // Get available timestamps
     const availableTimestamps = Object.keys(data?.fact?.data || {})
       .map(Number)
       .sort((a, b) => a - b);
-    
+
     const todayTimestamp = availableTimestamps[0] || null;
-    const tomorrowTimestamp = availableTimestamps.length > 1 
-      ? availableTimestamps[1] 
+    const tomorrowTimestamp = availableTimestamps.length > 1
+      ? availableTimestamps[1]
       : null;
-    
+
     const newHash = this.calculateScheduleHash(
       data,
       queueKey,
       todayTimestamp,
       tomorrowTimestamp
     );
-    
+
     const hasChanged = newHash !== user.last_hash;
-    
+
     return {
       hasChanged,
       newHash,
@@ -134,9 +134,9 @@ class ScheduleService {
         return { region, data: null, success: false, error: error.message };
       }
     });
-    
+
     const results = await Promise.allSettled(promises);
-    
+
     const resultMap = {};
     for (const result of results) {
       if (result.status === 'fulfilled') {
@@ -146,7 +146,7 @@ class ScheduleService {
         console.error('Unexpected promise rejection in batchFetchSchedules:', result.reason);
       }
     }
-    
+
     return resultMap;
   }
 }

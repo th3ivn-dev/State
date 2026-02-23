@@ -12,8 +12,8 @@ if (!connectionString) {
 const pool = new Pool({
   connectionString,
   // SSL налаштування для Railway та інших хмарних провайдерів
-  ssl: process.env.NODE_ENV === 'production' 
-    ? { rejectUnauthorized: false } 
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
     : false,
   // Налаштування пулу для масштабованості (оновлено для 2000+ користувачів)
   max: parseInt(process.env.DB_POOL_MAX || '50', 10),  // Збільшено з 20 до 50
@@ -54,7 +54,7 @@ pool.on('error', (err) => {
 // Створення таблиць при ініціалізації
 async function initializeDatabase() {
   const client = await pool.connect();
-  
+
   try {
     await client.query(`
       CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
@@ -296,7 +296,7 @@ async function initializeDatabase() {
 async function runMigrations() {
   console.log('🔄 Запуск міграції бази даних...');
   const client = await pool.connect();
-  
+
   try {
     const newColumns = [
       { name: 'power_state', type: 'TEXT' },
@@ -341,7 +341,7 @@ async function runMigrations() {
       { name: 'channel_branding_updated_at', type: 'TIMESTAMP' },
       { name: 'last_menu_message_id', type: 'INTEGER' }
     ];
-    
+
     let addedCount = 0;
     for (const col of newColumns) {
       try {
@@ -354,7 +354,7 @@ async function runMigrations() {
         }
       }
     }
-    
+
     // Add last_notification_at column to user_power_states table
     try {
       await client.query(`
@@ -382,7 +382,7 @@ async function runMigrations() {
         console.error('⚠️ Помилка міграції power_changed_at:', error.message);
       }
     }
-    
+
     console.log(`✅ Міграція завершена: перевірено ${addedCount} колонок`);
   } catch (error) {
     console.error('❌ Помилка міграції:', error);
@@ -570,14 +570,14 @@ async function cleanupOldStates() {
   try {
     const statesResult = await pool.query(`DELETE FROM user_states WHERE updated_at < NOW() - INTERVAL '24 hours'`);
     const channelsResult = await pool.query(`DELETE FROM pending_channels WHERE created_at < NOW() - INTERVAL '24 hours'`);
-    
+
     const statesDeleted = statesResult.rowCount || 0;
     const channelsDeleted = channelsResult.rowCount || 0;
-    
+
     if (statesDeleted > 0 || channelsDeleted > 0) {
       console.log(`🧹 Очищено старих станів: ${statesDeleted} user_states, ${channelsDeleted} pending_channels`);
     }
-    
+
     return true;
   } catch (error) {
     console.error('Error cleaning up old states:', error);
@@ -605,11 +605,11 @@ let poolMetricsInterval = null;
 
 function startPoolMetricsLogging() {
   const { POOL_STATS_LOG_INTERVAL_MS } = require('../constants/timeouts');
-  
+
   if (poolMetricsInterval) {
     return; // Already running
   }
-  
+
   poolMetricsInterval = setInterval(() => {
     console.log(`[DB] Pool: total=${pool.totalCount} idle=${pool.idleCount} waiting=${pool.waitingCount}`);
   }, POOL_STATS_LOG_INTERVAL_MS);

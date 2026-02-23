@@ -14,7 +14,7 @@ const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'info'];
  */
 function log(level, message, data = {}) {
   if (LOG_LEVELS[level] > currentLevel) return;
-  
+
   const timestamp = new Date().toISOString();
   const prefix = {
     error: '❌',
@@ -22,9 +22,9 @@ function log(level, message, data = {}) {
     info: 'ℹ️',
     debug: '🔍'
   }[level];
-  
+
   const logMessage = `[${timestamp}] ${prefix} ${message}`;
-  
+
   if (Object.keys(data).length > 0) {
     console[level === 'error' ? 'error' : 'log'](logMessage, data);
   } else {

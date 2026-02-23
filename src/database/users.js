@@ -8,7 +8,7 @@ async function createUser(telegramId, username, region, queue) {
       VALUES ($1, $2, $3, $4)
       RETURNING id
     `, [telegramId, username, region, queue]);
-    
+
     return result.rows[0].id;
   } catch (error) {
     console.error('Помилка створення користувача:', error.message);
@@ -30,7 +30,7 @@ async function saveUser(telegramId, username, region, queue) {
         updated_at = NOW()
       RETURNING id
     `, [telegramId, username, region, queue]);
-    
+
     return result.rows[0].id;
   } catch (error) {
     console.error('Помилка збереження користувача:', error.message);
@@ -79,7 +79,7 @@ async function updateUserRegionQueue(telegramId, region, queue) {
       SET region = $1, queue = $2, updated_at = NOW()
       WHERE telegram_id = $3
     `, [region, queue, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserRegionQueue:', error.message);
@@ -99,7 +99,7 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
           updated_at = NOW()
       WHERE telegram_id = $3
     `, [region, queue, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserRegionAndQueue:', error.message);
@@ -115,7 +115,7 @@ async function updateUserChannel(telegramId, channelId) {
       SET channel_id = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [channelId, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserChannel:', error.message);
@@ -128,38 +128,38 @@ async function updateUserAlertSettings(telegramId, settings) {
   try {
     const fields = [];
     const values = [];
-    
+
     if (settings.notifyBeforeOff !== undefined) {
       values.push(settings.notifyBeforeOff);
       fields.push(`notify_before_off = $${values.length}`);
     }
-    
+
     if (settings.notifyBeforeOn !== undefined) {
       values.push(settings.notifyBeforeOn);
       fields.push(`notify_before_on = $${values.length}`);
     }
-    
+
     if (settings.alertsOffEnabled !== undefined) {
       values.push(settings.alertsOffEnabled ? true : false);
       fields.push(`alerts_off_enabled = $${values.length}`);
     }
-    
+
     if (settings.alertsOnEnabled !== undefined) {
       values.push(settings.alertsOnEnabled ? true : false);
       fields.push(`alerts_on_enabled = $${values.length}`);
     }
-    
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = NOW()');
     values.push(telegramId);
-    
+
     const result = await pool.query(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
     `, values);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserAlertSettings:', error.message);
@@ -175,7 +175,7 @@ async function updateUserHash(id, hash) {
       SET last_hash = $1, updated_at = NOW()
       WHERE id = $2
     `, [hash, id]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserHash:', error.message);
@@ -191,7 +191,7 @@ async function updateUserPublishedHash(id, hash) {
       SET last_published_hash = $1, updated_at = NOW()
       WHERE id = $2
     `, [hash, id]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserPublishedHash:', error.message);
@@ -207,7 +207,7 @@ async function updateUserHashes(id, hash) {
       SET last_hash = $1, last_published_hash = $2, updated_at = NOW()
       WHERE id = $3
     `, [hash, hash, id]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserHashes:', error.message);
@@ -223,7 +223,7 @@ async function updateUserPostId(id, postId) {
       SET last_post_id = $1, updated_at = NOW()
       WHERE id = $2
     `, [postId, id]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserPostId:', error.message);
@@ -239,7 +239,7 @@ async function setUserActive(telegramId, isActive) {
       SET is_active = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [isActive ? true : false, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in setUserActive:', error.message);
@@ -301,13 +301,13 @@ async function getUserStats() {
         COUNT(*) FILTER (WHERE channel_id IS NOT NULL) as with_channels
       FROM users
     `);
-    
+
     const byRegionResult = await pool.query(`
       SELECT region, COUNT(*) as count 
       FROM users WHERE is_active = TRUE 
       GROUP BY region
     `);
-    
+
     return {
       total: parseInt(result.rows[0].total, 10),
       active: parseInt(result.rows[0].active, 10),
@@ -325,20 +325,20 @@ async function deleteUser(telegramId) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     const userResult = await client.query('SELECT id FROM users WHERE telegram_id = $1', [telegramId]);
     if (userResult.rows.length === 0) {
       await client.query('ROLLBACK');
       return false;
     }
-    
+
     const userId = userResult.rows[0].id;
-    
+
     await client.query('DELETE FROM outage_history WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM power_history WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM schedule_history WHERE user_id = $1', [userId]);
     await client.query('DELETE FROM users WHERE id = $1', [userId]);
-    
+
     await client.query('COMMIT');
     return true;
   } catch (error) {
@@ -358,7 +358,7 @@ async function updateUserRouterIp(telegramId, routerIp) {
       SET router_ip = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [routerIp, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserRouterIp:', error.message);
@@ -374,7 +374,7 @@ async function updateUserPowerState(telegramId, state) {
       SET power_state = $1, power_changed_at = NOW(), updated_at = NOW()
       WHERE telegram_id = $2
     `, [state, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserPowerState:', error.message);
@@ -403,7 +403,7 @@ async function changePowerStateAndGetDuration(telegramId, newState) {
         power_changed_at,
         EXTRACT(EPOCH FROM (power_changed_at - (SELECT old_changed_at FROM old_state))) / 60 AS duration_minutes
     `, [newState, telegramId]);
-    
+
     return result.rows[0];
   } catch (error) {
     console.error('Error in changePowerStateAndGetDuration:', error.message);
@@ -466,7 +466,7 @@ async function resetUserChannel(telegramId, channelId) {
           updated_at = NOW()
       WHERE telegram_id = $2
     `, [channelId, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in resetUserChannel:', error.message);
@@ -498,7 +498,7 @@ async function updateChannelBranding(telegramId, brandingData) {
       brandingData.userDescription || null,
       telegramId
     ]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateChannelBranding:', error.message);
@@ -513,48 +513,48 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
   try {
     const fields = [];
     const values = [];
-    
+
     if (brandingData.channelTitle !== undefined) {
       values.push(brandingData.channelTitle);
       fields.push(`channel_title = $${values.length}`);
     }
-    
+
     if (brandingData.channelDescription !== undefined) {
       values.push(brandingData.channelDescription);
       fields.push(`channel_description = $${values.length}`);
     }
-    
+
     if (brandingData.channelPhotoFileId !== undefined) {
       values.push(brandingData.channelPhotoFileId);
       fields.push(`channel_photo_file_id = $${values.length}`);
     }
-    
+
     if (brandingData.userTitle !== undefined) {
       values.push(brandingData.userTitle);
       fields.push(`channel_user_title = $${values.length}`);
     }
-    
+
     if (brandingData.userDescription !== undefined) {
       values.push(brandingData.userDescription);
       fields.push(`channel_user_description = $${values.length}`);
     }
-    
+
     if (fields.length === 0) {
       console.warn('updateChannelBrandingPartial викликано без полів для оновлення');
       return false;
     }
-    
+
     // Always update the timestamp when branding is changed through bot
     fields.push('channel_branding_updated_at = NOW()');
     fields.push('updated_at = NOW()');
     values.push(telegramId);
-    
+
     const result = await pool.query(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
     `, values);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateChannelBrandingPartial:', error.message);
@@ -570,7 +570,7 @@ async function updateChannelStatus(telegramId, status) {
       SET channel_status = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [status, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateChannelStatus:', error.message);
@@ -615,48 +615,48 @@ async function updateUserFormatSettings(telegramId, settings) {
   try {
     const fields = [];
     const values = [];
-    
+
     if (settings.scheduleCaption !== undefined) {
       values.push(settings.scheduleCaption);
       fields.push(`schedule_caption = $${values.length}`);
     }
-    
+
     if (settings.periodFormat !== undefined) {
       values.push(settings.periodFormat);
       fields.push(`period_format = $${values.length}`);
     }
-    
+
     if (settings.powerOffText !== undefined) {
       values.push(settings.powerOffText);
       fields.push(`power_off_text = $${values.length}`);
     }
-    
+
     if (settings.powerOnText !== undefined) {
       values.push(settings.powerOnText);
       fields.push(`power_on_text = $${values.length}`);
     }
-    
+
     if (settings.deleteOldMessage !== undefined) {
       values.push(settings.deleteOldMessage ? true : false);
       fields.push(`delete_old_message = $${values.length}`);
     }
-    
+
     if (settings.pictureOnly !== undefined) {
       values.push(settings.pictureOnly ? true : false);
       fields.push(`picture_only = $${values.length}`);
     }
-    
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = NOW()');
     values.push(telegramId);
-    
+
     const result = await pool.query(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
     `, values);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserFormatSettings:', error.message);
@@ -687,7 +687,7 @@ async function updateLastScheduleMessageId(telegramId, messageId) {
       SET last_schedule_message_id = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [messageId, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateLastScheduleMessageId:', error.message);
@@ -703,7 +703,7 @@ async function updateUserChannelPaused(telegramId, paused) {
       SET channel_paused = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [paused ? true : false, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserChannelPaused:', error.message);
@@ -720,7 +720,7 @@ async function updateUserPowerNotifyTarget(telegramId, target) {
       SET power_notify_target = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [target, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserPowerNotifyTarget:', error.message);
@@ -736,7 +736,7 @@ async function updateScheduleAlertEnabled(telegramId, enabled) {
       SET schedule_alert_enabled = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [enabled ? true : false, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateScheduleAlertEnabled:', error.message);
@@ -752,7 +752,7 @@ async function updateScheduleAlertMinutes(telegramId, minutes) {
       SET schedule_alert_minutes = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [minutes, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateScheduleAlertMinutes:', error.message);
@@ -769,7 +769,7 @@ async function updateScheduleAlertTarget(telegramId, target) {
       SET schedule_alert_target = $1, updated_at = NOW()
       WHERE telegram_id = $2
     `, [target, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateScheduleAlertTarget:', error.message);
@@ -782,33 +782,33 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
   try {
     const fields = [];
     const values = [];
-    
+
     if (settings.scheduleAlertEnabled !== undefined) {
       values.push(settings.scheduleAlertEnabled ? true : false);
       fields.push(`schedule_alert_enabled = $${values.length}`);
     }
-    
+
     if (settings.scheduleAlertMinutes !== undefined) {
       values.push(settings.scheduleAlertMinutes);
       fields.push(`schedule_alert_minutes = $${values.length}`);
     }
-    
+
     if (settings.scheduleAlertTarget !== undefined) {
       values.push(settings.scheduleAlertTarget);
       fields.push(`schedule_alert_target = $${values.length}`);
     }
-    
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = NOW()');
     values.push(telegramId);
-    
+
     const result = await pool.query(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
     `, values);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUserScheduleAlertSettings:', error.message);
@@ -821,133 +821,133 @@ async function updateUser(telegramId, updates) {
   try {
     const fields = [];
     const values = [];
-    
+
     if (updates.last_start_message_id !== undefined) {
       values.push(updates.last_start_message_id);
       fields.push(`last_start_message_id = $${values.length}`);
     }
-    
+
     if (updates.last_settings_message_id !== undefined) {
       values.push(updates.last_settings_message_id);
       fields.push(`last_settings_message_id = $${values.length}`);
     }
-    
+
     if (updates.last_schedule_message_id !== undefined) {
       values.push(updates.last_schedule_message_id);
       fields.push(`last_schedule_message_id = $${values.length}`);
     }
-    
+
     if (updates.last_timer_message_id !== undefined) {
       values.push(updates.last_timer_message_id);
       fields.push(`last_timer_message_id = $${values.length}`);
     }
-    
+
     if (updates.last_menu_message_id !== undefined) {
       values.push(updates.last_menu_message_id);
       fields.push(`last_menu_message_id = $${values.length}`);
     }
-    
+
     if (updates.channel_id !== undefined) {
       values.push(updates.channel_id);
       fields.push(`channel_id = $${values.length}`);
     }
-    
+
     if (updates.channel_title !== undefined) {
       values.push(updates.channel_title);
       fields.push(`channel_title = $${values.length}`);
     }
-    
+
     if (updates.channel_description !== undefined) {
       values.push(updates.channel_description);
       fields.push(`channel_description = $${values.length}`);
     }
-    
+
     if (updates.channel_photo_file_id !== undefined) {
       values.push(updates.channel_photo_file_id);
       fields.push(`channel_photo_file_id = $${values.length}`);
     }
-    
+
     if (updates.channel_user_title !== undefined) {
       values.push(updates.channel_user_title);
       fields.push(`channel_user_title = $${values.length}`);
     }
-    
+
     if (updates.channel_user_description !== undefined) {
       values.push(updates.channel_user_description);
       fields.push(`channel_user_description = $${values.length}`);
     }
-    
+
     if (updates.channel_status !== undefined) {
       values.push(updates.channel_status);
       fields.push(`channel_status = $${values.length}`);
     }
-    
+
     if (updates.channel_paused !== undefined) {
       values.push(updates.channel_paused ? true : false);
       fields.push(`channel_paused = $${values.length}`);
     }
-    
+
     if (updates.last_published_hash !== undefined) {
       values.push(updates.last_published_hash);
       fields.push(`last_published_hash = $${values.length}`);
     }
-    
+
     if (updates.last_post_id !== undefined) {
       values.push(updates.last_post_id);
       fields.push(`last_post_id = $${values.length}`);
     }
-    
+
     if (updates.last_hash !== undefined) {
       values.push(updates.last_hash);
       fields.push(`last_hash = $${values.length}`);
     }
-    
+
     if (updates.router_ip !== undefined) {
       values.push(updates.router_ip);
       fields.push(`router_ip = $${values.length}`);
     }
-    
+
     if (updates.notify_before_off !== undefined) {
       values.push(updates.notify_before_off);
       fields.push(`notify_before_off = $${values.length}`);
     }
-    
+
     if (updates.notify_before_on !== undefined) {
       values.push(updates.notify_before_on);
       fields.push(`notify_before_on = $${values.length}`);
     }
-    
+
     if (updates.alerts_off_enabled !== undefined) {
       values.push(updates.alerts_off_enabled ? true : false);
       fields.push(`alerts_off_enabled = $${values.length}`);
     }
-    
+
     if (updates.alerts_on_enabled !== undefined) {
       values.push(updates.alerts_on_enabled ? true : false);
       fields.push(`alerts_on_enabled = $${values.length}`);
     }
-    
+
     if (updates.is_active !== undefined) {
       values.push(updates.is_active ? true : false);
       fields.push(`is_active = $${values.length}`);
     }
-    
+
     if (updates.power_notify_target !== undefined) {
       values.push(updates.power_notify_target);
       fields.push(`power_notify_target = $${values.length}`);
     }
-    
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = NOW()');
     values.push(telegramId);
-    
+
     const result = await pool.query(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
     `, values);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateUser:', error.message);
@@ -966,7 +966,7 @@ async function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorro
           updated_at = NOW()
       WHERE telegram_id = $4
     `, [todayHash, tomorrowHash, tomorrowDate, telegramId]);
-    
+
     return result.rowCount > 0;
   } catch (error) {
     console.error('Error in updateSnapshotHashes:', error.message);
@@ -982,7 +982,7 @@ async function getSnapshotHashes(telegramId) {
       FROM users 
       WHERE telegram_id = $1
     `, [telegramId]);
-    
+
     return result.rows[0];
   } catch (error) {
     console.error('Error in getSnapshotHashes:', error.message);
@@ -998,7 +998,7 @@ async function getActiveUsersByRegionQueue() {
       WHERE is_active = TRUE 
       ORDER BY region, queue
     `);
-    
+
     // Group by region+queue
     const groups = {};
     for (const user of result.rows) {
@@ -1017,18 +1017,18 @@ async function getActiveUsersByRegionQueue() {
 async function batchUpdateHashes(updates) {
   // updates = [{ id, lastHash, lastPublishedHash }, ...]
   if (updates.length === 0) return;
-  
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    
+
     for (const { id, lastHash, lastPublishedHash } of updates) {
       await client.query(`
         UPDATE users SET last_hash = $1, last_published_hash = $2, updated_at = NOW()
         WHERE id = $3
       `, [lastHash, lastPublishedHash, id]);
     }
-    
+
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');

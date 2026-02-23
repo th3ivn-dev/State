@@ -12,7 +12,7 @@ const startTime = Date.now();
 function getHealthStatus() {
   const uptime = Math.floor((Date.now() - startTime) / 1000);
   const memoryUsage = process.memoryUsage();
-  
+
   return {
     status: 'ok',
     uptime: uptime,
@@ -43,13 +43,13 @@ function formatUptime(seconds) {
   const hours = Math.floor((seconds % 86400) / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   const parts = [];
   if (days > 0) parts.push(`${days}д`);
   if (hours > 0) parts.push(`${hours}г`);
   if (minutes > 0) parts.push(`${minutes}хв`);
   if (secs > 0 && days === 0) parts.push(`${secs}с`);
-  
+
   return parts.join(' ') || '0с';
 }
 
@@ -59,7 +59,7 @@ function formatUptime(seconds) {
  */
 function getMemoryStats() {
   const memoryUsage = process.memoryUsage();
-  
+
   return {
     heapUsed: memoryUsage.heapUsed,
     heapTotal: memoryUsage.heapTotal,
@@ -79,22 +79,22 @@ function getMemoryStats() {
  */
 function checkHealth(options = {}) {
   const { maxMemoryMB = 500, maxUptimeSeconds = 86400 * 7 } = options; // 7 днів за замовчуванням
-  
+
   const health = getHealthStatus();
   const memoryStats = getMemoryStats();
   const warnings = [];
-  
+
   // Перевірка використання пам'яті
   const memoryUsedMB = memoryStats.heapUsed / 1024 / 1024;
   if (memoryUsedMB > maxMemoryMB) {
     warnings.push(`Високе використання пам'яті: ${Math.round(memoryUsedMB)}MB > ${maxMemoryMB}MB`);
   }
-  
+
   // Перевірка uptime
   if (health.uptime > maxUptimeSeconds) {
     warnings.push(`Довгий uptime: ${health.uptimeFormatted} (рекомендується перезапуск)`);
   }
-  
+
   return {
     healthy: warnings.length === 0,
     warnings,

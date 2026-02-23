@@ -1,6 +1,6 @@
 /**
  * Test: Reset Buttons Popup Fix
- * 
+ *
  * Verifies that the handleChannelCallback function correctly skips
  * the early answerCallbackQuery for callbacks that need custom popup messages.
  * This ensures that reset buttons and other interactive buttons show their

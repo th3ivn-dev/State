@@ -18,15 +18,15 @@ async function handleAdminCallback(bot, query) {
   const chatId = query.message.chat.id;
   const userId = String(query.from.id);
   const data = query.data;
-  
+
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
     await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Немає прав' });
     return;
   }
-  
+
   // Answer callback query immediately to prevent timeout (after permission check)
   await bot.api.answerCallbackQuery(query.id).catch(() => {});
-  
+
   try {
     if (data.startsWith('admin_ticket')) {
       await handleTicketsCallback(bot, query, chatId, userId, data);

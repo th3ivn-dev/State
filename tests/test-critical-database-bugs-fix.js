@@ -25,7 +25,7 @@ const scheduleHistoryCode = fs.readFileSync(path.join(__dirname, '../src/databas
 
 // Check that scheduleHistory.js exports the correct functions
 assert(
-  scheduleHistoryCode.includes('module.exports = {') && 
+  scheduleHistoryCode.includes('module.exports = {') &&
   scheduleHistoryCode.includes('addScheduleToHistory'),
   'scheduleHistory.js should export addScheduleToHistory'
 );
@@ -109,7 +109,7 @@ let hasNonAwaitedCalls = false;
 for (const line of lines) {
   // Skip import lines
   if (line.includes('const {') || line.includes('require(')) continue;
-  
+
   // Check for non-awaited calls (call without 'await' before it)
   if (line.includes('updateSnapshotHashes(') && !line.includes('await updateSnapshotHashes(')) {
     hasNonAwaitedCalls = true;

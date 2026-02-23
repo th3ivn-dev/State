@@ -67,7 +67,7 @@ async function notifyAdminsAboutError(bot, error, context) {
       '409: Conflict',
       'terminated by other getUpdates request'
     ];
-    
+
     if (skipPatterns.some(pattern => errorMessage.includes(pattern))) {
       // Це нормальна ситуація, не сповіщаємо адмінів
       return;
@@ -101,24 +101,24 @@ async function notifyAdminsAboutError(bot, error, context) {
 
     // Отримуємо кількість пропущених повторень
     const repeatCount = errorCounts.get(rateLimitKey) || 0;
-    
+
     // Оновлюємо час останнього сповіщення
     errorNotifications.set(rateLimitKey, now);
     errorCounts.set(rateLimitKey, 0);
 
     // Формуємо повідомлення
-    const stackTrace = error instanceof Error && error.stack 
-      ? error.stack.substring(0, 500) 
+    const stackTrace = error instanceof Error && error.stack
+      ? error.stack.substring(0, 500)
       : '';
 
     let message = '🚨 <b>Помилка в боті</b>\n\n';
     message += `📍 Контекст: <code>${escapeHtml(context)}</code>\n`;
     message += `⏰ Час: ${formatTimestamp()}\n`;
-    
+
     if (repeatCount > 0) {
       message += `🔄 Повторів: ${repeatCount}\n`;
     }
-    
+
     message += `\n❌ <b>Помилка:</b>\n`;
     message += `<code>${escapeHtml(errorMessage)}</code>\n`;
 

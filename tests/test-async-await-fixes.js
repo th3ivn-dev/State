@@ -38,7 +38,7 @@ let hasNonAwaitedCalls = false;
 for (const line of lines) {
   // Skip import lines
   if (line.includes('require(') || line.includes('const {')) continue;
-  
+
   // Check for non-awaited calls
   if (line.includes('cleanOldSchedules()') && !line.includes('await cleanOldSchedules()')) {
     hasNonAwaitedCalls = true;

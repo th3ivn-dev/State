@@ -10,22 +10,22 @@ async function handleWizardCallback(bot, query) {
   const chatId = query.message.chat.id;
   const telegramId = String(query.from.id);
   const data = query.data;
-  
+
   await bot.api.answerCallbackQuery(query.id).catch(() => {});
-  
+
   try {
     const state = getWizardState(telegramId) || { step: 'region' };
-    
+
     // Route to region/queue/confirm/back handlers
     if (await handleRegionCallback(bot, query, chatId, telegramId, data, state)) {
       return;
     }
-    
+
     // Route to notify/channel handlers
     if (await handleNotifyCallback(bot, query, chatId, telegramId, data, state)) {
       return;
     }
-    
+
   } catch (error) {
     // Sanitize state for logging - only log non-sensitive fields
     const state = getWizardState(telegramId);

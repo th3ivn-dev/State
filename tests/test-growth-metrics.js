@@ -2,10 +2,10 @@
  * Test script for Growth Metrics System
  */
 
-const { 
-  getCurrentStage, 
-  setGrowthStage, 
-  getGrowthMetrics, 
+const {
+  getCurrentStage,
+  setGrowthStage,
+  getGrowthMetrics,
   getStageSpecificMetrics,
   isRegistrationEnabled,
   setRegistrationEnabled,
@@ -117,7 +117,7 @@ const success = setGrowthStage(1);
 if (success) {
   const newStage = getCurrentStage();
   console.log(`   ✅ Stage changed to: ${newStage.name}`);
-  
+
   // Change back to Stage 0
   setGrowthStage(0);
   const revertedStage = getCurrentStage();

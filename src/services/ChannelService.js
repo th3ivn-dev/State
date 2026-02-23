@@ -1,12 +1,12 @@
 /**
  * Channel Service
- * 
+ *
  * Handles channel-related business logic.
  * This service is Telegram-agnostic and focuses on:
  * - Channel connection management
  * - Channel validation
  * - Channel settings
- * 
+ *
  * Does NOT handle Telegram API calls - that's the handler's job
  */
 
@@ -22,7 +22,7 @@ class ChannelService {
   async validateChannelConnection(channelId, telegramId) {
     // Check if channel is already occupied by another user
     const existingUser = await usersDb.getUserByChannelId(channelId);
-    
+
     if (existingUser && existingUser.telegram_id !== telegramId) {
       return {
         valid: false,
@@ -30,7 +30,7 @@ class ChannelService {
         errorType: 'occupied'
       };
     }
-    
+
     return { valid: true };
   }
 
@@ -42,13 +42,13 @@ class ChannelService {
    */
   async connectChannel(telegramId, channelData) {
     const { channelId, channelTitle, channelDescription, channelPhotoFileId } = channelData;
-    
+
     // Validate
     const validation = await this.validateChannelConnection(channelId, telegramId);
     if (!validation.valid) {
       throw new Error(validation.error);
     }
-    
+
     // Update user
     await usersDb.updateUser(telegramId, {
       channel_id: channelId,
@@ -57,7 +57,7 @@ class ChannelService {
       channel_photo_file_id: channelPhotoFileId,
       channel_status: 'active'
     });
-    
+
     return await usersDb.getUserByTelegramId(telegramId);
   }
 
@@ -87,12 +87,12 @@ class ChannelService {
    */
   async updateChannelBranding(telegramId, branding) {
     const { title, description } = branding;
-    
+
     await usersDb.updateUser(telegramId, {
       channel_user_title: title,
       channel_user_description: description
     });
-    
+
     return await usersDb.getUserByTelegramId(telegramId);
   }
 
@@ -123,11 +123,11 @@ class ChannelService {
    */
   async getChannelInfo(telegramId) {
     const user = await usersDb.getUserByTelegramId(telegramId);
-    
+
     if (!user || !user.channel_id) {
       return null;
     }
-    
+
     return {
       channelId: user.channel_id,
       channelTitle: user.channel_title,
@@ -159,11 +159,11 @@ class ChannelService {
    */
   async updateLastPublished(telegramId, hash, postId = null) {
     const updates = { last_published_hash: hash };
-    
+
     if (postId !== null) {
       updates.last_post_id = postId;
     }
-    
+
     await usersDb.updateUser(telegramId, updates);
   }
 }

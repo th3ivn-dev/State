@@ -28,36 +28,36 @@ const regularUserId = '123456789';
 
 // Owner should have admin access
 assert.strictEqual(
-  isAdmin(ownerId, adminIds, ownerId), 
-  true, 
+  isAdmin(ownerId, adminIds, ownerId),
+  true,
   'Owner should have admin access when ownerId is provided'
 );
 
 // Owner should have admin access even with empty admin list
 assert.strictEqual(
-  isAdmin(ownerId, [], ownerId), 
-  true, 
+  isAdmin(ownerId, [], ownerId),
+  true,
   'Owner should have admin access even with empty admin list'
 );
 
 // Admin in list should have access
 assert.strictEqual(
-  isAdmin('999888777', adminIds, ownerId), 
-  true, 
+  isAdmin('999888777', adminIds, ownerId),
+  true,
   'User in adminIds list should have admin access'
 );
 
 // Regular user should NOT have access
 assert.strictEqual(
-  isAdmin(regularUserId, adminIds, ownerId), 
-  false, 
+  isAdmin(regularUserId, adminIds, ownerId),
+  false,
   'Regular user should NOT have admin access'
 );
 
 // Backward compatibility - function should work without ownerId
 assert.strictEqual(
-  isAdmin('999888777', adminIds), 
-  true, 
+  isAdmin('999888777', adminIds),
+  true,
   'Function should work without ownerId (backward compatibility)'
 );
 
@@ -172,7 +172,7 @@ assert(
 );
 
 // Check at least one call has three parameters
-const hasThreeParamCall = isAdminCalls.some(call => 
+const hasThreeParamCall = isAdminCalls.some(call =>
   call.includes('config.adminIds') && call.includes('config.ownerId')
 );
 assert(

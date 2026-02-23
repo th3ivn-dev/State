@@ -1,6 +1,6 @@
 /**
  * Test: Merged Reset Buttons
- * 
+ *
  * Verifies that:
  * 1. The schedule text keyboard has only ONE reset button (not 2)
  * 2. The power keyboard has only ONE reset button (not 2)
@@ -37,7 +37,7 @@ if (!scheduleKeyboardMatch) {
 const scheduleKeyboardStr = scheduleKeyboardMatch[0];
 
 // Check that old individual reset buttons are REMOVED
-if (scheduleKeyboardStr.includes('format_reset_caption') || 
+if (scheduleKeyboardStr.includes('format_reset_caption') ||
     scheduleKeyboardStr.includes('format_reset_periods')) {
   console.error('  ❌ FAIL: Old individual reset buttons still exist in schedule keyboard');
   console.error('     Found old callback: format_reset_caption or format_reset_periods');
@@ -71,7 +71,7 @@ if (!powerKeyboardMatch) {
 const powerKeyboardStr = powerKeyboardMatch[0];
 
 // Check that old individual reset buttons are REMOVED
-if (powerKeyboardStr.includes('format_reset_power_off') || 
+if (powerKeyboardStr.includes('format_reset_power_off') ||
     powerKeyboardStr.includes('format_reset_power_on')) {
   console.error('  ❌ FAIL: Old individual reset buttons still exist in power keyboard');
   console.error('     Found old callback: format_reset_power_off or format_reset_power_on');
@@ -109,7 +109,7 @@ if (!scheduleHandlerMatch) {
 }
 
 const scheduleHandler = scheduleHandlerMatch[0];
-if (!scheduleHandler.includes('scheduleCaption: null') || 
+if (!scheduleHandler.includes('scheduleCaption: null') ||
     !scheduleHandler.includes('periodFormat: null')) {
   console.error('  ❌ FAIL: format_reset_all_schedule does not reset both scheduleCaption and periodFormat');
   process.exit(1);
@@ -129,7 +129,7 @@ if (!powerHandlerMatch) {
 }
 
 const powerHandler = powerHandlerMatch[0];
-if (!powerHandler.includes('powerOffText: null') || 
+if (!powerHandler.includes('powerOffText: null') ||
     !powerHandler.includes('powerOnText: null')) {
   console.error('  ❌ FAIL: format_reset_all_power does not reset both powerOffText and powerOnText');
   process.exit(1);

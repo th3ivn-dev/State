@@ -48,14 +48,14 @@ test('IP monitoring menu should have instruction button', () => {
 test('Instruction handler should exist for ip_instruction callback', () => {
   const fs = require('fs');
   const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
-  assert(settingsContent.includes("data === 'ip_instruction'"), 
+  assert(settingsContent.includes("data === 'ip_instruction'"),
     'ip_instruction handler not found in settings/ip.js');
 });
 
 test('Instruction text should contain all required sections', () => {
   const fs = require('fs');
   const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
-  
+
   // Check for key sections
   const requiredSections = [
     'Налаштування моніторингу через IP',
@@ -73,9 +73,9 @@ test('Instruction text should contain all required sections', () => {
     'Xiaomi',
     'Що потрібно ввести'
   ];
-  
+
   for (const section of requiredSections) {
-    assert(settingsContent.includes(section), 
+    assert(settingsContent.includes(section),
       `Missing section: ${section}`);
   }
 });
@@ -83,7 +83,7 @@ test('Instruction text should contain all required sections', () => {
 test('Instruction should include example formats', () => {
   const fs = require('fs');
   const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
-  
+
   // Note: Examples use intentionally invalid IPs (89.267.32.1 with octet 267 > 255)
   // to prevent users from accidentally using example addresses
   assert(settingsContent.includes('89.267.32.1'), 'Missing IPv4 example');
@@ -94,9 +94,9 @@ test('Instruction should include example formats', () => {
 test('Instruction should include useful service links', () => {
   const fs = require('fs');
   const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
-  
+
   assert(settingsContent.includes('https://2ip.ua/ua'), 'Missing 2ip.ua link');
-  assert(settingsContent.includes('https://www.asus.com/ua-ua/support/FAQ/1011725/'), 
+  assert(settingsContent.includes('https://www.asus.com/ua-ua/support/FAQ/1011725/'),
     'Missing ASUS link');
 });
 
@@ -248,10 +248,10 @@ test('Timeout handler should send main menu', () => {
     settingsCode.indexOf('finalTimeout = setTimeout'),
     settingsCode.indexOf('finalTimeout = setTimeout') + 1000
   );
-  
-  assert(finalTimeoutSection.includes('sendMainMenu') || 
+
+  assert(finalTimeoutSection.includes('sendMainMenu') ||
          finalTimeoutSection.includes('getMainMenu'),
-    'Main menu not sent on timeout');
+  'Main menu not sent on timeout');
 });
 
 test('Timeout handler should show timeout message', () => {
@@ -266,7 +266,7 @@ test('Timeout handler should clear IP setup state', () => {
     settingsCode.indexOf('finalTimeout = setTimeout'),
     settingsCode.indexOf('finalTimeout = setTimeout') + 500
   );
-  
+
   assert(finalTimeoutSection.includes('clearIpSetupState'),
     'clearIpSetupState not called on timeout');
 });
@@ -287,7 +287,7 @@ test('IP monitoring menu should have all required buttons', () => {
   const keyboard = getIpMonitoringKeyboard();
   const allButtons = keyboard.reply_markup.inline_keyboard.flat();
   const buttonTexts = allButtons.map(btn => btn.text);
-  
+
   assert(buttonTexts.includes('ℹ️ Інструкція'), 'Missing instruction button');
   assert(buttonTexts.includes('✚ Налаштувати IP'), 'Missing setup button');
   assert(buttonTexts.includes('📋 Показати поточний'), 'Missing show button');
@@ -301,26 +301,26 @@ test('IP monitoring menu should have all required buttons', () => {
 console.log('\nIntegration Tests\n');
 
 test('All keyboard exports should be available', () => {
-  const { 
-    getMainMenu, 
-    getIpMonitoringKeyboard, 
-    getIpCancelKeyboard 
+  const {
+    getMainMenu,
+    getIpMonitoringKeyboard,
+    getIpCancelKeyboard
   } = require('../src/keyboards/inline');
-  
+
   assert(typeof getMainMenu === 'function', 'getMainMenu not exported');
-  assert(typeof getIpMonitoringKeyboard === 'function', 
+  assert(typeof getIpMonitoringKeyboard === 'function',
     'getIpMonitoringKeyboard not exported');
-  assert(typeof getIpCancelKeyboard === 'function', 
+  assert(typeof getIpCancelKeyboard === 'function',
     'getIpCancelKeyboard not exported');
 });
 
 test('Settings module should export required functions', () => {
   // Check that module can be loaded
-  assert(fs.existsSync('./src/handlers/settings/index.js'), 
+  assert(fs.existsSync('./src/handlers/settings/index.js'),
     'settings/index.js not found');
-  
+
   // Check for key function exports
-  assert(settingsCode.includes('module.exports'), 
+  assert(settingsCode.includes('module.exports'),
     'No exports found in settings files');
 });
 

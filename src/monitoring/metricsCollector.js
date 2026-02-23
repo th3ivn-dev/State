@@ -1,6 +1,6 @@
 /**
  * Metrics Collector
- * 
+ *
  * Collects and aggregates metrics from all system levels:
  * - System level (process, memory, uptime)
  * - Application level (errors, state transitions)
@@ -26,15 +26,15 @@ class MetricsCollector {
       ip: {},
       channel: {}
     };
-    
+
     // Error tracking
     this.errors = [];
     this.errorCounts = new Map(); // Error signature -> count
     this.lastErrorTime = new Map(); // Error signature -> timestamp
-    
+
     // State transitions tracking
     this.stateTransitions = [];
-    
+
     // UX metrics tracking
     this.uxEvents = {
       cancel: 0,
@@ -43,21 +43,21 @@ class MetricsCollector {
       quickClicks: 0,
       abort: 0
     };
-    
+
     // IP monitoring tracking
     this.ipEvents = {
       offlineToOnline: 0,
       unstableCount: 0,
       debounceCount: 0
     };
-    
+
     // Channel tracking
     this.channelEvents = {
       adminRightsLost: 0,
       publishErrors: 0,
       messageDeleted: 0
     };
-    
+
     // Startup metrics
     this.startTime = Date.now();
     this.restartCount = 0;
@@ -70,7 +70,7 @@ class MetricsCollector {
   collectSystemMetrics() {
     const health = getHealthStatus();
     const memory = getMemoryStats();
-    
+
     this.metrics.system = {
       uptime: health.uptime,
       uptimeFormatted: health.uptimeFormatted,
@@ -87,7 +87,7 @@ class MetricsCollector {
       restartCount: this.restartCount,
       timestamp: new Date().toISOString()
     };
-    
+
     return this.metrics.system;
   }
 
@@ -98,7 +98,7 @@ class MetricsCollector {
   async collectApplicationMetrics() {
     const isPaused = await getSetting('bot_paused', '0') === '1';
     const scheduleInterval = await getSetting('schedule_check_interval', '60');
-    
+
     this.metrics.application = {
       botPaused: isPaused,
       scheduleInterval: parseInt(scheduleInterval, 10),
@@ -109,7 +109,7 @@ class MetricsCollector {
       recentTransitions: this.getRecentTransitions(10),
       timestamp: new Date().toISOString()
     };
-    
+
     return this.metrics.application;
   }
 
@@ -123,25 +123,25 @@ class MetricsCollector {
       const allUsersForChannels = await usersDb.getAllUsers();
       const usersWithChannels = allUsersForChannels.filter(u => u.channel_id).length;
       const usersWithIPs = allUsersForChannels.filter(u => u.router_ip).length;
-      
+
       // Calculate DAU (active in last 24 hours) and WAU (active in last 7 days)
       const now = Date.now();
       const dayMs = 24 * 60 * 60 * 1000;
       const weekMs = 7 * dayMs;
-      
+
       const allUsers = await usersDb.getAllUsers();
       const dau = allUsers.filter(u => {
         if (!u.updated_at) return false;
         const lastActive = new Date(u.updated_at).getTime();
         return (now - lastActive) < dayMs;
       }).length;
-      
+
       const wau = allUsers.filter(u => {
         if (!u.updated_at) return false;
         const lastActive = new Date(u.updated_at).getTime();
         return (now - lastActive) < weekMs;
       }).length;
-      
+
       this.metrics.business = {
         totalUsers: stats.total,
         activeUsers: stats.active,
@@ -151,7 +151,7 @@ class MetricsCollector {
         ipsMonitored: usersWithIPs,
         timestamp: new Date().toISOString()
       };
-      
+
       return this.metrics.business;
     } catch (error) {
       logger.error('Error collecting business metrics', { error: error.message });
@@ -168,7 +168,7 @@ class MetricsCollector {
       ...this.uxEvents,
       timestamp: new Date().toISOString()
     };
-    
+
     return this.metrics.ux;
   }
 
@@ -181,7 +181,7 @@ class MetricsCollector {
       ...this.ipEvents,
       timestamp: new Date().toISOString()
     };
-    
+
     return this.metrics.ip;
   }
 
@@ -194,7 +194,7 @@ class MetricsCollector {
       ...this.channelEvents,
       timestamp: new Date().toISOString()
     };
-    
+
     return this.metrics.channel;
   }
 
@@ -227,20 +227,20 @@ class MetricsCollector {
       context,
       timestamp: new Date().toISOString()
     };
-    
+
     // Add to errors list
     this.errors.push(errorData);
-    
+
     // Update error counts
     const currentCount = this.errorCounts.get(errorSignature) || 0;
     this.errorCounts.set(errorSignature, currentCount + 1);
     this.lastErrorTime.set(errorSignature, Date.now());
-    
+
     // Keep only last 1000 errors
     if (this.errors.length > 1000) {
       this.errors = this.errors.slice(-1000);
     }
-    
+
     // Keep errorCounts/lastErrorTime Maps bounded (max 500 unique signatures)
     if (this.errorCounts.size > 500) {
       // Remove oldest entries based on lastErrorTime
@@ -253,11 +253,11 @@ class MetricsCollector {
         this.lastErrorTime.delete(key);
       }
     }
-    
-    logger.error('Error tracked', { 
-      error: error.message, 
+
+    logger.error('Error tracked', {
+      error: error.message,
       count: currentCount + 1,
-      context 
+      context
     });
   }
 
@@ -272,14 +272,14 @@ class MetricsCollector {
       data,
       timestamp: new Date().toISOString()
     };
-    
+
     this.stateTransitions.push(transitionData);
-    
+
     // Keep only last 1000 transitions
     if (this.stateTransitions.length > 1000) {
       this.stateTransitions = this.stateTransitions.slice(-1000);
     }
-    
+
     logger.info('State transition tracked', { transition, data });
   }
 
@@ -343,14 +343,14 @@ class MetricsCollector {
   checkErrorSpike(threshold = 10, windowMinutes = 5) {
     const now = Date.now();
     const windowMs = windowMinutes * 60 * 1000;
-    
+
     const recentErrors = this.errors.filter(err => {
       const errorTime = new Date(err.timestamp).getTime();
       return (now - errorTime) < windowMs;
     });
-    
+
     const hasSpike = recentErrors.length >= threshold;
-    
+
     return {
       hasSpike,
       errorCount: recentErrors.length,
@@ -367,7 +367,7 @@ class MetricsCollector {
    */
   checkRepeatedErrors(threshold = 5) {
     const repeatedErrors = [];
-    
+
     for (const [signature, count] of this.errorCounts.entries()) {
       if (count >= threshold) {
         repeatedErrors.push({
@@ -377,7 +377,7 @@ class MetricsCollector {
         });
       }
     }
-    
+
     return repeatedErrors;
   }
 
@@ -389,7 +389,7 @@ class MetricsCollector {
     this.errorCounts.clear();
     this.lastErrorTime.clear();
     this.stateTransitions = [];
-    
+
     this.uxEvents = {
       cancel: 0,
       timeout: 0,
@@ -397,19 +397,19 @@ class MetricsCollector {
       quickClicks: 0,
       abort: 0
     };
-    
+
     this.ipEvents = {
       offlineToOnline: 0,
       unstableCount: 0,
       debounceCount: 0
     };
-    
+
     this.channelEvents = {
       adminRightsLost: 0,
       publishErrors: 0,
       messageDeleted: 0
     };
-    
+
     logger.info('Metrics reset');
   }
 }

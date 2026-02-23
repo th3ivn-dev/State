@@ -9,7 +9,7 @@ async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
   try {
     client = await pool.connect();
     await client.query('BEGIN');
-    
+
     // Delete any existing schedule for today before inserting new one
     const today = new Date().toISOString().split('T')[0];
     await client.query(`
@@ -49,13 +49,13 @@ async function getLastSchedule(userId) {
       ORDER BY created_at DESC
       LIMIT 1
     `, [userId]);
-    
+
     if (result.rows.length > 0) {
       const row = result.rows[0];
       row.schedule_data = JSON.parse(row.schedule_data);
       return row;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting last schedule:', error);
@@ -74,13 +74,13 @@ async function getPreviousSchedule(userId) {
       ORDER BY created_at DESC
       LIMIT 1 OFFSET 1
     `, [userId]);
-    
+
     if (result.rows.length > 0) {
       const row = result.rows[0];
       row.schedule_data = JSON.parse(row.schedule_data);
       return row;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error getting previous schedule:', error);
@@ -98,7 +98,7 @@ async function cleanOldSchedules() {
       DELETE FROM schedule_history
       WHERE created_at < NOW() - INTERVAL '7 days'
     `);
-    
+
     const deletedCount = result.rowCount || 0;
     console.log(`🧹 Cleaned ${deletedCount} old schedule history records`);
     return deletedCount;
@@ -145,10 +145,10 @@ function compareSchedules(oldSchedule, newSchedule) {
     const key = `${newEvent.start}_${newEvent.end}`;
     if (!oldMap.has(key)) {
       // Check if there's a similar event with different time
-      const similarOld = oldEvents.find(old => 
+      const similarOld = oldEvents.find(old =>
         Math.abs(new Date(old.start) - new Date(newEvent.start)) < 3600000 // within 1 hour
       );
-      
+
       if (similarOld) {
         changes.modified.push({ old: similarOld, new: newEvent });
       } else {
@@ -171,12 +171,12 @@ function compareSchedules(oldSchedule, newSchedule) {
 
   // Calculate total time change
   let totalChangeMinutes = 0;
-  
+
   changes.added.forEach(event => {
     const duration = (new Date(event.end) - new Date(event.start)) / 60000;
     totalChangeMinutes += duration;
   });
-  
+
   changes.removed.forEach(event => {
     const duration = (new Date(event.end) - new Date(event.start)) / 60000;
     totalChangeMinutes -= duration;
@@ -184,15 +184,15 @@ function compareSchedules(oldSchedule, newSchedule) {
 
   // Create summary
   const parts = [];
-  
+
   if (changes.added.length > 0) {
     parts.push(`+${changes.added.length} період${changes.added.length === 1 ? '' : 'и'}`);
   }
-  
+
   if (changes.removed.length > 0) {
     parts.push(`-${changes.removed.length} період${changes.removed.length === 1 ? '' : 'и'}`);
   }
-  
+
   if (changes.modified.length > 0) {
     parts.push(`🔄 ${changes.modified.length} змінен${changes.modified.length === 1 ? 'о' : 'і'}`);
   }

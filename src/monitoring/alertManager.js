@@ -1,6 +1,6 @@
 /**
  * Alert Manager
- * 
+ *
  * Manages alert generation, escalation, and delivery
  * Implements alert fatigue protection through debouncing and grouping
  */
@@ -31,11 +31,11 @@ class AlertManager {
   constructor() {
     // Alert history
     this.alerts = [];
-    
+
     // Alert debounce tracking
     this.lastAlertTime = new Map(); // Alert signature -> timestamp
     this.alertCounts = new Map(); // Alert signature -> count
-    
+
     // Configuration
     this.config = {
       debounceMinutes: 15, // Don't repeat same alert within this time
@@ -44,10 +44,10 @@ class AlertManager {
       alertChannelId: null, // Telegram channel for alerts
       webhookUrl: null // Alternative webhook URL
     };
-    
+
     // Load configuration from database (async, but constructor can't await)
     this.loadConfig().catch(err => logger.error('Failed to load config in constructor', { error: err.message }));
-    
+
     // Alert delivery callback
     this.deliveryCallback = null;
   }
@@ -107,23 +107,23 @@ class AlertManager {
   generateAlert(type, level, title, message, data = {}, action = null) {
     // Create alert signature for deduplication
     const signature = `${type}:${title}`;
-    
+
     // Check if alert should be suppressed due to debouncing
     if (this.shouldSuppress(signature)) {
       logger.debug('Alert suppressed (debounce)', { signature });
       return null;
     }
-    
+
     // Check if we've hit the max alerts per hour
     if (this.isOverRateLimit()) {
       logger.warn('Alert suppressed (rate limit)', { signature });
       return null;
     }
-    
+
     // Check for escalation
     const alertCount = this.alertCounts.get(signature) || 0;
     const escalatedLevel = this.escalateLevel(level, alertCount);
-    
+
     // Create alert object
     const alert = {
       type,
@@ -136,26 +136,26 @@ class AlertManager {
       signature,
       occurrenceCount: alertCount + 1
     };
-    
+
     // Update tracking
     this.alerts.push(alert);
     this.lastAlertTime.set(signature, Date.now());
     this.alertCounts.set(signature, alertCount + 1);
-    
+
     // Keep only last 1000 alerts
     if (this.alerts.length > 1000) {
       this.alerts = this.alerts.slice(-1000);
     }
-    
+
     // Log alert
     logger[level.toLowerCase() === 'critical' ? 'error' : level.toLowerCase()](
       `Alert: ${title}`,
       { type, level: escalatedLevel, message, data }
     );
-    
+
     // Deliver alert
     this.deliverAlert(alert);
-    
+
     return alert;
   }
 
@@ -167,10 +167,10 @@ class AlertManager {
   shouldSuppress(signature) {
     const lastTime = this.lastAlertTime.get(signature);
     if (!lastTime) return false;
-    
+
     const now = Date.now();
     const debounceMs = this.config.debounceMinutes * 60 * 1000;
-    
+
     return (now - lastTime) < debounceMs;
   }
 
@@ -181,12 +181,12 @@ class AlertManager {
   isOverRateLimit() {
     const now = Date.now();
     const hourMs = 60 * 60 * 1000;
-    
+
     const recentAlerts = this.alerts.filter(alert => {
       const alertTime = new Date(alert.timestamp).getTime();
       return (now - alertTime) < hourMs;
     });
-    
+
     return recentAlerts.length >= this.config.maxAlertsPerHour;
   }
 
@@ -213,7 +213,7 @@ class AlertManager {
    */
   async deliverAlert(alert) {
     const formattedAlert = this.formatAlert(alert);
-    
+
     // Call delivery callback if set
     if (this.deliveryCallback) {
       try {
@@ -222,7 +222,7 @@ class AlertManager {
         logger.error('Error in delivery callback', { error: error.message });
       }
     }
-    
+
     // Additional delivery methods can be added here (webhook, etc.)
   }
 
@@ -237,7 +237,7 @@ class AlertManager {
       [ALERT_LEVELS.WARN]: '⚠️',
       [ALERT_LEVELS.CRITICAL]: '🚨'
     }[alert.level] || 'ℹ️';
-    
+
     const typeEmoji = {
       [ALERT_TYPES.SYSTEM]: '💻',
       [ALERT_TYPES.APPLICATION]: '⚙️',
@@ -246,27 +246,27 @@ class AlertManager {
       [ALERT_TYPES.IP]: '🌐',
       [ALERT_TYPES.CHANNEL]: '📺'
     }[alert.type] || '🔔';
-    
+
     let message = `${levelEmoji} <b>${alert.level}</b> ${typeEmoji} <b>${alert.title}</b>\n\n`;
     message += `${alert.message}\n`;
-    
+
     if (alert.occurrenceCount > 1) {
       message += `\n🔄 Повторення: ${alert.occurrenceCount} разів\n`;
     }
-    
+
     if (Object.keys(alert.data).length > 0) {
       message += '\n<b>Деталі:</b>\n';
       for (const [key, value] of Object.entries(alert.data)) {
         message += `• ${key}: ${value}\n`;
       }
     }
-    
+
     if (alert.action) {
       message += `\n💡 <b>Дія:</b> ${alert.action}\n`;
     }
-    
+
     message += `\n⏰ ${new Date(alert.timestamp).toLocaleString('uk-UA')}`;
-    
+
     return message;
   }
 
@@ -278,11 +278,11 @@ class AlertManager {
    */
   getRecentAlerts(count = 10, level = null) {
     let filtered = this.alerts;
-    
+
     if (level) {
       filtered = filtered.filter(alert => alert.level === level);
     }
-    
+
     return filtered.slice(-count);
   }
 
@@ -294,23 +294,23 @@ class AlertManager {
     const now = Date.now();
     const hourMs = 60 * 60 * 1000;
     const dayMs = 24 * hourMs;
-    
+
     const lastHour = this.alerts.filter(a => {
       const t = new Date(a.timestamp).getTime();
       return (now - t) < hourMs;
     });
-    
+
     const lastDay = this.alerts.filter(a => {
       const t = new Date(a.timestamp).getTime();
       return (now - t) < dayMs;
     });
-    
+
     const byLevel = {
       [ALERT_LEVELS.INFO]: lastDay.filter(a => a.level === ALERT_LEVELS.INFO).length,
       [ALERT_LEVELS.WARN]: lastDay.filter(a => a.level === ALERT_LEVELS.WARN).length,
       [ALERT_LEVELS.CRITICAL]: lastDay.filter(a => a.level === ALERT_LEVELS.CRITICAL).length
     };
-    
+
     return {
       total: this.alerts.length,
       lastHour: lastHour.length,
@@ -327,12 +327,12 @@ class AlertManager {
   clearOldAlerts(olderThanDays = 7) {
     const now = Date.now();
     const cutoffMs = olderThanDays * 24 * 60 * 60 * 1000;
-    
+
     this.alerts = this.alerts.filter(alert => {
       const alertTime = new Date(alert.timestamp).getTime();
       return (now - alertTime) < cutoffMs;
     });
-    
+
     logger.info('Old alerts cleared', { olderThanDays, remaining: this.alerts.length });
   }
 

@@ -64,19 +64,19 @@ assert(blockedKeyboard.reply_markup, 'Клавіатура має містити
 assert(Array.isArray(blockedKeyboard.reply_markup.inline_keyboard), 'inline_keyboard має бути масивом');
 
 // Find reconnect button
-const hasReconnectButton = blockedKeyboard.reply_markup.inline_keyboard.some(row => 
+const hasReconnectButton = blockedKeyboard.reply_markup.inline_keyboard.some(row =>
   row.some(button => button.callback_data === 'channel_reconnect')
 );
 assert.strictEqual(hasReconnectButton, true, 'Заблокований канал має мати кнопку перепідключення');
 
 // Test keyboard with active channel
 const activeKeyboard = getChannelMenuKeyboard('@testchannel', true, 'active');
-const hasDisableButton = activeKeyboard.reply_markup.inline_keyboard.some(row => 
+const hasDisableButton = activeKeyboard.reply_markup.inline_keyboard.some(row =>
   row.some(button => button.callback_data === 'channel_disable')
 );
 assert.strictEqual(hasDisableButton, true, 'Активний канал має мати кнопку вимкнення');
 
-const hasReconnectInActive = activeKeyboard.reply_markup.inline_keyboard.some(row => 
+const hasReconnectInActive = activeKeyboard.reply_markup.inline_keyboard.some(row =>
   row.some(button => button.callback_data === 'channel_reconnect')
 );
 assert.strictEqual(hasReconnectInActive, false, 'Активний канал не має мати кнопку перепідключення');

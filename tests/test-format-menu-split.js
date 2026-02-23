@@ -11,7 +11,7 @@ console.log('🧪 Testing Format Menu Split Implementation...\n');
 
 // Test 1: Verify keyboard functions exist
 console.log('Test 1: Verifying keyboard functions exist');
-const { 
+const {
   getFormatSettingsKeyboard,
   getFormatScheduleKeyboard,
   getFormatPowerKeyboard

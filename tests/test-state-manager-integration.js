@@ -1,6 +1,6 @@
 /**
  * Integration Test: State Manager Fix
- * 
+ *
  * Verifies that the admin handler properly uses the centralized state manager
  * instead of direct database calls.
  */

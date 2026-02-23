@@ -36,10 +36,10 @@ function stopCacheCleanup() {
 // Fetch with retry logic
 async function fetchWithRetry(url, retries = 3, isImage = false) {
   const delays = [5000, 15000, 45000];
-  
+
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await axios.get(url, { 
+      const response = await axios.get(url, {
         timeout: 30000,
         responseType: isImage ? 'arraybuffer' : 'json',
         headers: {
@@ -49,11 +49,11 @@ async function fetchWithRetry(url, retries = 3, isImage = false) {
       return response.data;
     } catch (error) {
       const isLastRetry = i === retries - 1;
-      
+
       if (isLastRetry) {
         throw new Error(`Failed to fetch ${url} after ${retries} attempts: ${error.message}`);
       }
-      
+
       const delay = delays[i] || delays[delays.length - 1];
       console.log(`Retry ${i + 1}/${retries} for ${url} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -77,32 +77,32 @@ function getImageUrl(region, queue) {
 async function fetchScheduleData(region) {
   const cacheKey = `schedule_${region}`;
   const cached = cache.get(cacheKey);
-  
+
   // Перевірка кешу
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
   }
-  
+
   try {
     const url = getDataUrl(region);
     const data = await fetchWithRetry(url, 3, false);
-    
+
     // Збереження в кеш
     cache.set(cacheKey, {
       data,
       timestamp: Date.now(),
     });
-    
+
     return data;
   } catch (error) {
     console.error(`Помилка отримання даних для ${region}:`, error.message);
-    
+
     // Повернути дані з кешу якщо є помилка
     if (cached) {
       console.log(`Використання застарілих даних з кешу для ${region}`);
       return cached.data;
     }
-    
+
     throw error;
   }
 }

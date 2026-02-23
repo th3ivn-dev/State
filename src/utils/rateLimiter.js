@@ -14,7 +14,7 @@ class RateLimiter {
     this.windowMs = windowMs;
     this.requests = [];
   }
-  
+
   /**
    * Отримує дозвіл на виконання запиту (очікує якщо потрібно)
    * @returns {Promise<void>}
@@ -23,7 +23,7 @@ class RateLimiter {
     const now = Date.now();
     // Видаляємо старі запити поза вікном
     this.requests = this.requests.filter(time => now - time < this.windowMs);
-    
+
     if (this.requests.length >= this.maxRequests) {
       const oldestRequest = this.requests[0];
       const waitTime = Math.max(0, this.windowMs - (now - oldestRequest));
@@ -34,17 +34,17 @@ class RateLimiter {
       const afterWait = Date.now();
       this.requests = this.requests.filter(time => afterWait - time < this.windowMs);
     }
-    
+
     this.requests.push(Date.now());
   }
-  
+
   /**
    * Скидає всі записи про запити
    */
   reset() {
     this.requests = [];
   }
-  
+
   /**
    * Отримує поточну кількість запитів у вікні
    * @returns {Number}

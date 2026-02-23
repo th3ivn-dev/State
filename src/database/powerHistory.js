@@ -33,7 +33,7 @@ async function getPowerHistory(userId, limit = 100) {
       ORDER BY timestamp DESC
       LIMIT $2
     `, [userId, limit]);
-    
+
     return result.rows;
   } catch (error) {
     console.error('Error getting power history:', error);
@@ -54,7 +54,7 @@ async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
       WHERE user_id = $1 AND timestamp >= $2 AND timestamp <= $3
       ORDER BY timestamp ASC
     `, [userId, startTimestamp, endTimestamp]);
-    
+
     return result.rows;
   } catch (error) {
     console.error('Error getting power history by period:', error);
@@ -69,12 +69,12 @@ async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
 async function cleanupOldHistory(daysToKeep = 30) {
   try {
     const cutoffTimestamp = Math.floor(Date.now() / 1000) - (daysToKeep * 24 * 60 * 60);
-    
+
     const result = await pool.query(`
       DELETE FROM power_history
       WHERE timestamp < $1
     `, [cutoffTimestamp]);
-    
+
     const deletedCount = result.rowCount || 0;
     console.log(`Видалено ${deletedCount} старих записів з power_history`);
     return deletedCount;

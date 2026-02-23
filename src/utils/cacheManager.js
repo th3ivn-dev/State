@@ -52,7 +52,7 @@ function cleanupCache(name) {
     logger.warn(`Кеш "${name}" не знайдено`);
     return false;
   }
-  
+
   try {
     cacheEntry.cleanupFn();
     logger.info(`Кеш "${name}" очищено`);
@@ -79,9 +79,9 @@ function getCacheNames() {
 function getCacheStats(name) {
   const cacheEntry = caches.get(name);
   if (!cacheEntry) return null;
-  
+
   const { cache } = cacheEntry;
-  
+
   // Визначення розміру залежно від типу кешу
   let size = 0;
   if (cache instanceof Map || cache instanceof Set) {
@@ -89,7 +89,7 @@ function getCacheStats(name) {
   } else if (typeof cache === 'object' && cache !== null) {
     size = Object.keys(cache).length;
   }
-  
+
   return {
     name,
     size,
@@ -109,7 +109,7 @@ function startPeriodicCleanup(intervalMs = 30 * 60 * 1000) {
     logger.warn('Періодичне очищення вже запущено');
     return;
   }
-  
+
   cleanupInterval = setInterval(() => {
     try {
       logger.info('Початок періодичного очищення кешів...');
@@ -118,7 +118,7 @@ function startPeriodicCleanup(intervalMs = 30 * 60 * 1000) {
       logger.error('Помилка під час періодичного очищення кешів:', { error: error.message });
     }
   }, intervalMs);
-  
+
   logger.info(`Періодичне очищення кешів налаштовано (кожні ${intervalMs / 1000 / 60} хвилин)`);
 }
 

@@ -6,39 +6,39 @@ const { monitoringManager } = require('../../monitoring/monitoringManager');
 async function handleMonitoring(bot, msg) {
   const chatId = msg.chat.id;
   const userId = String(msg.from.id);
-  
+
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
     await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
-  
+
   try {
     const status = await monitoringManager.getStatus();
     const metricsCollector = monitoringManager.getMetricsCollector();
     const alertManager = monitoringManager.getAlertManager();
-    
+
     // Get metrics
     const metrics = await metricsCollector.collectAllMetrics();
     const alertsSummary = alertManager.getAlertsSummary();
-    
+
     // Format message
     let message = '🔎 <b>Система моніторингу</b>\n\n';
-    
+
     // Status
     message += `<b>Статус:</b> ${status.isRunning ? '🟢 Активна' : '🔴 Неактивна'}\n`;
     message += `<b>Інтервал:</b> ${status.config.checkIntervalMinutes} хв\n\n`;
-    
+
     // System metrics
     message += '<b>📊 Система:</b>\n';
     message += `• Uptime: ${metrics.system.uptimeFormatted}\n`;
     message += `• Памʼять: ${metrics.system.memory.heapUsedMB}MB (${metrics.system.memory.heapUsedPercent}%)\n`;
     message += `• Рестарти: ${metrics.system.restartCount}\n\n`;
-    
+
     // Application metrics
     message += '<b>⚙️ Застосунок:</b>\n';
     message += `• Режим паузи: ${metrics.application.botPaused ? '🔴 ТАК' : '🟢 НІ'}\n`;
     message += `• Помилок: ${metrics.application.errorCount} (унікальних: ${metrics.application.uniqueErrors})\n\n`;
-    
+
     // Business metrics
     message += '<b>📈 Бізнес:</b>\n';
     message += `• Всього користувачів: ${metrics.business.totalUsers}\n`;
@@ -47,7 +47,7 @@ async function handleMonitoring(bot, msg) {
     message += `• WAU: ${metrics.business.wau}\n`;
     message += `• Каналів: ${metrics.business.channelsConnected}\n`;
     message += `• IP моніторингів: ${metrics.business.ipsMonitored}\n\n`;
-    
+
     // Alerts summary
     message += '<b>🚨 Алерти:</b>\n';
     message += `• За годину: ${alertsSummary.lastHour}\n`;
@@ -55,16 +55,16 @@ async function handleMonitoring(bot, msg) {
     message += `• INFO: ${alertsSummary.byLevel.INFO}\n`;
     message += `• WARN: ${alertsSummary.byLevel.WARN}\n`;
     message += `• CRITICAL: ${alertsSummary.byLevel.CRITICAL}\n\n`;
-    
+
     // Alert channel
     const alertChannelId = alertManager.config.alertChannelId;
     message += '<b>📢 Канал для алертів:</b>\n';
     message += alertChannelId ? `✅ Налаштовано: ${alertChannelId}` : '❌ Не налаштовано';
     message += '\n\nДля налаштування канала:\n';
     message += '/setalertchannel <channel_id>';
-    
+
     await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
-    
+
   } catch (error) {
     console.error('Помилка в handleMonitoring:', error);
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
@@ -75,15 +75,15 @@ async function handleMonitoring(bot, msg) {
 async function handleSetAlertChannel(bot, msg, match) {
   const chatId = msg.chat.id;
   const userId = String(msg.from.id);
-  
+
   if (!isAdmin(userId, config.adminIds, config.ownerId)) {
     await bot.api.sendMessage(chatId, '❓ Невідома команда. Використовуйте /start для початку.');
     return;
   }
-  
+
   try {
     const channelId = match[1].trim();
-    
+
     // Validate channel ID format
     if (!channelId.startsWith('@') && !channelId.startsWith('-')) {
       await bot.api.sendMessage(
@@ -96,7 +96,7 @@ async function handleSetAlertChannel(bot, msg, match) {
       );
       return;
     }
-    
+
     // Try to send a test message to verify bot has access
     try {
       await bot.api.sendMessage(
@@ -117,17 +117,17 @@ async function handleSetAlertChannel(bot, msg, match) {
       );
       return;
     }
-    
+
     // Configure alert channel
     monitoringManager.setAlertChannel(channelId);
-    
+
     await bot.api.sendMessage(
       chatId,
       `✅ Канал для алертів налаштовано: ${channelId}\n\n` +
       'Тепер усі алерти системи моніторингу будуть публікуватися в цьому каналі.',
       { parse_mode: 'HTML' }
     );
-    
+
   } catch (error) {
     console.error('Помилка в handleSetAlertChannel:', error);
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');

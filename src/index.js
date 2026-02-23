@@ -40,33 +40,33 @@ function is409ConflictError(error) {
 async function main() {
   console.log('🚀 Запуск СвітлоБот...');
   console.log(`📍 Timezone: ${config.timezone}`);
-  
+
   // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
   await initializeDatabase();
   await runMigrations();
-  
+
   // Read schedule interval from database for logging
   const intervalStr = await getSetting('schedule_check_interval', '60');
   let checkIntervalSeconds = parseInt(intervalStr, 10);
-  
+
   // Validate the interval
   if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
     console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
     checkIntervalSeconds = 60;
   }
-  
+
   console.log(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
   console.log(`💾 База даних: PostgreSQL`);
-  
+
   // Перевірка здоров'я пулу підключень
   await checkPoolHealth();
-  
+
   // Запуск логування метрик пулу
   startPoolMetricsLogging();
 
   // Ініціалізація message queue
   messageQueue.init(bot);
-  
+
   // Ініціалізація централізованого state manager
   await initStateManager();
 
@@ -106,7 +106,7 @@ async function main() {
   });
   await monitoringManager.start();
   console.log('✅ Система моніторингу запущена');
-  
+
   // Ініціалізація бота (отримання botInfo для bot.options.id)
   await bot.init();
   console.log(`🤖 Bot info: @${bot.botInfo.username}`);
@@ -133,7 +133,7 @@ async function main() {
   setTimeout(() => {
     checkExistingUsers(bot);
   }, 5000); // Wait 5 seconds after startup
-  
+
   console.log('✨ Бот успішно запущено та готовий до роботи!');
 }
 
@@ -152,16 +152,16 @@ const shutdown = async (signal) => {
     return;
   }
   isShuttingDown = true;
-  
+
   console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
-  
+
   // Force-kill timeout to prevent hanging shutdown
   const forceKillTimer = setTimeout(() => {
     console.error('❌ Shutdown timed out, force exiting...');
     process.exit(1);
   }, SHUTDOWN_TIMEOUT_MS);
   forceKillTimer.unref(); // Don't keep process alive just for this timer
-  
+
   try {
     // 1. Зупиняємо прийом повідомлень
     if (config.USE_WEBHOOK) {
@@ -178,58 +178,58 @@ const shutdown = async (signal) => {
       }
       console.log('✅ Polling зупинено');
     }
-    
+
     // 2. Drain message queue (wait for pending messages)
     await messageQueue.drain();
     console.log('✅ Message queue drained');
-    
+
     // 3. Зупиняємо scheduler manager
     schedulerManager.stop();
     console.log('✅ Scheduler manager зупинено');
-    
+
     // 4. Зупиняємо state manager cleanup
     stopCleanup();
     console.log('✅ State manager зупинено');
-    
+
     // 5. Зупиняємо cache cleanup
     const { stopCacheCleanup } = require('./api');
     stopCacheCleanup();
     console.log('✅ Cache cleanup зупинено');
-    
+
     // 5.1 Зупиняємо bot cleanup interval
     stopBotCleanup();
     console.log('✅ Bot cleanup зупинено');
-    
+
     // 6. Зупиняємо систему моніторингу
     monitoringManager.stop();
     console.log('✅ Система моніторингу зупинена');
-    
+
     // 7. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
     console.log('✅ Моніторинг живлення зупинено');
-    
+
     // 7.1 Зупиняємо моніторинг роутерів адміністраторів
     const { stopAdminRouterMonitoring } = require('./adminRouterMonitor');
     stopAdminRouterMonitoring();
     console.log('✅ Моніторинг роутерів адміністраторів зупинено');
-    
+
     // 8. Зберігаємо всі стани користувачів
     await saveAllUserStates();
     console.log('✅ Стани користувачів збережено');
-    
+
     // 9. Зупиняємо health check server
     stopHealthCheck();
     console.log('✅ Health check server stopped');
-    
+
     // 10. Зупиняємо pool metrics logging
     const { stopPoolMetricsLogging } = require('./database/db');
     stopPoolMetricsLogging();
     console.log('✅ Pool metrics logging stopped');
-    
+
     // 11. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     await closeDatabase();
-    
+
     clearTimeout(forceKillTimer);
     console.log('👋 Бот завершив роботу');
     process.exit(0);
