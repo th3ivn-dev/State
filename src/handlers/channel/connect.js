@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { getBotUsername } = require('../../utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { checkPauseForChannelActions } = require('../../utils/guards');
@@ -57,7 +57,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       // Канал має бути доданий протягом останніх 30 хвилин
       if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
         // Перевіряємо що канал не зайнятий іншим користувачем
-        const existingUser = await usersDb.getUserByChannelId(channelId);
+        const existingUser = await userService.getUserByChannelId(channelId);
         if (!existingUser || existingUser.telegram_id === telegramId) {
           pendingChannel = channel;
           break;
@@ -149,7 +149,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
     const channelId = data.replace('channel_confirm_', '');
 
     // Перевірка чи канал вже зайнятий
-    const existingUser = await usersDb.getUserByChannelId(channelId);
+    const existingUser = await userService.getUserByChannelId(channelId);
     if (existingUser && existingUser.telegram_id !== telegramId) {
       await safeEditMessageText(bot,
         `⚠️ <b>Цей канал вже підключений.</b>\n\n` +
@@ -222,7 +222,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
     pendingChannels.delete(channelId);
 
     // Зберігаємо channel_id та початкуємо conversation для налаштування
-    await usersDb.resetUserChannel(telegramId, channelId);
+    await userService.resetUserChannel(telegramId, channelId);
 
     await setConversationState(telegramId, {
       state: 'waiting_for_title',
@@ -281,7 +281,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       }
 
       // Зберегти канал в БД
-      await usersDb.resetUserChannel(telegramId, channelId);
+      await userService.resetUserChannel(telegramId, channelId);
 
       // Видаляємо з pending
       pendingChannels.delete(channelId);
@@ -352,7 +352,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       }
 
       // Замінити канал в БД
-      await usersDb.resetUserChannel(telegramId, channelId);
+      await userService.resetUserChannel(telegramId, channelId);
 
       // Видаляємо з pending
       pendingChannels.delete(channelId);

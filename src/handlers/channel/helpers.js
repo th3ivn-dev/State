@@ -1,5 +1,5 @@
 const path = require('path');
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { getState, setState, clearState } = require('../../state/stateManager');
 
 // Helper functions to manage conversation states (now using centralized state manager)
@@ -125,7 +125,7 @@ const VALIDATION_ERROR_TYPES = {
 // Helper function: Validate channel ownership and bot permissions
 async function validateChannelConnection(bot, channelId, telegramId) {
   // Check if channel is already occupied by another user
-  const existingUser = await usersDb.getUserByChannelId(channelId);
+  const existingUser = await userService.getUserByChannelId(channelId);
   if (existingUser && existingUser.telegram_id !== telegramId) {
     return {
       valid: false,

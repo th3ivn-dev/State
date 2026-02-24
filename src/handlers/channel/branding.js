@@ -1,5 +1,5 @@
 const fs = require('fs');
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { getBotUsername } = require('../../utils');
 const { safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const {
@@ -106,7 +106,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     }
 
     // Save branding info to database only if title and description succeeded
-    await usersDb.updateChannelBranding(telegramId, {
+    await userService.updateChannelBranding(telegramId, {
       channelTitle: fullTitle,
       channelDescription: fullDescription,
       channelPhotoFileId: photoFileId,
@@ -116,7 +116,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
 
     // Send first publication message to channel
     try {
-      const user = await usersDb.getUserByTelegramId(telegramId);
+      const user = await userService.getUserByTelegramId(telegramId);
       await bot.api.sendMessage(
         state.channelId,
         getChannelWelcomeMessage(user),

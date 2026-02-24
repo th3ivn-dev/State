@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getFormatPowerKeyboard, getFormatScheduleKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
@@ -65,13 +65,13 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
   // Handle format_toggle_delete - toggle delete old message
   if (data === 'format_toggle_delete') {
     const newValue = !user.delete_old_message;
-    await usersDb.updateUserFormatSettings(telegramId, { deleteOldMessage: newValue });
+    await userService.updateUserFormatSettings(telegramId, { deleteOldMessage: newValue });
 
     await safeAnswerCallbackQuery(bot, query.id, {
       text: newValue ? '✅ Буде видалятись попереднє' : '❌ Не видалятиметься'
     });
 
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     await safeEditMessageText(bot,
       FORMAT_SCHEDULE_MESSAGE,
       {
@@ -87,13 +87,13 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
   // Handle format_toggle_piconly - toggle picture only
   if (data === 'format_toggle_piconly') {
     const newValue = !user.picture_only;
-    await usersDb.updateUserFormatSettings(telegramId, { pictureOnly: newValue });
+    await userService.updateUserFormatSettings(telegramId, { pictureOnly: newValue });
 
     await safeAnswerCallbackQuery(bot, query.id, {
       text: newValue ? '✅ Тільки картинка' : '❌ Картинка з підписом'
     });
 
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     await safeEditMessageText(bot,
       FORMAT_SCHEDULE_MESSAGE,
       {
@@ -226,7 +226,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
 
   // Handle format_reset_caption - reset schedule caption to default
   if (data === 'format_reset_caption') {
-    await usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: null });
+    await userService.updateUserFormatSettings(telegramId, { scheduleCaption: null });
 
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '✅ Підпис скинуто до стандартного',
@@ -234,7 +234,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
     });
 
     // Refresh the format_schedule_text screen to show updated values
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     const defaults = getUserFormatDefaults(updatedUser);
 
     await safeEditMessageText(bot,
@@ -251,7 +251,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
 
   // Handle format_reset_periods - reset period format to default
   if (data === 'format_reset_periods') {
-    await usersDb.updateUserFormatSettings(telegramId, { periodFormat: null });
+    await userService.updateUserFormatSettings(telegramId, { periodFormat: null });
 
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '✅ Формат часу скинуто до стандартного',
@@ -259,7 +259,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
     });
 
     // Refresh the format_schedule_text screen to show updated values
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     const defaults = getUserFormatDefaults(updatedUser);
 
     await safeEditMessageText(bot,
@@ -413,7 +413,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
 
   // Handle format_reset_power_off - reset power off text to default
   if (data === 'format_reset_power_off') {
-    await usersDb.updateUserFormatSettings(telegramId, { powerOffText: null });
+    await userService.updateUserFormatSettings(telegramId, { powerOffText: null });
 
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '✅ Текст "Світло зникло" скинуто до стандартного',
@@ -435,7 +435,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
 
   // Handle format_reset_power_on - reset power on text to default
   if (data === 'format_reset_power_on') {
-    await usersDb.updateUserFormatSettings(telegramId, { powerOnText: null });
+    await userService.updateUserFormatSettings(telegramId, { powerOnText: null });
 
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '✅ Текст "Світло є" скинуто до стандартного',
@@ -457,7 +457,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
 
   // Handle format_reset_all_schedule - reset all schedule text to defaults
   if (data === 'format_reset_all_schedule') {
-    await usersDb.updateUserFormatSettings(telegramId, {
+    await userService.updateUserFormatSettings(telegramId, {
       scheduleCaption: null,
       periodFormat: null
     });
@@ -468,7 +468,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
     });
 
     // Refresh screen with default values
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     const defaults = getUserFormatDefaults(updatedUser);
 
     await safeEditMessageText(bot,
@@ -485,7 +485,7 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
 
   // Handle format_reset_all_power - reset all power text to defaults
   if (data === 'format_reset_all_power') {
-    await usersDb.updateUserFormatSettings(telegramId, {
+    await userService.updateUserFormatSettings(telegramId, {
       powerOffText: null,
       powerOnText: null
     });

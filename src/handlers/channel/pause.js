@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
@@ -31,10 +31,10 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
   // Handle channel_pause_confirm - confirm pause
   if (data === 'channel_pause_confirm') {
     // Оновити статус в БД
-    await usersDb.updateUserChannelPaused(telegramId, true);
+    await userService.updateUserChannelPaused(telegramId, true);
 
     // Відправити повідомлення в канал
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     if (updatedUser.channel_id) {
       try {
         await bot.api.sendMessage(updatedUser.channel_id,
@@ -102,10 +102,10 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
   // Handle channel_resume_confirm - confirm resume
   if (data === 'channel_resume_confirm') {
     // Оновити статус в БД
-    await usersDb.updateUserChannelPaused(telegramId, false);
+    await userService.updateUserChannelPaused(telegramId, false);
 
     // Відправити повідомлення в канал
-    const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+    const updatedUser = await userService.getUserByTelegramId(telegramId);
     if (updatedUser.channel_id) {
       try {
         await bot.api.sendMessage(updatedUser.channel_id,

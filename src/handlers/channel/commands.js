@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { safeSendMessage } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { logChannelConnection } = require('../../growthMetrics');
@@ -15,7 +15,7 @@ async function handleChannel(bot, msg) {
   const telegramId = String(msg.from.id);
 
   try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -52,7 +52,7 @@ async function handleSetChannel(bot, msg, match) {
   const channelUsername = match ? match[1].trim() : null;
 
   try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await bot.api.sendMessage(
@@ -212,7 +212,7 @@ async function handleSetChannel(bot, msg, match) {
     }
 
     // Save channel_id and start conversation for title
-    await usersDb.resetUserChannel(telegramId, channelId);
+    await userService.resetUserChannel(telegramId, channelId);
 
     // Log channel connection for growth tracking
     await logChannelConnection(telegramId, channelId);
@@ -236,7 +236,7 @@ async function handleSetChannel(bot, msg, match) {
   } catch (error) {
     console.error('Помилка в handleSetChannel:', error);
 
-    const user = await usersDb.getUserByTelegramId(String(msg.from.id));
+    const user = await userService.getUserByTelegramId(String(msg.from.id));
 
     let botStatus = 'active';
     if (user && !user.channel_id) {
@@ -277,7 +277,7 @@ async function handleCancelChannel(bot, msg) {
     );
   } else {
     // User not in any conversation state - show main menu
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
     if (user) {
       let botStatus = 'active';
       if (!user.channel_id) {
