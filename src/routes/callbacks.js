@@ -19,6 +19,60 @@ const {
 const { safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 
+// Exact match routes: callback_data → handler(bot, query)
+const exactRoutes = new Map([
+  ['menu_schedule', (bot, query) => handleMenuSchedule(bot, query)],
+  ['menu_timer', (bot, query) => handleMenuTimer(bot, query)],
+  ['menu_stats', (bot, query) => handleMenuStats(bot, query)],
+  ['menu_help', (bot, query) => handleMenuHelp(bot, query)],
+  ['menu_settings', (bot, query) => handleMenuSettings(bot, query)],
+  ['back_to_main', (bot, query) => handleBackToMain(bot, query)],
+  ['confirm_setup', (bot, query) => handleWizardCallback(bot, query)],
+  ['back_to_region', (bot, query) => handleWizardCallback(bot, query)],
+  ['restore_profile', (bot, query) => handleWizardCallback(bot, query)],
+  ['create_new_profile', (bot, query) => handleWizardCallback(bot, query)],
+  ['wizard_notify_bot', (bot, query) => handleWizardCallback(bot, query)],
+  ['wizard_notify_channel', (bot, query) => handleWizardCallback(bot, query)],
+  ['wizard_notify_back', (bot, query) => handleWizardCallback(bot, query)],
+  ['channel_reconnect', (bot, query) => handleSettingsCallback(bot, query)],
+  ['confirm_deactivate', (bot, query) => handleSettingsCallback(bot, query)],
+  ['confirm_delete_data', (bot, query) => handleSettingsCallback(bot, query)],
+  ['delete_data_step2', (bot, query) => handleSettingsCallback(bot, query)],
+  ['back_to_settings', (bot, query) => handleSettingsCallback(bot, query)],
+  ['cancel_channel_connect', (bot, query) => handleChannelCallback(bot, query)],
+  ['keep_current_channel', (bot, query) => handleChannelCallback(bot, query)],
+  ['help_howto', (bot, query) => handleHelpHowto(bot, query)],
+  ['help_faq', (bot, query) => handleHelpFaq(bot, query)],
+]);
+
+// Prefix match routes (ordered — first match wins; region_request_ must precede region_)
+// All handlers receive (bot, query, data) for a consistent signature.
+const prefixRoutes = [
+  { prefix: 'region_request_', handler: (bot, query, _data) => handleRegionRequestCallback(bot, query) },
+  { prefix: 'region_', handler: (bot, query, _data) => handleWizardCallback(bot, query) },
+  { prefix: 'queue_', handler: (bot, query, _data) => handleWizardCallback(bot, query) },
+  { prefix: 'wizard_channel_confirm_', handler: (bot, query, _data) => handleWizardCallback(bot, query) },
+  // Inline button callbacks from channel schedule messages (include user_id, e.g. timer_123)
+  { prefix: 'timer_', handler: (bot, query, data) => handleTimerCallback(bot, query, data) },
+  { prefix: 'stats_', handler: (bot, query, data) => handleStatsCallback(bot, query, data) },
+  { prefix: 'settings_', handler: (bot, query, _data) => handleSettingsCallback(bot, query) },
+  { prefix: 'alert_', handler: (bot, query, _data) => handleSettingsCallback(bot, query) },
+  { prefix: 'ip_', handler: (bot, query, _data) => handleSettingsCallback(bot, query) },
+  { prefix: 'notify_target_', handler: (bot, query, _data) => handleSettingsCallback(bot, query) },
+  { prefix: 'schedule_alert_', handler: (bot, query, _data) => handleSettingsCallback(bot, query) },
+  { prefix: 'feedback_', handler: (bot, query, _data) => handleFeedbackCallback(bot, query) },
+  { prefix: 'admin_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
+  { prefix: 'pause_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
+  { prefix: 'debounce_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
+  { prefix: 'growth_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
+  { prefix: 'channel_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
+  { prefix: 'brand_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
+  { prefix: 'test_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
+  { prefix: 'format_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
+  { prefix: 'connect_channel_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
+  { prefix: 'replace_channel_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
+];
+
 /**
  * Register the callback_query:data handler on the bot instance.
  * @param {import('grammy').Bot} bot
@@ -29,120 +83,19 @@ function registerCallbacks(bot) {
     const data = query.data;
 
     try {
-      // Region request callbacks - MUST be before region_ check to avoid conflict!
-      if (data.startsWith('region_request_')) {
-        await handleRegionRequestCallback(bot, query);
+      // Check exact matches first
+      const exactHandler = exactRoutes.get(data);
+      if (exactHandler) {
+        await exactHandler(bot, query);
         return;
       }
 
-      // Wizard callbacks (region selection, group selection, etc.)
-      if (data.startsWith('region_') ||
-          data.startsWith('queue_') ||
-          data === 'confirm_setup' ||
-          data === 'back_to_region' ||
-          data === 'restore_profile' ||
-          data === 'create_new_profile' ||
-          data === 'wizard_notify_bot' ||
-          data === 'wizard_notify_channel' ||
-          data === 'wizard_notify_back' ||
-          data.startsWith('wizard_channel_confirm_')) {
-        await handleWizardCallback(bot, query);
-        return;
-      }
-
-      // Menu callbacks
-      if (data === 'menu_schedule') {
-        await handleMenuSchedule(bot, query);
-        return;
-      }
-
-      if (data === 'menu_timer') {
-        await handleMenuTimer(bot, query);
-        return;
-      }
-
-      if (data === 'menu_stats') {
-        await handleMenuStats(bot, query);
-        return;
-      }
-
-      if (data === 'menu_help') {
-        await handleMenuHelp(bot, query);
-        return;
-      }
-
-      if (data === 'menu_settings') {
-        await handleMenuSettings(bot, query);
-        return;
-      }
-
-      if (data === 'back_to_main') {
-        await handleBackToMain(bot, query);
-        return;
-      }
-
-      // Handle inline button callbacks from channel schedule messages
-      // These callbacks include user_id like: timer_123, stats_123
-
-      if (data.startsWith('timer_')) {
-        await handleTimerCallback(bot, query, data);
-        return;
-      }
-
-      if (data.startsWith('stats_')) {
-        await handleStatsCallback(bot, query, data);
-        return;
-      }
-
-      // Settings callbacks
-      if (data.startsWith('settings_') ||
-          data.startsWith('alert_') ||
-          data.startsWith('ip_') ||
-          data.startsWith('notify_target_') ||
-          data.startsWith('schedule_alert_') ||
-          data === 'channel_reconnect' ||
-          data === 'confirm_deactivate' ||
-          data === 'confirm_delete_data' ||
-          data === 'delete_data_step2' ||
-          data === 'back_to_settings') {
-        await handleSettingsCallback(bot, query);
-        return;
-      }
-
-      // Feedback callbacks
-      if (data.startsWith('feedback_')) {
-        await handleFeedbackCallback(bot, query);
-        return;
-      }
-
-      // Admin callbacks (including pause mode, debounce, and growth)
-      if (data.startsWith('admin_') || data.startsWith('pause_') || data.startsWith('debounce_') || data.startsWith('growth_')) {
-        await handleAdminCallback(bot, query);
-        return;
-      }
-
-      // Channel callbacks (including auto-connect, test, and format)
-      if (data.startsWith('channel_') ||
-          data.startsWith('brand_') ||
-          data.startsWith('test_') ||
-          data.startsWith('format_') ||
-          data.startsWith('connect_channel_') ||
-          data.startsWith('replace_channel_') ||
-          data === 'cancel_channel_connect' ||
-          data === 'keep_current_channel') {
-        await handleChannelCallback(bot, query);
-        return;
-      }
-
-      // Help callbacks
-      if (data === 'help_howto') {
-        await handleHelpHowto(bot, query);
-        return;
-      }
-
-      if (data === 'help_faq') {
-        await handleHelpFaq(bot, query);
-        return;
+      // Check prefix matches in order (first match wins)
+      for (const { prefix, handler } of prefixRoutes) {
+        if (data.startsWith(prefix)) {
+          await handler(bot, query, data);
+          return;
+        }
       }
 
       // Default: just acknowledge
