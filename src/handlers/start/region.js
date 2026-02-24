@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { getConfirmKeyboard, getMainMenu, getQueueKeyboard, getRegionKeyboard, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { safeEditMessageText } = require('../../utils/errorHandler');
@@ -109,7 +109,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
 
     if (mode === 'edit') {
       // Режим редагування - оновлюємо існуючого користувача
-      await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+      await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
       await clearWizardState(telegramId);
 
       const region = REGIONS[state.region]?.name || state.region;
@@ -133,11 +133,11 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
     } else {
       // Режим створення нового користувача (legacy flow without notification target selection)
       // Перевіряємо чи користувач вже існує (для безпеки)
-      const existingUser = await usersDb.getUserByTelegramId(telegramId);
+      const existingUser = await userService.getUserByTelegramId(telegramId);
 
       if (existingUser) {
         // Користувач вже існує - оновлюємо налаштування
-        await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+        await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
       } else {
         // Check registration limits before creating new user
         const limit = await checkUserLimit();
@@ -157,7 +157,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
         }
 
         // Створюємо нового користувача
-        await usersDb.createUser(telegramId, username, state.region, state.queue);
+        await userService.createUser(telegramId, username, state.region, state.queue);
 
         // Log user registration for growth tracking
         await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username });
@@ -185,7 +185,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
       // Відправляємо головне меню і зберігаємо ID
       const botStatus = 'no_channel'; // New user won't have channel yet
       const sentMessage = await bot.api.sendMessage(chatId, 'Головне меню:', getMainMenu(botStatus, false));
-      await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+      await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
     }
 
     return true;

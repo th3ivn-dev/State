@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { REGIONS } = require('../../constants/regions');
 const { getState, setState, clearState } = require('../../state/stateManager');
 const { getSupportButton } = require('../feedback');
@@ -77,7 +77,7 @@ async function createPauseKeyboard(showSupport) {
 async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue) {
   try {
 
-    const stats = await usersDb.getUserStats();
+    const stats = await userService.getDbUserStats();
     const regionName = REGIONS[region]?.name || region;
 
     const message =

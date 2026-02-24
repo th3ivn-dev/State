@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { formatErrorMessage } = require('../../formatter');
 const { getErrorKeyboard, getMainMenu, getRegionKeyboard, getRestorationKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
@@ -101,7 +101,7 @@ async function handleStart(bot, msg) {
     await clearFeedbackState(telegramId);
 
     // Видаляємо попереднє меню якщо є
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
     if (user && user.last_start_message_id) {
       await safeDeleteMessage(bot, chatId, user.last_start_message_id);
     }
@@ -119,7 +119,7 @@ async function handleStart(bot, msg) {
           getRestorationKeyboard()
         );
         if (sentMessage) {
-          await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+          await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
         }
         return;
       }
@@ -155,7 +155,7 @@ async function handleStart(bot, msg) {
         }
       );
       if (sentMessage) {
-        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+        await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
       }
     } else {
       // Новий користувач - запускаємо wizard
