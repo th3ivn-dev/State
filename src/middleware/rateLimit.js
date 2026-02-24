@@ -4,9 +4,8 @@ const logger = require('../logger').child({ module: 'rateLimit' });
 
 function createRateLimitMiddleware(options = {}) {
   const {
-    limit = 3,
+    limit = 10,
     windowMs = 5000,
-    message = '⏳ Занадто багато запитів. Зачекайте кілька секунд.',
   } = options;
 
   const userRequests = new Map(); // userId -> [timestamps]
@@ -43,15 +42,17 @@ function createRateLimitMiddleware(options = {}) {
     const valid = timestamps.filter(t => now - t < windowMs);
 
     if (valid.length >= limit) {
-      logger.debug({ userId, count: valid.length, limit }, 'Rate limit exceeded');
-      try {
-        await ctx.reply(message);
-      } catch (_e) { /* ignore send errors */ }
-      return; // НЕ викликаємо next()
+      // Тиха затримка — чекаємо windowMs і потім виконуємо нормально
+      logger.debug({ userId, count: valid.length, limit }, 'Rate limit exceeded, delaying request');
+      await new Promise(resolve => setTimeout(resolve, windowMs));
     }
 
-    valid.push(now);
-    userRequests.set(userId, valid);
+    // Оновлюємо таймстампи після можливої затримки
+    const afterDelay = Date.now();
+    const refreshed = (userRequests.get(userId) || []).filter(t => afterDelay - t < windowMs);
+    refreshed.push(afterDelay);
+    userRequests.set(userId, refreshed);
+
     return await next();
   };
 
