@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const config = {
   botToken: process.env.BOT_TOKEN,
+  databaseUrl: process.env.DATABASE_URL,
   ownerId: process.env.OWNER_ID, // Owner ID (optional - bot works without it, but owner features disabled)
   adminIds: process.env.ADMIN_IDS ? process.env.ADMIN_IDS.split(',').map(id => id.trim()) : [],
   checkIntervalSeconds: 60, // секунди
@@ -42,6 +43,11 @@ const config = {
 // Валідація обов'язкових параметрів
 if (!config.botToken) {
   logger.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
+  process.exit(1);
+}
+
+if (!config.databaseUrl) {
+  logger.error('❌ Помилка: DATABASE_URL не встановлений в .env файлі');
   process.exit(1);
 }
 

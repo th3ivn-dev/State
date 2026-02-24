@@ -7,6 +7,8 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "test": "jest --verbose",
+    "test:legacy": "node tests/test.js && node tests/test-scaling.js",
+    "test:all": "npm test && npm run test:legacy",
     "lint": "eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix"
   },

@@ -25,7 +25,7 @@ function registerMessages(bot) {
       // List of known commands
       const knownCommands = [
         '/start', '/schedule', '/next', '/timer', '/settings',
-        '/channel', '/cancel', '/admin', '/stats', '/system',
+        '/channel', '/cancel', '/admin', '/dashboard', '/stats', '/system',
         '/monitoring', '/setalertchannel',
         '/broadcast', '/setinterval', '/setdebounce', '/getdebounce'
       ];
