@@ -13,6 +13,28 @@ const { handleSupportCallback, handleAdminSupportUrlConversation } = require('./
 const { handleMonitoring, handleSetAlertChannel } = require('./monitoring');
 const { handleDatabaseCallback } = require('./database');
 
+// Exact match routes for admin callbacks
+const exactAdminRoutes = new Map([
+  ['admin_pause', (bot, query, chatId, userId, data) => handlePauseCallback(bot, query, chatId, userId, data)],
+  ['admin_debounce', (bot, query, chatId, userId, data) => handlePauseCallback(bot, query, chatId, userId, data)],
+  ['admin_growth', (bot, query, chatId, userId, data) => handleGrowthCallback(bot, query, chatId, userId, data)],
+]);
+
+// Prefix match routes for admin callbacks (ordered — first match wins)
+const prefixAdminRoutes = [
+  { prefix: 'admin_ticket', handler: (bot, query, chatId, userId, data) => handleTicketsCallback(bot, query, chatId, userId, data) },
+  { prefix: 'admin_interval', handler: (bot, query, chatId, userId, data) => handleIntervalsCallback(bot, query, chatId, userId, data) },
+  { prefix: 'admin_schedule_', handler: (bot, query, chatId, userId, data) => handleIntervalsCallback(bot, query, chatId, userId, data) },
+  { prefix: 'admin_ip_', handler: (bot, query, chatId, userId, data) => handleIntervalsCallback(bot, query, chatId, userId, data) },
+  { prefix: 'pause_', handler: (bot, query, chatId, userId, data) => handlePauseCallback(bot, query, chatId, userId, data) },
+  { prefix: 'debounce_set_', handler: (bot, query, chatId, userId, data) => handlePauseCallback(bot, query, chatId, userId, data) },
+  { prefix: 'growth_', handler: (bot, query, chatId, userId, data) => handleGrowthCallback(bot, query, chatId, userId, data) },
+  { prefix: 'admin_router', handler: (bot, query, chatId, userId, data) => handleRouterCallback(bot, query, chatId, userId, data) },
+  { prefix: 'admin_support', handler: (bot, query, chatId, userId, data) => handleSupportCallback(bot, query, chatId, userId, data) },
+  { prefix: 'admin_clear_db', handler: (bot, query, chatId, userId, data) => handleDatabaseCallback(bot, query, chatId, userId, data) },
+  { prefix: 'admin_restart', handler: (bot, query, chatId, userId, data) => handleDatabaseCallback(bot, query, chatId, userId, data) },
+];
+
 // Main admin callback router
 async function handleAdminCallback(bot, query) {
   const chatId = query.message.chat.id;
@@ -28,24 +50,23 @@ async function handleAdminCallback(bot, query) {
   await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
   try {
-    if (data.startsWith('admin_ticket')) {
-      await handleTicketsCallback(bot, query, chatId, userId, data);
-    } else if (data.startsWith('admin_interval') || data.startsWith('admin_schedule_') || data.startsWith('admin_ip_')) {
-      await handleIntervalsCallback(bot, query, chatId, userId, data);
-    } else if (data === 'admin_pause' || data.startsWith('pause_') || data === 'admin_debounce' || data.startsWith('debounce_set_')) {
-      await handlePauseCallback(bot, query, chatId, userId, data);
-    } else if (data === 'admin_growth' || data.startsWith('growth_')) {
-      await handleGrowthCallback(bot, query, chatId, userId, data);
-    } else if (data.startsWith('admin_router')) {
-      await handleRouterCallback(bot, query, chatId, userId, data);
-    } else if (data.startsWith('admin_support')) {
-      await handleSupportCallback(bot, query, chatId, userId, data);
-    } else if (data.startsWith('admin_clear_db') || data.startsWith('admin_restart')) {
-      await handleDatabaseCallback(bot, query, chatId, userId, data);
-    } else {
-      // commands/core: admin_stats, admin_users*, admin_broadcast, admin_system, admin_menu, noop
-      await handleCommandsCallback(bot, query, chatId, userId, data);
+    // Check exact matches first
+    const exactHandler = exactAdminRoutes.get(data);
+    if (exactHandler) {
+      await exactHandler(bot, query, chatId, userId, data);
+      return;
     }
+
+    // Check prefix matches in order (first match wins)
+    for (const { prefix, handler } of prefixAdminRoutes) {
+      if (data.startsWith(prefix)) {
+        await handler(bot, query, chatId, userId, data);
+        return;
+      }
+    }
+
+    // Default: commands/core (admin_stats, admin_users*, admin_broadcast, admin_system, admin_menu, noop)
+    await handleCommandsCallback(bot, query, chatId, userId, data);
   } catch (error) {
     console.error('Помилка в handleAdminCallback:', error);
     notifyAdminsAboutError(bot, error, 'handleAdminCallback');
