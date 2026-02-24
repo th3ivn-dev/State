@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { getMainMenu, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require('../../utils');
@@ -33,12 +33,12 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const username = query.from.username || query.from.first_name;
 
     // Перевіряємо чи користувач вже існує
-    const existingUser = await usersDb.getUserByTelegramId(telegramId);
+    const existingUser = await userService.getUserByTelegramId(telegramId);
 
     if (existingUser) {
       // Користувач вже існує - оновлюємо налаштування включаючи регіон та чергу з wizard
-      await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-      await usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+      await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+      await userService.updateUserPowerNotifyTarget(telegramId, 'bot');
     } else {
       // Check registration limits before creating new user
       const limit = await checkUserLimit();
@@ -60,8 +60,8 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       // Створюємо користувача з power_notify_target = 'bot'
       // Note: Two separate calls used here to maintain backward compatibility with createUser
       // TODO: Consider extending createUser to accept power_notify_target parameter
-      await usersDb.createUser(telegramId, username, state.region, state.queue);
-      await usersDb.updateUserPowerNotifyTarget(telegramId, 'bot');
+      await userService.createUser(telegramId, username, state.region, state.queue);
+      await userService.updateUserPowerNotifyTarget(telegramId, 'bot');
 
       // Log user registration for growth tracking
       await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'bot' });
@@ -103,7 +103,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
         ...getMainMenu(botStatus, false)
       }
     );
-    await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+    await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
 
     return true;
   }
@@ -128,12 +128,12 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const username = query.from.username || query.from.first_name;
 
     // Перевіряємо чи користувач вже існує
-    const existingUser = await usersDb.getUserByTelegramId(telegramId);
+    const existingUser = await userService.getUserByTelegramId(telegramId);
 
     if (existingUser) {
       // Користувач вже існує - оновлюємо налаштування включаючи регіон та чергу з wizard
-      await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
-      await usersDb.updateUserPowerNotifyTarget(telegramId, 'both');
+      await userService.updateUserRegionAndQueue(telegramId, state.region, state.queue);
+      await userService.updateUserPowerNotifyTarget(telegramId, 'both');
     } else {
       // Check registration limits before creating new user
       const limit = await checkUserLimit();
@@ -155,8 +155,8 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       // Створюємо нового користувача з power_notify_target = 'both'
       // Note: Two separate calls used here to maintain backward compatibility with createUser
       // TODO: Consider extending createUser to accept power_notify_target parameter
-      await usersDb.createUser(telegramId, username, state.region, state.queue);
-      await usersDb.updateUserPowerNotifyTarget(telegramId, 'both');
+      await userService.createUser(telegramId, username, state.region, state.queue);
+      await userService.updateUserPowerNotifyTarget(telegramId, 'both');
 
       // Log user registration for growth tracking
       await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'both' });
@@ -178,7 +178,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       // Канал має бути доданий протягом останніх 30 хвилин
       if (Date.now() - channel.timestamp < PENDING_CHANNEL_EXPIRATION_MS) {
         // Перевіряємо що канал не зайнятий іншим користувачем
-        const existingUser = await usersDb.getUserByChannelId(channelId);
+        const existingUser = await userService.getUserByChannelId(channelId);
         if (!existingUser || existingUser.telegram_id === telegramId) {
           pendingChannel = channel;
           break;
@@ -314,7 +314,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     }
 
     // Зберігаємо канал
-    await usersDb.updateUser(telegramId, {
+    await userService.updateUser(telegramId, {
       channel_id: channelId,
       channel_title: pending.channelTitle
     });
