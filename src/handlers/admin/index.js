@@ -12,6 +12,7 @@ const { handleRouterCallback, handleAdminRouterIpConversation } = require('./rou
 const { handleSupportCallback, handleAdminSupportUrlConversation } = require('./support');
 const { handleMonitoring, handleSetAlertChannel } = require('./monitoring');
 const { handleDatabaseCallback } = require('./database');
+const { handleDashboard, handleDashboardCallback } = require('./dashboard');
 const logger = require('../../logger').child({ module: 'index' });
 
 // Exact match routes for admin callbacks
@@ -19,6 +20,7 @@ const exactAdminRoutes = new Map([
   ['admin_pause', (bot, query, chatId, userId, data) => handlePauseCallback(bot, query, chatId, userId, data)],
   ['admin_debounce', (bot, query, chatId, userId, data) => handlePauseCallback(bot, query, chatId, userId, data)],
   ['admin_growth', (bot, query, chatId, userId, data) => handleGrowthCallback(bot, query, chatId, userId, data)],
+  ['admin_dashboard', (bot, query, chatId, userId, data) => handleDashboardCallback(bot, query, chatId, userId, data)],
 ]);
 
 // Prefix match routes for admin callbacks (ordered — first match wins)
@@ -34,6 +36,7 @@ const prefixAdminRoutes = [
   { prefix: 'admin_support', handler: (bot, query, chatId, userId, data) => handleSupportCallback(bot, query, chatId, userId, data) },
   { prefix: 'admin_clear_db', handler: (bot, query, chatId, userId, data) => handleDatabaseCallback(bot, query, chatId, userId, data) },
   { prefix: 'admin_restart', handler: (bot, query, chatId, userId, data) => handleDatabaseCallback(bot, query, chatId, userId, data) },
+  { prefix: 'dashboard_', handler: (bot, query, chatId, userId, data) => handleDashboardCallback(bot, query, chatId, userId, data) },
 ];
 
 // Main admin callback router
@@ -90,4 +93,5 @@ module.exports = {
   handleAdminReply,
   handleAdminRouterIpConversation,
   handleAdminSupportUrlConversation,
+  handleDashboard,
 };

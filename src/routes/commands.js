@@ -11,6 +11,7 @@ const {
   handleGetDebounce,
   handleMonitoring,
   handleSetAlertChannel,
+  handleDashboard,
 } = require('../handlers/admin');
 const { handleChannel, handleCancelChannel } = require('../handlers/channel');
 
@@ -27,6 +28,7 @@ function registerCommands(bot) {
   bot.command('channel', (ctx) => handleChannel(bot, ctx.message));
   bot.command('cancel', (ctx) => handleCancelChannel(bot, ctx.message));
   bot.command('admin', (ctx) => handleAdmin(bot, ctx.message));
+  bot.command('dashboard', (ctx) => handleDashboard(bot, ctx.message));
   bot.command('stats', (ctx) => handleStats(bot, ctx.message));
   bot.command('system', (ctx) => handleSystem(bot, ctx.message));
   bot.command('monitoring', (ctx) => handleMonitoring(bot, ctx.message));

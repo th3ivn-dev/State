@@ -286,10 +286,33 @@ function getAlertsSettingsKeyboard() {
 // function getAlertTimeKeyboard(type) { ... }
 
 // Адмін меню
+function getDashboardKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '🔄 Оновити', callback_data: 'dashboard_refresh' },
+          { text: '📈 За тиждень', callback_data: 'dashboard_weekly' }
+        ],
+        [
+          { text: '⚠️ Помилки', callback_data: 'dashboard_errors' },
+          { text: '📊 Активність', callback_data: 'dashboard_activity' }
+        ],
+        [
+          { text: '← Адмін панель', callback_data: 'admin_menu' }
+        ]
+      ]
+    }
+  };
+}
+
 function getAdminKeyboard(openTicketsCount = 0) {
   const ticketsText = openTicketsCount > 0 ? `📩 Звернення (${openTicketsCount})` : '📩 Звернення';
 
   const buttons = [
+    [
+      { text: '📊 Dashboard', callback_data: 'admin_dashboard' }
+    ],
     [
       { text: '📊 Статистика', callback_data: 'admin_stats' },
       { text: '👥 Користувачі', callback_data: 'admin_users' }
@@ -1125,4 +1148,5 @@ module.exports = {
   getAdminRouterStatsKeyboard,
   getAdminRouterSetIpKeyboard,
   getAdminSupportKeyboard,
+  getDashboardKeyboard,
 };
