@@ -162,6 +162,25 @@ class UserService {
   }
 
   /**
+   * Оновити поля користувача напряму
+   * @param {string} telegramId - Telegram user ID
+   * @param {object} updates - Поля для оновлення (наприклад: last_schedule_message_id, is_active, channel_id тощо)
+   * @returns {Promise<boolean>}
+   */
+  updateUser(telegramId, updates) {
+    return usersDb.updateUser(telegramId, updates);
+  }
+
+  /**
+   * Отримати snapshot-хеші для визначення змін у графіку
+   * @param {string} telegramId - Telegram user ID
+   * @returns {Promise<{today_hash: string|null, tomorrow_hash: string|null}>} Snapshot hashes
+   */
+  getSnapshotHashes(telegramId) {
+    return usersDb.getSnapshotHashes(telegramId);
+  }
+
+  /**
    * Private helper to count users by region
    * @param {Array} users - Array of users
    * @returns {object} Count by region

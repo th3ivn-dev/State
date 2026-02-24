@@ -6,8 +6,9 @@ const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTim
 const { generateLiveStatusMessage } = require('../utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const usersDb = require('../database/users');
-const { fetchScheduleData, fetchScheduleImage } = require('../api');
-const { parseScheduleForQueue, findNextEvent } = require('../parser');
+const { userService, scheduleService } = require('../services');
+const { fetchScheduleImage } = require('../api'); // Прямий імпорт — немає в сервісному шарі
+const { findNextEvent } = require('../parser');
 const { getWeeklyStats, formatStatsPopup } = require('../statistics');
 
 // Константа для FAQ popup
@@ -17,7 +18,7 @@ const help_faq = `❓ Чому не приходять сповіщення?\n�
 async function handleMenuSchedule(bot, query) {
   try {
     const telegramId = String(query.from.id);
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
@@ -31,8 +32,7 @@ async function handleMenuSchedule(bot, query) {
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
     // Get schedule data
-    const data = await fetchScheduleData(user.region);
-    const scheduleData = parseScheduleForQueue(data, user.queue);
+    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     // Check if data exists
@@ -121,7 +121,7 @@ async function handleMenuTimer(bot, query) {
   // Show timer as popup instead of sending a new message
   try {
     const telegramId = String(query.from.id);
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
@@ -131,8 +131,7 @@ async function handleMenuTimer(bot, query) {
       return;
     }
 
-    const data = await fetchScheduleData(user.region);
-    const scheduleData = parseScheduleForQueue(data, user.queue);
+    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerMessage(nextEvent);
@@ -162,7 +161,7 @@ async function handleMenuStats(bot, query) {
   // Show statistics as popup
   try {
     const telegramId = String(query.from.id);
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
@@ -210,7 +209,7 @@ async function handleMenuHelp(bot, query) {
 // Обробник callback menu_settings
 async function handleMenuSettings(bot, query) {
   const telegramId = String(query.from.id);
-  const user = await usersDb.getUserByTelegramId(telegramId);
+  const user = await userService.getUserByTelegramId(telegramId);
 
   if (!user) {
     await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Спочатку запустіть бота, натиснувши /start' });
@@ -243,7 +242,7 @@ async function handleBackToMain(bot, query) {
   await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
   const telegramId = String(query.from.id);
-  const user = await usersDb.getUserByTelegramId(telegramId);
+  const user = await userService.getUserByTelegramId(telegramId);
 
   if (user) {
     const region = REGIONS[user.region]?.name || user.region;
@@ -370,8 +369,7 @@ async function handleTimerCallback(bot, query, data) {
       return;
     }
 
-    const scheduleRawData = await fetchScheduleData(user.region);
-    const scheduleData = parseScheduleForQueue(scheduleRawData, user.queue);
+    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerPopup(nextEvent, scheduleData);

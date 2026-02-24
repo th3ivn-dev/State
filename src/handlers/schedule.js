@@ -1,6 +1,6 @@
-const usersDb = require('../database/users');
-const { fetchScheduleData, fetchScheduleImage } = require('../api');
-const { parseScheduleForQueue, findNextEvent } = require('../parser');
+const { userService, scheduleService } = require('../services');
+const { fetchScheduleImage } = require('../api'); // Прямий імпорт — немає в сервісному шарі
+const { findNextEvent } = require('../parser');
 const { formatScheduleMessage, formatNextEventMessage, formatTimerMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
 const { getUpdateTypeV2 } = require('../publisher');
@@ -12,7 +12,7 @@ async function handleSchedule(bot, msg) {
 
   try {
     // Отримуємо користувача
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -28,12 +28,11 @@ async function handleSchedule(bot, msg) {
     await bot.api.sendChatAction(chatId, 'typing');
 
     // Отримуємо дані графіка
-    const data = await fetchScheduleData(user.region);
-    const scheduleData = parseScheduleForQueue(data, user.queue);
+    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     // Get snapshot-based updateType for contextual headers
-    const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
+    const userSnapshots = await userService.getSnapshotHashes(telegramId);
     // getUpdateTypeV2 uses snapshot-based logic only (previousSchedule is not used)
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
     const updateType = {
@@ -61,7 +60,7 @@ async function handleSchedule(bot, msg) {
     }
 
     if (sentMsg) {
-      await usersDb.updateUser(telegramId, { last_schedule_message_id: sentMsg.message_id });
+      await userService.updateUser(telegramId, { last_schedule_message_id: sentMsg.message_id });
     }
 
   } catch (error) {
@@ -76,7 +75,7 @@ async function handleNext(bot, msg) {
   const telegramId = String(msg.from.id);
 
   try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       await safeSendMessage(bot, chatId, '❌ Спочатку запустіть бота, натиснувши /start');
@@ -85,8 +84,7 @@ async function handleNext(bot, msg) {
 
     await bot.api.sendChatAction(chatId, 'typing');
 
-    const data = await fetchScheduleData(user.region);
-    const scheduleData = parseScheduleForQueue(data, user.queue);
+    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatNextEventMessage(nextEvent);
@@ -104,7 +102,7 @@ async function handleTimer(bot, msg) {
   const telegramId = String(msg.from.id);
 
   try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     if (!user) {
       const { getMainMenu } = require('../keyboards/inline');
@@ -118,8 +116,7 @@ async function handleTimer(bot, msg) {
 
     await bot.api.sendChatAction(chatId, 'typing');
 
-    const data = await fetchScheduleData(user.region);
-    const scheduleData = parseScheduleForQueue(data, user.queue);
+    const scheduleData = await scheduleService.getScheduleForQueue(user.region, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerMessage(nextEvent);
