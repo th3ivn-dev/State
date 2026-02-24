@@ -3,7 +3,7 @@
  * Manages per-user power state in memory and persists/restores it to/from PostgreSQL.
  */
 
-const { pool } = require('../database/db');
+const { savePowerState, getRecentPowerStates } = require('../database/powerStates');
 
 // In-memory state store for all monitored users
 const userStates = new Map();
@@ -71,37 +71,7 @@ function updatePowerState(_isAvailable) {
  * @param {Object} state  - In-memory state object for that user
  */
 async function saveUserStateToDb(userId, state) {
-  try {
-    await pool.query(`
-      INSERT INTO user_power_states 
-      (telegram_id, current_state, pending_state, pending_state_time, 
-       last_stable_state, last_stable_at, instability_start, switch_count, 
-       last_notification_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
-      ON CONFLICT(telegram_id) DO UPDATE SET
-        current_state = EXCLUDED.current_state,
-        pending_state = EXCLUDED.pending_state,
-        pending_state_time = EXCLUDED.pending_state_time,
-        last_stable_state = EXCLUDED.last_stable_state,
-        last_stable_at = EXCLUDED.last_stable_at,
-        instability_start = EXCLUDED.instability_start,
-        switch_count = EXCLUDED.switch_count,
-        last_notification_at = EXCLUDED.last_notification_at,
-        updated_at = NOW()
-    `, [
-      userId,
-      state.currentState,
-      state.pendingState,
-      state.pendingStateTime,
-      state.lastStableState,
-      state.lastStableAt,
-      state.instabilityStart,
-      state.switchCount || 0,
-      state.lastNotificationAt
-    ]);
-  } catch (error) {
-    console.error(`Помилка збереження стану користувача ${userId}:`, error.message);
-  }
+  await savePowerState(userId, state);
 }
 
 // Persist all in-memory user states to the database (with a 10-second timeout)
@@ -137,12 +107,9 @@ async function saveAllUserStates() {
 // Restore user states from the database (rows updated within the last hour)
 async function restoreUserStates() {
   try {
-    const result = await pool.query(`
-      SELECT * FROM user_power_states 
-      WHERE updated_at > NOW() - INTERVAL '1 hour'
-    `);
+    const rows = await getRecentPowerStates();
 
-    for (const row of result.rows) {
+    for (const row of rows) {
       userStates.set(row.telegram_id, {
         currentState: row.current_state,
         pendingState: row.pending_state,
@@ -158,8 +125,8 @@ async function restoreUserStates() {
       });
     }
 
-    console.log(`🔄 Відновлено ${result.rows.length} станів користувачів`);
-    return result.rows.length;
+    console.log(`🔄 Відновлено ${rows.length} станів користувачів`);
+    return rows.length;
   } catch (error) {
     console.error('Помилка відновлення станів:', error.message);
     return 0;

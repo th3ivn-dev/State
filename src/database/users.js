@@ -1050,6 +1050,46 @@ async function getUserCount() {
   }
 }
 
+/**
+ * Отримати користувачів для міграції каналів
+ * (канал підключений, але без брендування, ще не повідомлені, активні)
+ * @returns {Promise<Array>}
+ */
+async function getUsersNeedingChannelMigration() {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM users 
+      WHERE channel_id IS NOT NULL 
+      AND (channel_title IS NULL OR channel_title = '')
+      AND channel_status != 'blocked'
+      AND (migration_notified IS NULL OR migration_notified = 0)
+      AND is_active = true
+    `);
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getUsersNeedingChannelMigration:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Позначити користувача як повідомленого про міграцію
+ * @param {string} telegramId
+ * @returns {Promise<boolean>}
+ */
+async function markUserMigrationNotified(telegramId) {
+  try {
+    const result = await pool.query(
+      'UPDATE users SET migration_notified = 1 WHERE telegram_id = $1',
+      [telegramId]
+    );
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error in markUserMigrationNotified:', error.message);
+    return false;
+  }
+}
+
 module.exports = {
   createUser,
   saveUser,
@@ -1099,4 +1139,6 @@ module.exports = {
   getActiveUsersByRegionQueue,
   batchUpdateHashes,
   getUserCount,
+  getUsersNeedingChannelMigration,
+  markUserMigrationNotified,
 };

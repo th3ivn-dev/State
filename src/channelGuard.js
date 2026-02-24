@@ -140,19 +140,7 @@ async function checkExistingUsers(botInstance) {
   bot = botInstance;
 
   try {
-    // Get all users with channels but without proper branding
-    // Also exclude users who have already been notified (migration_notified = 1)
-    const { pool } = require('./database/db');
-    const result = await pool.query(`
-      SELECT * FROM users 
-      WHERE channel_id IS NOT NULL 
-      AND (channel_title IS NULL OR channel_title = '')
-      AND channel_status != 'blocked'
-      AND (migration_notified IS NULL OR migration_notified = 0)
-      AND is_active = true
-    `);
-
-    const users = result.rows;
+    const users = await usersDb.getUsersNeedingChannelMigration();
 
     if (users.length === 0) {
       console.log('✅ Всі існуючі канали налаштовані правильно');
@@ -192,7 +180,7 @@ async function checkExistingUsers(botInstance) {
         await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
 
         // Mark user as notified about migration
-        await pool.query('UPDATE users SET migration_notified = 1 WHERE telegram_id = $1', [user.telegram_id]);
+        await usersDb.markUserMigrationNotified(user.telegram_id);
 
         // Send migration notification
         const message =
