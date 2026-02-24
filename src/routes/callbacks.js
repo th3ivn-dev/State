@@ -66,6 +66,7 @@ const prefixRoutes = [
   { prefix: 'pause_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
   { prefix: 'debounce_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
   { prefix: 'growth_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
+  { prefix: 'dashboard_', handler: (bot, query, _data) => handleAdminCallback(bot, query) },
   { prefix: 'channel_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
   { prefix: 'brand_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
   { prefix: 'test_', handler: (bot, query, _data) => handleChannelCallback(bot, query) },
