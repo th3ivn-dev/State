@@ -1,4 +1,4 @@
-const usersDb = require('../../database/users');
+const { userService } = require('../../services');
 const { safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 
 const {
@@ -29,7 +29,7 @@ async function handleChannelCallback(bot, query) {
   }
 
   try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
+    const user = await userService.getUserByTelegramId(telegramId);
 
     // Route to connect sub-handler
     if (
