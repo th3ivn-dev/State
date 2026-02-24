@@ -5,9 +5,11 @@ const logger = require('../logger').child({ module: 'rateLimit' });
 /**
  * Create rate limiting middleware for grammY bot.
  * 
- * Якщо юзер перевищив ліміт — його запит затримується рівно на стільки,
- * скільки потрібно щоб один слот звільнився, а потім виконується нормально.
- * Юзер не бачить ніяких помилок — просто трохи повільніша відповідь.
+ * Якщо юзер перевищив ліміт — його запит тихо ігнорується.
+ * Для callback_query — прибирається "годинник" через answerCallbackQuery.
+ * Юзер не бачить ніяких помилок. Через windowMs лічильник скидається.
+ * 
+ * ВАЖЛИВО: НЕ використовувати sleep/setTimeout — це блокує обробку інших юзерів!
  * 
  * @param {Object} options
  * @param {number} options.limit - Максимум запитів у вікні (default: 10)
@@ -53,22 +55,19 @@ function createRateLimitMiddleware(options = {}) {
     const valid = timestamps.filter(t => now - t < windowMs);
 
     if (valid.length >= limit) {
-      // Розумна затримка: чекаємо поки найстаріший таймстамп у вікні протухне
-      // valid відсортовано за зростанням, тому valid[0] — найстаріший
-      const oldestTimestamp = valid[0];
-      const waitTime = (oldestTimestamp + windowMs) - now;
-
-      if (waitTime > 0) {
-        logger.debug({ userId, waitMs: waitTime, count: valid.length, limit }, 'Rate limit exceeded, delaying request');
-        await new Promise(resolve => setTimeout(resolve, waitTime));
+      // Тихий ігнор — для callback query прибираємо "годинник"
+      logger.debug({ userId, count: valid.length, limit }, 'Rate limit exceeded, silently ignoring');
+      if (ctx.callbackQuery) {
+        try {
+          await ctx.answerCallbackQuery();
+        } catch (_e) { /* ignore */ }
       }
+      // НЕ викликаємо next() — запит тихо ігнорується
+      return;
     }
 
-    // Після можливої затримки — додаємо поточний таймстамп
-    const afterWait = Date.now();
-    const refreshed = (userRequests.get(userId) || []).filter(t => afterWait - t < windowMs);
-    refreshed.push(afterWait);
-    userRequests.set(userId, refreshed);
+    valid.push(now);
+    userRequests.set(userId, valid);
 
     return await next();
   };
