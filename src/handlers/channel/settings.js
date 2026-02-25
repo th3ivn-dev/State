@@ -1,4 +1,4 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getFormatSettingsKeyboard } = require('../../keyboards/inline');
 const { FORMAT_SETTINGS_MESSAGE } = require('./helpers');
@@ -79,7 +79,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
     }
 
     // Remove channel from user
-    await userService.updateUserChannel(telegramId, null);
+    await usersDb.updateUserChannel(telegramId, null);
 
     await safeEditMessageText(bot,
       `✅ <b>Публікації вимкнено</b>\n\n` +

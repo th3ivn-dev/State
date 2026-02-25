@@ -1,4 +1,4 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const { getBotUsername } = require('../../utils');
 const { safeSetChatTitle, safeSetChatDescription } = require('../../utils/errorHandler');
 const { getFormatPowerKeyboard, getMainMenu, getPauseMessageKeyboard } = require('../../keyboards/inline');
@@ -102,7 +102,7 @@ async function handleConversation(bot, msg) {
         await safeSetChatTitle(bot, state.channelId, fullTitle);
 
         // Update database with timestamp tracking
-        await userService.updateChannelBrandingPartial(telegramId, {
+        await usersDb.updateChannelBrandingPartial(telegramId, {
           channelTitle: fullTitle,
           userTitle: userTitle
         });
@@ -172,7 +172,7 @@ async function handleConversation(bot, msg) {
         await safeSetChatDescription(bot, state.channelId, fullDescription);
 
         // Update database with timestamp tracking
-        await userService.updateChannelBrandingPartial(telegramId, {
+        await usersDb.updateChannelBrandingPartial(telegramId, {
           channelDescription: fullDescription,
           userDescription: userDescription
         });
@@ -213,12 +213,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
 
-      await userService.updateUserFormatSettings(telegramId, { scheduleCaption: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: text.trim() });
 
       await bot.api.sendMessage(chatId, '✅ Шаблон підпису оновлено!', { parse_mode: 'HTML' });
 
       // Return to schedule text instruction screen
-      const user = await userService.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       const currentCaption = user.schedule_caption || 'Графік на {dd}, {dm} для черги {queue}';
       const currentPeriod = user.period_format || '{s} - {f} ({h} год)';
 
@@ -247,12 +247,12 @@ async function handleConversation(bot, msg) {
         return true;
       }
 
-      await userService.updateUserFormatSettings(telegramId, { periodFormat: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { periodFormat: text.trim() });
 
       await bot.api.sendMessage(chatId, '✅ Формат періодів оновлено!', { parse_mode: 'HTML' });
 
       // Return to schedule text instruction screen
-      const user = await userService.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
       const currentCaption = user.schedule_caption || 'Графік на {dd}, {dm} для черги {queue}';
       const currentPeriod = user.period_format || '{s} - {f} ({h} год)';
 
@@ -281,7 +281,7 @@ async function handleConversation(bot, msg) {
         return true;
       }
 
-      await userService.updateUserFormatSettings(telegramId, { powerOffText: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { powerOffText: text.trim() });
 
       await bot.api.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
 
@@ -305,7 +305,7 @@ async function handleConversation(bot, msg) {
         return true;
       }
 
-      await userService.updateUserFormatSettings(telegramId, { powerOnText: text.trim() });
+      await usersDb.updateUserFormatSettings(telegramId, { powerOnText: text.trim() });
 
       await bot.api.sendMessage(chatId, '✅ Текст включення оновлено!', { parse_mode: 'HTML' });
 
@@ -329,7 +329,7 @@ async function handleConversation(bot, msg) {
         return true;
       }
 
-      const user = await userService.getUserByTelegramId(telegramId);
+      const user = await usersDb.getUserByTelegramId(telegramId);
 
       try {
         await bot.api.sendMessage(user.channel_id, text.trim(), { parse_mode: 'HTML' });
