@@ -1,6 +1,6 @@
 const usersDb = require('../../database/users');
 const ticketsDb = require('../../database/tickets');
-const { getAdminKeyboard, getAdminMenuKeyboard, getUsersMenuKeyboard } = require('../../keyboards/inline');
+const { getAdminKeyboard, getAdminMenuKeyboard, getUsersMenuKeyboard, getAdminAnalyticsKeyboard, getAdminSettingsMenuKeyboard } = require('../../keyboards/inline');
 const { formatMemory, formatUptime, isAdmin } = require('../../utils');
 const config = require('../../config');
 const { REGIONS } = require('../../constants/regions');
@@ -550,8 +550,41 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
-      reply_markup: getAdminKeyboard().reply_markup,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '← Назад', callback_data: 'admin_settings_menu' },
+            { text: '⤴ Меню', callback_data: 'back_to_main' }
+          ]
+        ]
+      },
     });
+    return;
+  }
+
+  if (data === 'admin_analytics') {
+    await safeEditMessageText(bot,
+      '📊 <b>Аналітика</b>',
+      {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getAdminAnalyticsKeyboard().reply_markup,
+      }
+    );
+    return;
+  }
+
+  if (data === 'admin_settings_menu') {
+    await safeEditMessageText(bot,
+      '⚙️ <b>Налаштування бота</b>',
+      {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getAdminSettingsMenuKeyboard().reply_markup,
+      }
+    );
     return;
   }
 

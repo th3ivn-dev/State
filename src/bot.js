@@ -21,8 +21,10 @@ const {
   handleSetAlertChannel,
   handleAdminReply,
   handleAdminRouterIpConversation,
-  handleAdminSupportUrlConversation
+  handleAdminSupportUrlConversation,
+  handleMaintenanceConversation
 } = require('./handlers/admin');
+const { isMaintenanceMode } = require('./handlers/admin/maintenance');
 const {
   handleChannel,
   handleConversation,
@@ -43,7 +45,7 @@ const {
   handleTimerCallback,
   handleStatsCallback,
 } = require('./handlers/menu');
-const { escapeHtml } = require('./utils');
+const { escapeHtml, isAdmin } = require('./utils');
 const { safeAnswerCallbackQuery, isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
@@ -145,6 +147,23 @@ Object.defineProperty(bot.options, 'id', {
   set(_val) { /* ignore, grammY manages this */ }
 });
 
+// Maintenance mode middleware — blocks non-admin users when maintenance is active
+bot.use(async (ctx, next) => {
+  const maintenance = await isMaintenanceMode();
+  if (maintenance.enabled) {
+    const userId = String(ctx.from?.id);
+    if (!isAdmin(userId, config.adminIds, config.ownerId)) {
+      if (ctx.callbackQuery) {
+        await ctx.answerCallbackQuery({ text: maintenance.message, show_alert: true }).catch(() => {});
+      } else {
+        await ctx.reply(maintenance.message, { parse_mode: 'HTML' }).catch(() => {});
+      }
+      return;
+    }
+  }
+  await next();
+});
+
 // Command handlers
 bot.command('start', (ctx) => handleStart(bot, ctx.message));
 bot.command('schedule', (ctx) => handleSchedule(bot, ctx.message));
@@ -221,6 +240,10 @@ bot.on('message', async (ctx) => {
     // Handle admin ticket replies first (before other handlers)
     const adminReplyHandled = await handleAdminReply(bot, msg);
     if (adminReplyHandled) return;
+
+    // Try maintenance message conversation
+    const maintenanceHandled = await handleMaintenanceConversation(bot, msg);
+    if (maintenanceHandled) return;
 
     // Try feedback conversation first (handles text, photo, video)
     const feedbackHandled = await handleFeedbackMessage(bot, msg);

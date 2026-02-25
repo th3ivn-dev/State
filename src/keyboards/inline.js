@@ -291,7 +291,7 @@ function getAdminKeyboard(openTicketsCount = 0) {
 
   const buttons = [
     [
-      { text: '📊 Статистика', callback_data: 'admin_stats' },
+      { text: '📊 Аналітика', callback_data: 'admin_analytics' },
       { text: '👥 Користувачі', callback_data: 'admin_users' }
     ],
     [
@@ -299,25 +299,12 @@ function getAdminKeyboard(openTicketsCount = 0) {
       { text: '📢 Розсилка', callback_data: 'admin_broadcast' }
     ],
     [
-      { text: '💻 Система', callback_data: 'admin_system' },
-      { text: '📈 Ріст', callback_data: 'admin_growth' }
+      { text: '⚙️ Налаштування', callback_data: 'admin_settings_menu' },
+      { text: '📡 Роутер', callback_data: 'admin_router' }
     ],
     [
-      { text: '⏱ Інтервали', callback_data: 'admin_intervals' },
-      { text: '⏸ Debounce', callback_data: 'admin_debounce' }
-    ],
-    [
-      { text: '📡 Моніторинг роутера', callback_data: 'admin_router' }
-    ],
-    [
+      { text: '🔧 Тех. роботи', callback_data: 'admin_maintenance' },
       { text: '📞 Підтримка', callback_data: 'admin_support' }
-    ],
-    [
-      { text: '⏸️ Режим паузи', callback_data: 'admin_pause' },
-      { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' }
-    ],
-    [
-      { text: '🔄 Перезапуск', callback_data: 'admin_restart' }
     ],
   ];
 
@@ -333,6 +320,66 @@ function getAdminKeyboard(openTicketsCount = 0) {
   };
 }
 
+// Аналітика (підменю)
+function getAdminAnalyticsKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Загальна статистика', callback_data: 'admin_stats' }],
+        [{ text: '📈 Ріст / Growth', callback_data: 'admin_growth' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Налаштування бота (підменю)
+function getAdminSettingsMenuKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '💻 Система', callback_data: 'admin_system' },
+          { text: '⏱ Інтервали', callback_data: 'admin_intervals' }
+        ],
+        [
+          { text: '⏸ Debounce', callback_data: 'admin_debounce' },
+          { text: '⏸️ Режим паузи', callback_data: 'admin_pause' }
+        ],
+        [
+          { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' },
+          { text: '🔄 Перезапуск', callback_data: 'admin_restart' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Технічні роботи (підменю)
+function getMaintenanceKeyboard(enabled) {
+  const toggleText = enabled ? '🟢 Вимкнути тех. роботи' : '🔴 Увімкнути тех. роботи';
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: toggleText, callback_data: 'maintenance_toggle' }],
+        [{ text: '✏️ Змінити повідомлення', callback_data: 'maintenance_edit_message' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
 // Меню інтервалів (адмін)
 function getAdminIntervalsKeyboard(currentScheduleInterval, currentIpInterval) {
   return {
@@ -341,7 +388,7 @@ function getAdminIntervalsKeyboard(currentScheduleInterval, currentIpInterval) {
         [{ text: `⏱ Графіки: ${currentScheduleInterval} хв`, callback_data: 'admin_interval_schedule' }],
         [{ text: `📡 IP: ${currentIpInterval}`, callback_data: 'admin_interval_ip' }],
         [
-          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '← Назад', callback_data: 'admin_settings_menu' },
           { text: '⤴ Меню', callback_data: 'back_to_main' }
         ]
       ]
@@ -646,7 +693,7 @@ function getPauseMenuKeyboard(isPaused) {
 
   buttons.push([{ text: '📜 Лог паузи', callback_data: 'pause_log' }]);
   buttons.push([
-    { text: '← Назад', callback_data: 'admin_menu' },
+    { text: '← Назад', callback_data: 'admin_settings_menu' },
     { text: '⤴ Меню', callback_data: 'back_to_main' }
   ]);
 
@@ -841,7 +888,7 @@ function getGrowthKeyboard() {
         [{ text: '🔐 Реєстрація', callback_data: 'growth_registration' }],
         [{ text: '📝 Події', callback_data: 'growth_events' }],
         [
-          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '← Назад', callback_data: 'admin_analytics' },
           { text: '⤴ Меню', callback_data: 'back_to_main' }
         ]
       ]
@@ -893,7 +940,7 @@ function getRestartConfirmKeyboard() {
     reply_markup: {
       inline_keyboard: [
         [{ text: '✅ Так, перезапустити', callback_data: 'admin_restart_confirm' }],
-        [{ text: '❌ Скасувати', callback_data: 'admin_menu' }]
+        [{ text: '❌ Скасувати', callback_data: 'admin_settings_menu' }]
       ]
     }
   };
@@ -1089,6 +1136,9 @@ module.exports = {
   getSettingsKeyboard,
   getAlertsSettingsKeyboard,
   getAdminKeyboard,
+  getAdminAnalyticsKeyboard,
+  getAdminSettingsMenuKeyboard,
+  getMaintenanceKeyboard,
   getAdminIntervalsKeyboard,
   getScheduleIntervalKeyboard,
   getIpIntervalKeyboard,

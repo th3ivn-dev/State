@@ -1,4 +1,4 @@
-const { getAdminKeyboard, getRestartConfirmKeyboard } = require('../../keyboards/inline');
+const { getAdminKeyboard, getAdminSettingsMenuKeyboard, getRestartConfirmKeyboard } = require('../../keyboards/inline');
 const { pool } = require('../../database/db');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { saveAllUserStates, stopPowerMonitoring } = require('../../powerMonitor');
@@ -19,7 +19,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: '← Скасувати', callback_data: 'admin_menu' },
+              { text: '← Скасувати', callback_data: 'admin_settings_menu' },
               { text: '🗑 Так, очистити', callback_data: 'admin_clear_db_confirm' }
             ]
           ]
@@ -56,7 +56,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
           chat_id: chatId,
           message_id: query.message.message_id,
           parse_mode: 'HTML',
-          reply_markup: getAdminKeyboard().reply_markup
+          reply_markup: getAdminSettingsMenuKeyboard().reply_markup
         }
       );
       await safeAnswerCallbackQuery(bot, query.id, { text: '✅ База очищена' });
