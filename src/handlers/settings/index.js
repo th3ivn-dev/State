@@ -10,6 +10,7 @@ const { handleAlertsCallback } = require('./alerts');
 const { handleDataCallback } = require('./data');
 const { handleIpCallback, handleIpConversation } = require('./ip');
 const { handleChannelCallback } = require('./channel');
+const { handleCleanupCallback } = require('./cleanup');
 const { restoreIpSetupStates, clearIpSetupState, isValidIPorDomain } = require('./helpers');
 
 // Обробник команди /settings
@@ -74,8 +75,10 @@ async function handleSettingsCallback(bot, query) {
     // Route to appropriate sub-handler
     if (data === 'settings_region' || data === 'settings_region_confirm' || data === 'back_to_settings') {
       await handleRegionCallback(bot, query, user);
-    } else if (data === 'settings_alerts' || data === 'alert_toggle' || data === 'settings_admin' || data.startsWith('notify_target_')) {
+    } else if (data === 'settings_alerts' || data === 'notif_main' || data === 'alert_toggle' || data === 'settings_admin' || data.startsWith('notify_target_') || data.startsWith('notif_')) {
       await handleAlertsCallback(bot, query, user);
+    } else if (data === 'settings_cleanup' || data.startsWith('cleanup_')) {
+      await handleCleanupCallback(bot, query, user);
     } else if (data === 'settings_delete_data' || data === 'delete_data_step2' || data === 'confirm_delete_data' || data === 'settings_deactivate' || data === 'confirm_deactivate') {
       await handleDataCallback(bot, query, user);
     } else if (data === 'settings_ip' || data === 'ip_instruction' || data === 'ip_setup' || data === 'ip_cancel' || data === 'ip_show' || data === 'ip_delete') {

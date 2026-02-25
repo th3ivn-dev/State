@@ -3,6 +3,7 @@
 const bot = require('./bot');
 const { restorePendingChannels, stopBotCleanup } = require('./bot');
 const { initScheduler, schedulerManager } = require('./scheduler');
+const { startReminderScheduler, stopReminderScheduler } = require('./scheduleReminder');
 const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require('./powerMonitor');
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
@@ -70,6 +71,9 @@ async function main() {
 
   // Ініціалізація захисту каналів
   initChannelGuard(bot);
+
+  // Запуск планувальника нагадувань
+  startReminderScheduler(bot);
 
   // Ініціалізація моніторингу живлення
   await startPowerMonitoring(bot);
@@ -145,6 +149,9 @@ const shutdown = async (signal) => {
     // 3. Зупиняємо scheduler manager
     schedulerManager.stop();
     console.log('✅ Scheduler manager зупинено');
+
+    // 3.1 Зупиняємо планувальник нагадувань
+    stopReminderScheduler();
 
     // 4. Зупиняємо state manager cleanup
     stopCleanup();

@@ -1050,6 +1050,89 @@ async function getUserCount() {
   }
 }
 
+// Update notification settings for a user
+async function updateNotificationSettings(telegramId, updates) {
+  try {
+    const allowedFields = [
+      'notify_schedule_changes', 'notify_remind_off', 'notify_fact_off',
+      'notify_remind_on', 'notify_fact_on',
+      'remind_15m', 'remind_30m', 'remind_1h',
+      'notify_schedule_target', 'notify_remind_target', 'notify_power_target',
+    ];
+
+    const fields = [];
+    const values = [];
+
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        values.push(updates[field]);
+        fields.push(`${field} = $${values.length}`);
+      }
+    }
+
+    if (fields.length === 0) return false;
+
+    fields.push('updated_at = NOW()');
+    values.push(telegramId);
+
+    const result = await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE telegram_id = $${values.length}`,
+      values
+    );
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error in updateNotificationSettings:', error.message);
+    return false;
+  }
+}
+
+// Update auto-cleanup settings for a user
+async function updateCleanupSettings(telegramId, updates) {
+  try {
+    const allowedFields = ['auto_delete_commands', 'auto_delete_bot_messages'];
+    const fields = [];
+    const values = [];
+
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        values.push(updates[field]);
+        fields.push(`${field} = $${values.length}`);
+      }
+    }
+
+    if (fields.length === 0) return false;
+
+    fields.push('updated_at = NOW()');
+    values.push(telegramId);
+
+    const result = await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE telegram_id = $${values.length}`,
+      values
+    );
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error in updateCleanupSettings:', error.message);
+    return false;
+  }
+}
+
+// Get active users with reminders enabled (for schedule reminder scheduler)
+async function getActiveUsersWithReminders() {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM users
+      WHERE is_active = TRUE
+        AND (notify_remind_off = TRUE OR notify_fact_off = TRUE OR notify_remind_on = TRUE OR notify_fact_on = TRUE)
+        AND region IS NOT NULL
+        AND queue IS NOT NULL
+    `);
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getActiveUsersWithReminders:', error.message);
+    return [];
+  }
+}
+
 module.exports = {
   createUser,
   saveUser,
@@ -1099,4 +1182,7 @@ module.exports = {
   getActiveUsersByRegionQueue,
   batchUpdateHashes,
   getUserCount,
+  updateNotificationSettings,
+  updateCleanupSettings,
+  getActiveUsersWithReminders,
 };
