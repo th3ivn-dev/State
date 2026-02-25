@@ -241,6 +241,9 @@ function getSettingsKeyboard(isAdmin = false) {
       { text: 'Канал', callback_data: 'settings_channel', icon_custom_emoji_id: '5424818078833715060' },
       { text: 'Сповіщення', callback_data: 'settings_alerts', icon_custom_emoji_id: '5458603043203327669' }
     ],
+    [
+      { text: '🗑 Очищення', callback_data: 'settings_cleanup' }
+    ],
   ];
 
   // Add admin panel button if user is admin
@@ -1128,6 +1131,137 @@ function getAdminSupportKeyboard(currentMode, _supportUrl) {
   };
 }
 
+// =====================================================
+// NOTIFICATION SYSTEM KEYBOARDS (3-level menu)
+// =====================================================
+
+// Screen 1 — Main notification settings
+function getNotificationMainKeyboard(user) {
+  const scheduleOn = user.notify_schedule_changes !== false;
+  const hasChannel = !!user.channel_id;
+
+  const buttons = [
+    [
+      {
+        text: `📊 Зміни графіка  ${scheduleOn ? '✅' : '❌'}`,
+        callback_data: 'notif_toggle_schedule'
+      }
+    ],
+    [
+      {
+        text: '⏰ Нагадування  →',
+        callback_data: 'notif_reminders'
+      }
+    ],
+  ];
+
+  if (hasChannel) {
+    buttons.push([
+      {
+        text: '📍 Куди надсилати  →',
+        callback_data: 'notif_targets'
+      }
+    ]);
+  }
+
+  buttons.push([{ text: '← Назад', callback_data: 'back_to_settings' }]);
+
+  return {
+    reply_markup: { inline_keyboard: buttons },
+  };
+}
+
+// Screen 2 — Reminders submenu
+function getNotificationRemindersKeyboard(user) {
+  const remindOff = user.notify_remind_off !== false;
+  const factOff = user.notify_fact_off !== false;
+  const remindOn = user.notify_remind_on !== false;
+  const factOn = user.notify_fact_on !== false;
+  const t15 = user.remind_15m !== false;
+  const t30 = user.remind_30m === true;
+  const t60 = user.remind_1h === true;
+
+  const buttons = [
+    [{ text: `🔴 Нагадування перед відкл.  ${remindOff ? '✅' : '❌'}`, callback_data: 'notif_toggle_remind_off' }],
+    [{ text: `🔴 Факт відключення  ${factOff ? '✅' : '❌'}`, callback_data: 'notif_toggle_fact_off' }],
+    [{ text: `🟢 Нагадування перед вкл.  ${remindOn ? '✅' : '❌'}`, callback_data: 'notif_toggle_remind_on' }],
+    [{ text: `🟢 Факт включення  ${factOn ? '✅' : '❌'}`, callback_data: 'notif_toggle_fact_on' }],
+    [
+      { text: t15 ? '✅ 15 хв' : '15 хв', callback_data: 'notif_time_15' },
+      { text: t30 ? '✅ 30 хв' : '30 хв', callback_data: 'notif_time_30' },
+      { text: t60 ? '✅ 1 год' : '1 год', callback_data: 'notif_time_60' },
+    ],
+    [{ text: '← Назад', callback_data: 'notif_main' }],
+  ];
+
+  return {
+    reply_markup: { inline_keyboard: buttons },
+  };
+}
+
+// Screen 3 — Where to send notifications
+function getNotificationTargetsKeyboard(user) {
+  const hasIp = !!user.router_ip;
+
+  const buttons = [
+    [{ text: '📊 Зміни графіка  →', callback_data: 'notif_target_type_schedule' }],
+    [{ text: '⏰ Нагадування  →', callback_data: 'notif_target_type_remind' }],
+  ];
+
+  if (hasIp) {
+    buttons.push([{ text: '⚡ Факт. стан (IP)  →', callback_data: 'notif_target_type_power' }]);
+  } else {
+    buttons.push([{ text: '📡 Налаштувати IP моніторинг', callback_data: 'settings_ip' }]);
+  }
+
+  buttons.push([{ text: '← Назад', callback_data: 'notif_main' }]);
+
+  return {
+    reply_markup: { inline_keyboard: buttons },
+  };
+}
+
+// Screen 3.1 — Radio select: where to send a specific notification type
+function getNotificationTargetSelectKeyboard(type, currentTarget) {
+  const options = [
+    { value: 'bot', label: '📱 В бот' },
+    { value: 'channel', label: '📺 В канал' },
+    { value: 'both', label: '📱📺 Обидва' },
+  ];
+
+  const buttons = options.map(opt => [{
+    text: currentTarget === opt.value ? `✅ ${opt.label}` : opt.label,
+    callback_data: `notif_target_set_${type}_${opt.value}`,
+  }]);
+
+  buttons.push([{ text: '← Назад', callback_data: 'notif_targets' }]);
+
+  return {
+    reply_markup: { inline_keyboard: buttons },
+  };
+}
+
+// Auto-cleanup settings keyboard
+function getCleanupKeyboard(user) {
+  const delCmds = user.auto_delete_commands === true;
+  const delMsgs = user.auto_delete_bot_messages === true;
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: delCmds ? '✅ Видаляти команди' : '❌ Видаляти команди', callback_data: 'cleanup_toggle_commands' },
+          { text: delMsgs ? '✅ Видаляти повід.' : '❌ Видаляти повід.', callback_data: 'cleanup_toggle_messages' },
+        ],
+        [
+          { text: '← Назад', callback_data: 'back_to_settings' },
+          { text: 'Готово ✓', callback_data: 'back_to_main' },
+        ],
+      ],
+    },
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -1175,4 +1309,9 @@ module.exports = {
   getAdminRouterStatsKeyboard,
   getAdminRouterSetIpKeyboard,
   getAdminSupportKeyboard,
+  getNotificationMainKeyboard,
+  getNotificationRemindersKeyboard,
+  getNotificationTargetsKeyboard,
+  getNotificationTargetSelectKeyboard,
+  getCleanupKeyboard,
 };

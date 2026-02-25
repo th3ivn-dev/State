@@ -339,7 +339,24 @@ async function runMigrations() {
       { name: 'last_settings_message_id', type: 'INTEGER' },
       { name: 'last_timer_message_id', type: 'INTEGER' },
       { name: 'channel_branding_updated_at', type: 'TIMESTAMP' },
-      { name: 'last_menu_message_id', type: 'INTEGER' }
+      { name: 'last_menu_message_id', type: 'INTEGER' },
+      // Notification toggles
+      { name: 'notify_schedule_changes', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'notify_remind_off', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'notify_fact_off', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'notify_remind_on', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'notify_fact_on', type: 'BOOLEAN DEFAULT TRUE' },
+      // Reminder times (multi-select)
+      { name: 'remind_15m', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'remind_30m', type: 'BOOLEAN DEFAULT FALSE' },
+      { name: 'remind_1h', type: 'BOOLEAN DEFAULT FALSE' },
+      // Per-type notification targets
+      { name: 'notify_schedule_target', type: "TEXT DEFAULT 'bot'" },
+      { name: 'notify_remind_target', type: "TEXT DEFAULT 'bot'" },
+      { name: 'notify_power_target', type: "TEXT DEFAULT 'bot'" },
+      // Auto-cleanup
+      { name: 'auto_delete_commands', type: 'BOOLEAN DEFAULT FALSE' },
+      { name: 'auto_delete_bot_messages', type: 'BOOLEAN DEFAULT FALSE' }
     ];
 
     let addedCount = 0;

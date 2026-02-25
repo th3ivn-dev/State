@@ -46,7 +46,7 @@ const {
   handleStatsCallback,
 } = require('./handlers/menu');
 const { escapeHtml, isAdmin } = require('./utils');
-const { safeAnswerCallbackQuery, isTelegramUserInactiveError } = require('./utils/errorHandler');
+const { safeAnswerCallbackQuery, safeDeleteMessage, isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 const usersDb = require('./database/users');
@@ -158,6 +158,23 @@ bot.use(async (ctx, next) => {
     }
   }
   await next();
+});
+
+// Auto-delete user commands middleware
+bot.use(async (ctx, next) => {
+  await next();
+  // After processing: if it's a command message and user has auto_delete_commands enabled, delete it
+  if (ctx.message?.text?.startsWith('/') && ctx.from) {
+    try {
+      const telegramId = String(ctx.from.id);
+      const user = await usersDb.getUserByTelegramId(telegramId);
+      if (user?.auto_delete_commands) {
+        await safeDeleteMessage(bot, ctx.message.chat.id, ctx.message.message_id);
+      }
+    } catch (_e) {
+      // Non-critical, ignore errors
+    }
+  }
 });
 
 // Command handlers
@@ -365,6 +382,8 @@ bot.on('callback_query:data', async (ctx) => {
         data.startsWith('alert_') ||
         data.startsWith('ip_') ||
         data.startsWith('notify_target_') ||
+        data.startsWith('notif_') ||
+        data.startsWith('cleanup_') ||
         data.startsWith('schedule_alert_') ||
         data === 'channel_reconnect' ||
         data === 'confirm_deactivate' ||
