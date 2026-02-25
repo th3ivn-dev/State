@@ -381,8 +381,8 @@ bot.on('callback_query:data', async (ctx) => {
       return;
     }
 
-    // Admin callbacks (including pause mode, debounce, and growth)
-    if (data.startsWith('admin_') || data.startsWith('pause_') || data.startsWith('debounce_') || data.startsWith('growth_')) {
+    // Admin callbacks (including pause mode, debounce, growth, and maintenance)
+    if (data.startsWith('admin_') || data.startsWith('pause_') || data.startsWith('debounce_') || data.startsWith('growth_') || data.startsWith('maintenance_')) {
       await handleAdminCallback(bot, query);
       return;
     }
