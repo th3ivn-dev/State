@@ -106,11 +106,11 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
         const users = await usersDb.getAllActiveUsers();
         let broadcastText;
         if (newEnabled) {
-          const customMessage = message || '⚙️ Ведуться технічні роботи.\nСпробуйте пізніше.';
           broadcastText =
             `⚙️ <b>Технічні роботи</b>\n\n` +
-            `${customMessage}\n` +
-            `Ми повідомимо, коли все буде готово!`;
+            `Зараз проводяться планові технічні роботи.\n` +
+            `Бот тимчасово недоступний.\n\n` +
+            `Ми повідомимо, коли все буде готово! 🔔`;
         } else {
           broadcastText =
             `✅ <b>Технічні роботи завершено!</b>\n\n` +
@@ -120,8 +120,17 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
         }
 
         let sent = 0;
+        const broadcastOptions = { parse_mode: 'HTML' };
+        if (!newEnabled) {
+          broadcastOptions.reply_markup = {
+            inline_keyboard: [
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+            ]
+          };
+        }
+
         for (const user of users) {
-          const result = await safeSendMessage(bot, user.telegram_id, broadcastText, { parse_mode: 'HTML' });
+          const result = await safeSendMessage(bot, user.telegram_id, broadcastText, broadcastOptions);
           if (result) sent++;
           await new Promise(resolve => setTimeout(resolve, 50));
         }
