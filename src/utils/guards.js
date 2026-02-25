@@ -7,7 +7,7 @@ const { getSetting } = require('../database/db');
 
 /**
  * Перевірка чи бот на паузі
- * @returns {Boolean} true якщо бот на паузі
+ * @returns {Promise<boolean>} true якщо бот на паузі
  */
 async function isBotPaused() {
   return await getSetting('bot_paused', '0') === '1';
@@ -15,7 +15,7 @@ async function isBotPaused() {
 
 /**
  * Отримати повідомлення паузи
- * @returns {String} Текст повідомлення паузи
+ * @returns {Promise<string>} Текст повідомлення паузи
  */
 function getPauseMessage() {
   return getSetting('pause_message', '🔧 Бот тимчасово недоступний. Спробуйте пізніше.');
@@ -23,7 +23,7 @@ function getPauseMessage() {
 
 /**
  * Отримати налаштування показу посилання на підтримку
- * @returns {Boolean} true якщо показувати посилання
+ * @returns {Promise<boolean>} true якщо показувати посилання
  */
 async function shouldShowSupport() {
   return await getSetting('pause_show_support', '1') === '1';
@@ -31,7 +31,7 @@ async function shouldShowSupport() {
 
 /**
  * Перевірка паузи для дій з каналом
- * @returns {Object} { blocked: Boolean, message: String }
+ * @returns {Promise<{blocked: boolean, message?: string, showSupport?: boolean}>} Об'єкт з інформацією про паузу
  */
 async function checkPauseForChannelActions() {
   if (await isBotPaused()) {

@@ -7,6 +7,7 @@ const { getSetting } = require('../../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setConversationState } = require('../channel');
 const { pendingChannels, removePendingChannel } = require('../../bot');
+const { parseChannelId } = require('../../utils/validators');
 const {
   PENDING_CHANNEL_EXPIRATION_MS,
   CHANNEL_NAME_PREFIX,
@@ -281,7 +282,15 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       return true;
     }
 
-    const channelId = data.replace('wizard_channel_confirm_', '');
+    const channelId = parseChannelId(data.replace('wizard_channel_confirm_', ''));
+
+    if (channelId === null) {
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Некоректний ідентифікатор каналу',
+        show_alert: true
+      });
+      return true;
+    }
 
     // Перевіряємо чи бот ще в каналі
     try {

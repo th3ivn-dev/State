@@ -8,7 +8,7 @@
     "dev": "nodemon src/index.js",
     "test": "jest --verbose",
     "test:coverage": "jest --coverage --verbose",
-    "test:legacy": "node tests/test.js && node tests/test-scaling.js",
+    "test:legacy": "node tests/legacy/test.js && node tests/legacy/test-scaling.js",
     "test:all": "npm test && npm run test:legacy",
     "lint": "eslint src/ tests/",
     "lint:fix": "eslint src/ tests/ --fix"
@@ -47,6 +47,19 @@
   "jest": {
     "testMatch": [
       "**/tests/unit/**/*.test.js"
-    ]
+    ],
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js",
+      "!src/bot.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 10,
+        "functions": 10,
+        "branches": 5,
+        "statements": 10
+      }
+    }
   }
 }

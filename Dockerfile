@@ -1,21 +1,18 @@
-FROM node:20-alpine
-
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Копіюємо package files
 COPY package*.json ./
-
-# Встановлюємо залежності
 RUN npm ci --only=production
 
-# Копіюємо весь код
-COPY . .
-
-# Змінна середовища для timezone
+# Stage 2: Production
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY src/ ./src/
+COPY package*.json ./
+COPY assets/ ./assets/
 ENV TZ=Europe/Kyiv
-
-# Expose port for webhook/health check
+ENV NODE_ENV=production
 EXPOSE 3000
-
-# Запускаємо бота
+USER node
 CMD ["node", "src/index.js"]
