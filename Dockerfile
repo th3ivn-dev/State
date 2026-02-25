@@ -10,7 +10,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY src/ ./src/
 COPY package*.json ./
-COPY assets/ ./assets/
+COPY photo_for_channels.PNG.jpg ./photo_for_channels.PNG.jpg
 ENV TZ=Europe/Kyiv
 ENV NODE_ENV=production
 EXPOSE 3000
