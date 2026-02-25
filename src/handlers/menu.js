@@ -5,6 +5,7 @@ const { REGIONS } = require('../constants/regions');
 const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTimerPopup } = require('../formatter');
 const { generateLiveStatusMessage } = require('../utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
+const usersDb = require('../database/users');
 const { userService, scheduleService } = require('../services');
 const { fetchScheduleImage } = require('../api'); // Прямий імпорт — немає в сервісному шарі
 const { findNextEvent } = require('../parser');
@@ -369,7 +370,7 @@ async function handleTimerCallback(bot, query, data) {
       return;
     }
 
-    const user = await userService.getUserById(userId);
+    const user = await usersDb.getUserById(userId);
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Користувач не знайдений',
@@ -410,7 +411,7 @@ async function handleStatsCallback(bot, query, data) {
       return;
     }
 
-    const user = await userService.getUserById(userId);
+    const user = await usersDb.getUserById(userId);
     if (!user) {
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Користувач не знайдений',

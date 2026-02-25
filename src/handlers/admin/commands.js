@@ -1,4 +1,4 @@
-const { userService } = require('../../services');
+const usersDb = require('../../database/users');
 const ticketsDb = require('../../database/tickets');
 const { getAdminKeyboard, getAdminMenuKeyboard, getUsersMenuKeyboard } = require('../../keyboards/inline');
 const { formatMemory, formatUptime, isAdmin, escapeHtml } = require('../../utils');
@@ -71,7 +71,7 @@ async function handleUsers(bot, msg) {
   }
 
   try {
-    const users = await userService.getRecentUsers(20);
+    const users = await usersDb.getRecentUsers(20);
 
     if (users.length === 0) {
       await bot.api.sendMessage(chatId, 'ℹ️ Користувачів не знайдено.');
@@ -124,7 +124,7 @@ async function handleBroadcast(bot, msg) {
       return;
     }
 
-    const users = await userService.getAllActiveUsers();
+    const users = await usersDb.getAllActiveUsers();
 
     if (users.length === 0) {
       await bot.api.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
@@ -411,7 +411,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
   }
 
   if (data === 'admin_users') {
-    const stats = await userService.getDbUserStats();
+    const stats = await usersDb.getUserStats();
 
     await safeEditMessageText(bot,
       `👥 <b>Користувачі</b>\n\n` +
@@ -430,7 +430,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
   }
 
   if (data === 'admin_users_stats') {
-    const stats = await userService.getDbUserStats();
+    const stats = await usersDb.getUserStats();
 
     let message = `📊 <b>Статистика користувачів</b>\n\n`;
     message += `📊 Всього: ${stats.total}\n`;
@@ -463,7 +463,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     const page = parsePageNumber(data.replace('admin_users_list_', ''));
     const perPage = 10;
 
-    const allUsers = await userService.getAllUsers(); // вже відсортовані по created_at DESC
+    const allUsers = await usersDb.getAllUsers(); // вже відсортовані по created_at DESC
     const totalPages = Math.ceil(allUsers.length / perPage);
     const currentPage = Math.min(page, totalPages) || 1;
     const startIndex = (currentPage - 1) * perPage;
