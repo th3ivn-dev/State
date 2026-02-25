@@ -1,7 +1,7 @@
 const { userService } = require('../../services');
 const { getConfirmKeyboard, getMainMenu, getQueueKeyboard, getRegionKeyboard, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
-const { safeEditMessageText } = require('../../utils/errorHandler');
+const { safeEditMessageText, safeSendMessage } = require('../../utils/errorHandler');
 const { parsePageNumber } = require('../../utils/validators');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setWizardState, clearWizardState, DEVELOPMENT_WARNING, notifyAdminsAboutNewUser } = require('./helpers');
@@ -141,22 +141,40 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
 
       const region = REGIONS[state.region]?.name || state.region;
 
-      await safeEditMessageText(bot,
-        `✅ <b>Налаштування оновлено!</b>\n\n` +
-        `📍 Регіон: ${region}\n` +
-        `⚡ Черга: ${state.queue}\n\n` +
-        `Графік буде опубліковано при наступній перевірці.`,
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
-            ]
+      try {
+        await safeEditMessageText(bot,
+          `✅ <b>Налаштування оновлено!</b>\n\n` +
+          `📍 Регіон: ${region}\n` +
+          `⚡ Черга: ${state.queue}\n\n` +
+          `Графік буде опубліковано при наступній перевірці.`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
           }
-        }
-      );
+        );
+      } catch (_e) {
+        // Ігноруємо помилки редагування — головне меню буде відправлено нижче
+      }
+
+      // Отримуємо актуальні дані користувача для розрахунку botStatus
+      const updatedUser = await userService.getUserByTelegramId(telegramId);
+      let botStatus = 'active';
+      if (!updatedUser?.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!updatedUser?.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = updatedUser?.channel_paused === true;
+
+      // Відправляємо головне меню як нове повідомлення
+      const sentMessage = await safeSendMessage(bot, chatId, '🏠 <b>Головне меню</b>', {
+        parse_mode: 'HTML',
+        ...getMainMenu(botStatus, channelPaused),
+      });
+      if (sentMessage) {
+        await userService.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+      }
     } else {
       // Режим створення нового користувача (legacy flow without notification target selection)
       // Перевіряємо чи користувач вже існує (для безпеки)
