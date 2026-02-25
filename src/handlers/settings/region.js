@@ -3,8 +3,8 @@ const { REGIONS } = require('../../constants/regions');
 const { startWizard } = require('../start');
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
-const { safeEditMessageText } = require('../../utils/errorHandler');
-const { getSettingsKeyboard } = require('../../keyboards/inline');
+const { safeEditMessageText, safeSendMessage } = require('../../utils/errorHandler');
+const { getSettingsKeyboard, getMainMenu } = require('../../keyboards/inline');
 
 async function handleRegionCallback(bot, query, user) {
   const chatId = query.message.chat.id;
@@ -47,9 +47,29 @@ async function handleRegionCallback(bot, query, user) {
       // Ігноруємо помилки видалення
     }
 
-    // Запускаємо wizard в режимі редагування
-    const username = query.from.username || query.from.first_name;
-    await startWizard(bot, chatId, telegramId, username, 'edit');
+    // Запускаємо wizard в режимі редагування з fallback
+    try {
+      const username = query.from.username || query.from.first_name;
+      await startWizard(bot, chatId, telegramId, username, 'edit');
+    } catch (wizardError) {
+      console.error('Помилка запуску wizard при зміні регіону:', wizardError);
+      // Fallback: відправляємо головне меню щоб користувач не застряг
+      let botStatus = 'active';
+      if (!user.channel_id) {
+        botStatus = 'no_channel';
+      } else if (!user.is_active) {
+        botStatus = 'paused';
+      }
+      const channelPaused = user.channel_paused === true;
+
+      await safeSendMessage(bot, chatId,
+        '😅 Не вдалося запустити зміну регіону. Спробуйте ще раз через налаштування.',
+        {
+          parse_mode: 'HTML',
+          ...getMainMenu(botStatus, channelPaused),
+        }
+      );
+    }
 
     return;
   }
