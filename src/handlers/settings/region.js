@@ -1,10 +1,10 @@
 const usersDb = require('../../database/users');
 const { REGIONS } = require('../../constants/regions');
-const { startWizard } = require('../start');
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
-const { safeEditMessageText, safeSendMessage } = require('../../utils/errorHandler');
-const { getSettingsKeyboard, getMainMenu } = require('../../keyboards/inline');
+const { safeEditMessageText } = require('../../utils/errorHandler');
+const { getSettingsKeyboard, getRegionKeyboard } = require('../../keyboards/inline');
+const { setWizardState, DEVELOPMENT_WARNING } = require('../start/helpers');
 
 async function handleRegionCallback(bot, query, user) {
   const chatId = query.message.chat.id;
@@ -40,36 +40,19 @@ async function handleRegionCallback(bot, query, user) {
 
   // Підтвердження зміни черги
   if (data === 'settings_region_confirm') {
-    // Видаляємо попереднє повідомлення
-    try {
-      await bot.api.deleteMessage(chatId, query.message.message_id);
-    } catch (_e) {
-      // Ігноруємо помилки видалення
-    }
+    // Встановлюємо wizard state для режиму редагування
+    await setWizardState(telegramId, { step: 'region', mode: 'edit' });
 
-    // Запускаємо wizard в режимі редагування з fallback
-    try {
-      const username = query.from.username || query.from.first_name;
-      await startWizard(bot, chatId, telegramId, username, 'edit');
-    } catch (wizardError) {
-      console.error('Помилка запуску wizard при зміні регіону:', wizardError);
-      // Fallback: відправляємо головне меню щоб користувач не застряг
-      let botStatus = 'active';
-      if (!user.channel_id) {
-        botStatus = 'no_channel';
-      } else if (!user.is_active) {
-        botStatus = 'paused';
+    // Редагуємо існуюче повідомлення на вибір регіону (замість delete+send)
+    await safeEditMessageText(bot,
+      '1️⃣ Оберіть ваш регіон:\n\n' +
+      DEVELOPMENT_WARNING,
+      {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        reply_markup: getRegionKeyboard().reply_markup,
       }
-      const channelPaused = user.channel_paused === true;
-
-      await safeSendMessage(bot, chatId,
-        '😅 Не вдалося запустити зміну регіону. Спробуйте ще раз через налаштування.',
-        {
-          parse_mode: 'HTML',
-          ...getMainMenu(botStatus, channelPaused),
-        }
-      );
-    }
+    );
 
     return;
   }
