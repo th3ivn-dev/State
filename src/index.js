@@ -16,6 +16,7 @@ const { stopAdminRouterMonitoring } = require('./adminRouterMonitor');
 const { initializeAll } = require('./lifecycle/startup');
 const { createShutdownHandler } = require('./lifecycle/shutdown');
 const { setupErrorHandlers } = require('./lifecycle/errors');
+const { stopRateLimit } = require('./middleware');
 const logger = require('./logger').child({ module: 'index' });
 
 // Головна async функція для запуску
@@ -37,6 +38,7 @@ async function main() {
     stopHealthCheck,
     stopPoolMetricsLogging,
     closeDatabase,
+    stopRateLimit,
   });
 
   // Обробка сигналів завершення

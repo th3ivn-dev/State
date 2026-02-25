@@ -23,6 +23,7 @@ const SHUTDOWN_TIMEOUT_MS = 15000; // Force-kill after 15 seconds
  *   stopHealthCheck: Function,
  *   stopPoolMetricsLogging: Function,
  *   closeDatabase: Function,
+ *   stopRateLimit: Function,
  * }} deps
  * @returns {Function} async shutdown(signal)
  */
@@ -42,6 +43,7 @@ function createShutdownHandler(bot, deps) {
     stopHealthCheck,
     stopPoolMetricsLogging,
     closeDatabase,
+    stopRateLimit,
   } = deps;
 
   let isShuttingDown = false;
@@ -96,7 +98,11 @@ function createShutdownHandler(bot, deps) {
       stopCacheCleanup();
       logger.info('✅ Cache cleanup зупинено');
 
-      // 5.1 Зупиняємо bot cleanup interval
+      // 5.1 Зупиняємо rate limiter
+      stopRateLimit();
+      logger.info('✅ Rate limiter зупинено');
+
+      // 5.2 Зупиняємо bot cleanup interval
       stopBotCleanup();
       logger.info('✅ Bot cleanup зупинено');
 
