@@ -167,7 +167,7 @@ async function checkUserSchedule(user, data) {
         const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
         // Додаємо tg-timestamp з часом останньої перевірки
-        const fullCaption = appendTimestamp(message, lastCheck);
+        const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
         const scheduleKeyboard = getScheduleViewKeyboard();
 
@@ -177,13 +177,13 @@ async function checkUserSchedule(user, data) {
           const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
           await bot.api.sendPhoto(user.telegram_id, photoInput, {
             caption: fullCaption,
-            parse_mode: 'HTML',
+            caption_entities: timestampEntities,
             reply_markup: scheduleKeyboard
           });
         } catch (_imgError) {
           // Без фото
           await bot.api.sendMessage(user.telegram_id, fullCaption, {
-            parse_mode: 'HTML',
+            entities: timestampEntities,
             reply_markup: scheduleKeyboard
           });
         }
