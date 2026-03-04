@@ -51,7 +51,7 @@ async function handleSchedule(bot, msg) {
 
     // Зберігаємо час перевірки та додаємо tg-timestamp
     const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
-    const fullCaption = appendTimestamp(message, lastCheck);
+    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
@@ -61,14 +61,14 @@ async function handleSchedule(bot, msg) {
       const imageBuffer = await fetchScheduleImage(user.region, user.queue);
       sentMsg = await safeSendPhoto(bot, chatId, imageBuffer, {
         caption: fullCaption,
-        parse_mode: 'HTML',
+        caption_entities: timestampEntities,
         reply_markup: scheduleKeyboard,
       }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
       // Якщо зображення недоступне, відправляємо тільки текст
       console.log('Зображення графіка недоступне:', imgError.message);
       sentMsg = await safeSendMessage(bot, chatId, fullCaption, {
-        parse_mode: 'HTML',
+        entities: timestampEntities,
         reply_markup: scheduleKeyboard,
       });
     }

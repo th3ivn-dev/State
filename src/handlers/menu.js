@@ -77,7 +77,7 @@ async function handleMenuSchedule(bot, query) {
       console.error('Failed to update schedule check time:', dbError.message);
       lastCheck = new Date();
     }
-    const fullCaption = appendTimestamp(message, lastCheck);
+    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
@@ -101,7 +101,7 @@ async function handleMenuSchedule(bot, query) {
             type: 'photo',
             media: photoInput,
             caption: fullCaption,
-            parse_mode: 'HTML',
+            caption_entities: timestampEntities,
           },
           { reply_markup: scheduleKeyboard }
         );
@@ -114,7 +114,7 @@ async function handleMenuSchedule(bot, query) {
         try {
           await bot.api.sendPhoto(query.message.chat.id, photoInput, {
             caption: fullCaption,
-            parse_mode: 'HTML',
+            caption_entities: timestampEntities,
             reply_markup: scheduleKeyboard
           });
           return;
@@ -128,7 +128,7 @@ async function handleMenuSchedule(bot, query) {
     // No photo or photo failed — use text
     if (messageDeleted) {
       await bot.api.sendMessage(query.message.chat.id, fullCaption, {
-        parse_mode: 'HTML',
+        entities: timestampEntities,
         reply_markup: scheduleKeyboard
       });
     } else {
@@ -137,7 +137,7 @@ async function handleMenuSchedule(bot, query) {
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
+          entities: timestampEntities,
           reply_markup: scheduleKeyboard
         }
       );
@@ -525,7 +525,7 @@ async function handleScheduleRefresh(bot, query) {
     };
 
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
-    const fullCaption = appendTimestamp(message, lastCheck);
+    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
@@ -549,7 +549,7 @@ async function handleScheduleRefresh(bot, query) {
             type: 'photo',
             media: photoInput,
             caption: fullCaption,
-            parse_mode: 'HTML',
+            caption_entities: timestampEntities,
           },
           { reply_markup: scheduleKeyboard }
         );
@@ -571,7 +571,7 @@ async function handleScheduleRefresh(bot, query) {
       try {
         await bot.api.sendPhoto(chatId, photoInput, {
           caption: fullCaption,
-          parse_mode: 'HTML',
+          caption_entities: timestampEntities,
           reply_markup: scheduleKeyboard
         });
         return;
@@ -581,7 +581,7 @@ async function handleScheduleRefresh(bot, query) {
     }
 
     await bot.api.sendMessage(chatId, fullCaption, {
-      parse_mode: 'HTML',
+      entities: timestampEntities,
       reply_markup: scheduleKeyboard
     });
   } catch (error) {
