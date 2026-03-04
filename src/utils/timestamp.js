@@ -32,12 +32,15 @@ function appendTimestamp(htmlMessage, checkTime) {
   const fullText = plainMessage + prefix + timestampStr;
   const offset = plainMessage.length + prefix.length;
 
-  // Bot API 9.5: date_time entity with field "unix_time" (NOT "unix_timestamp")
+  // Bot API 9.5: date_time entity requires unix_time AND date_time_format
+  // Format "dT" = date + time with seconds (e.g. "4 бер. 2026, 20:15:00")
+  // Format "r" = relative time (e.g. "5 хвилин тому")
   entities.push({
     type: 'date_time',
     offset,
     length: timestampStr.length,
     unix_time: unixTimestamp,
+    date_time_format: 'dT',
   });
 
   return { text: fullText, entities };
