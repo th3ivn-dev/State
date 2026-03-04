@@ -63,8 +63,8 @@ function buildNotificationSettingsMessage(user) {
   const t15 = user.remind_15m !== false;
   const factOn = user.notify_fact_off !== false;
 
-  const on = '<tg-emoji emoji-id="5206607081334906820">✅</tg-emoji>';
-  const off = '<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji>';
+  const on = '✅';
+  const off = '❌';
 
   return `<tg-emoji emoji-id="5262598817626234330">🔔</tg-emoji> <b>Керування сповіщеннями</b>\n\n` +
     `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? on : off}\n\n` +
@@ -72,7 +72,8 @@ function buildNotificationSettingsMessage(user) {
     `├ За 1 год — ${t60 ? on : off}\n` +
     `├ За 30 хв — ${t30 ? on : off}\n` +
     `├ За 15 хв — ${t15 ? on : off}\n` +
-    `└ Фактично за графіком — ${factOn ? on : off}`;
+    `└ Фактично за графіком — ${factOn ? on : off}\n` +
+    `   (коли світло вимкнулось або увімкнулось за графіком)`;
 }
 
 // Build the alerts message in tree format
