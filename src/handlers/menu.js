@@ -16,6 +16,15 @@ const { getScheduleCheckTime } = require('../database/scheduleChecks');
 // Константа для FAQ popup
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевірте налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
 
+/**
+ * Check if a Telegram API error is "message is not modified" (content identical).
+ * This is not a real error — just means nothing changed, so we can safely ignore it.
+ */
+function isMessageNotModifiedError(error) {
+  return error?.description?.includes('message is not modified') ||
+         error?.message?.includes('message is not modified');
+}
+
 // Обробник callback menu_schedule
 async function handleMenuSchedule(bot, query) {
   let messageDeleted = false;
@@ -107,7 +116,11 @@ async function handleMenuSchedule(bot, query) {
         );
         return;
       } catch (editError) {
-        // Fallback: delete + send new if edit fails
+        // "message is not modified" means content is identical — not a real error
+        if (isMessageNotModifiedError(editError)) {
+          return; // Nothing changed, keep current message as-is
+        }
+        // Fallback: delete + send new if edit fails for other reasons
         console.log('editMessageMedia failed, falling back to delete+send:', editError.message);
         try { await bot.api.deleteMessage(query.message.chat.id, query.message.message_id); } catch (_e) {}
         messageDeleted = true;
@@ -533,7 +546,11 @@ async function handleScheduleRefresh(bot, query) {
         );
         return;
       } catch (editError) {
-        // Якщо edit не вдалося — fallback на delete+send
+        // "message is not modified" means content is identical — not a real error
+        if (isMessageNotModifiedError(editError)) {
+          return; // Nothing changed, keep current message as-is
+        }
+        // Якщо edit не вдалося з іншої причини — fallback на delete+send
         console.log('editMessageMedia failed, falling back to delete+send:', editError.message);
       }
     }
