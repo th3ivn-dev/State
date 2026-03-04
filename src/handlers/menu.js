@@ -70,43 +70,77 @@ async function handleMenuSchedule(bot, query) {
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
     // Зберігаємо час перевірки та додаємо tg-timestamp
-    const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+    let lastCheck;
+    try {
+      lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+    } catch (dbError) {
+      console.error('Failed to update schedule check time:', dbError.message);
+      lastCheck = new Date();
+    }
     const fullCaption = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
-    // Try to get and send image with edit
+    // Fetch schedule image
+    let imageBuffer;
+    let photoInput;
     try {
-      const imageBuffer = await fetchScheduleImage(user.region, user.queue);
+      imageBuffer = await fetchScheduleImage(user.region, user.queue);
+      photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+    } catch (_fetchError) {
+      // Image unavailable — will fall back to text-only path below
+    }
 
-      // Delete the old message and send new one with photo
-      await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-      messageDeleted = true;
-      const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-      await bot.api.sendPhoto(query.message.chat.id, photoInput, {
-        caption: fullCaption,
+    if (photoInput) {
+      // Try editMessageMedia first to avoid delete+send flicker
+      try {
+        await bot.api.editMessageMedia(
+          query.message.chat.id,
+          query.message.message_id,
+          {
+            type: 'photo',
+            media: photoInput,
+            caption: fullCaption,
+            parse_mode: 'HTML',
+          },
+          { reply_markup: scheduleKeyboard }
+        );
+        return;
+      } catch (editError) {
+        // Fallback: delete + send new if edit fails
+        console.log('editMessageMedia failed, falling back to delete+send:', editError.message);
+        try { await bot.api.deleteMessage(query.message.chat.id, query.message.message_id); } catch (_e) {}
+        messageDeleted = true;
+        try {
+          await bot.api.sendPhoto(query.message.chat.id, photoInput, {
+            caption: fullCaption,
+            parse_mode: 'HTML',
+            reply_markup: scheduleKeyboard
+          });
+          return;
+        } catch (imgError) {
+          // Fall through to text-only
+          console.log('sendPhoto failed after delete, falling back to text:', imgError.message);
+        }
+      }
+    }
+
+    // No photo or photo failed — use text
+    if (messageDeleted) {
+      await bot.api.sendMessage(query.message.chat.id, fullCaption, {
         parse_mode: 'HTML',
         reply_markup: scheduleKeyboard
       });
-    } catch (imgError) {
-      // If image unavailable, send/edit text message
-      console.log('Schedule image unavailable:', imgError.message);
-      if (messageDeleted) {
-        await bot.api.sendMessage(query.message.chat.id, fullCaption, {
+    } else {
+      await safeEditMessageText(bot,
+        fullCaption,
+        {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
           parse_mode: 'HTML',
           reply_markup: scheduleKeyboard
-        });
-      } else {
-        await safeEditMessageText(bot,
-          fullCaption,
-          {
-            chat_id: query.message.chat.id,
-            message_id: query.message.message_id,
-            parse_mode: 'HTML',
-            reply_markup: scheduleKeyboard
-          }
-        );
-      }
+        }
+      );
     }
   } catch (error) {
     console.error('Помилка отримання графіка:', error);
@@ -474,7 +508,13 @@ async function handleScheduleRefresh(bot, query) {
     const nextEvent = findNextEvent(scheduleData);
 
     // Оновлюємо час перевірки та отримуємо точний timestamp
-    const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+    let lastCheck;
+    try {
+      lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+    } catch (dbError) {
+      console.error('Failed to update schedule check time:', dbError.message);
+      lastCheck = new Date();
+    }
 
     const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
@@ -502,15 +542,17 @@ async function handleScheduleRefresh(bot, query) {
     // Оновлюємо фото і caption існуючого повідомлення через editMessageMedia
     if (photoInput) {
       try {
-        await bot.api.editMessageMedia(chatId, query.message.message_id, {
-          media: {
+        await bot.api.editMessageMedia(
+          chatId,
+          query.message.message_id,
+          {
             type: 'photo',
             media: photoInput,
             caption: fullCaption,
             parse_mode: 'HTML',
           },
-          reply_markup: scheduleKeyboard
-        });
+          { reply_markup: scheduleKeyboard }
+        );
         return;
       } catch (editError) {
         // Якщо edit не вдалося — fallback на delete+send
