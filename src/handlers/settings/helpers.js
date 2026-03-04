@@ -63,13 +63,16 @@ function buildNotificationSettingsMessage(user) {
   const t15 = user.remind_15m !== false;
   const factOn = user.notify_fact_off !== false;
 
-  return `🔔 <b>Керування сповіщеннями</b>\n\n` +
-    `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? '✅' : '❌'}\n\n` +
+  const on = '<tg-emoji emoji-id="5206607081334906820">✅</tg-emoji>';
+  const off = '<tg-emoji emoji-id="5210952531676504517">❌</tg-emoji>';
+
+  return `<tg-emoji emoji-id="5262598817626234330">🔔</tg-emoji> <b>Керування сповіщеннями</b>\n\n` +
+    `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? on : off}\n\n` +
     `<tg-emoji emoji-id="5451732530048802485">⏳</tg-emoji> Нагадування про події перед (вимкнення / відновлення):\n` +
-    `├ За 1 год — ${t60 ? '✅' : '❌'}\n` +
-    `├ За 30 хв — ${t30 ? '✅' : '❌'}\n` +
-    `├ За 15 хв — ${t15 ? '✅' : '❌'}\n` +
-    `└ Фактично за графіком — ${factOn ? '✅' : '❌'}`;
+    `├ За 1 год — ${t60 ? on : off}\n` +
+    `├ За 30 хв — ${t30 ? on : off}\n` +
+    `├ За 15 хв — ${t15 ? on : off}\n` +
+    `└ Фактично за графіком — ${factOn ? on : off}`;
 }
 
 // Build the alerts message in tree format
