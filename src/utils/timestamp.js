@@ -40,7 +40,7 @@ function appendTimestamp(htmlMessage, checkTime) {
     offset,
     length: timestampStr.length,
     unix_time: unixTimestamp,
-    date_time_format: 'dT',
+    date_time_format: 'r',
   });
 
   return { text: fullText, entities };

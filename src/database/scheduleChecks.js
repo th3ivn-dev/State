@@ -19,17 +19,22 @@ async function updateScheduleCheckTime(region, queue) {
 }
 
 /**
- * Get the last time the bot checked the schedule for a region+queue pair
+ * Get the last time the bot checked the schedule for a region+queue pair.
+ * Returns a Unix timestamp (seconds). Falls back to current time if no record exists.
  * @param {string} region
  * @param {string} queue
- * @returns {Promise<Date|null>}
+ * @returns {Promise<number>} Unix timestamp in seconds
  */
 async function getScheduleCheckTime(region, queue) {
   const result = await pool.query(`
     SELECT last_checked_at FROM schedule_checks
     WHERE region = $1 AND queue = $2
   `, [region, queue]);
-  return result.rows[0]?.last_checked_at || null;
+  if (result.rows.length > 0 && result.rows[0].last_checked_at) {
+    return Math.floor(new Date(result.rows[0].last_checked_at).getTime() / 1000);
+  }
+  // Fallback: return current time if no record exists
+  return Math.floor(Date.now() / 1000);
 }
 
 module.exports = {
