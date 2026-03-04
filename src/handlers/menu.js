@@ -70,7 +70,7 @@ async function handleMenuSchedule(bot, query) {
 
     // Зберігаємо час перевірки та додаємо tg-timestamp
     const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
-    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+    const fullCaption = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
@@ -86,7 +86,6 @@ async function handleMenuSchedule(bot, query) {
       await bot.api.sendPhoto(query.message.chat.id, photoInput, {
         caption: fullCaption,
         parse_mode: 'HTML',
-        caption_entities: timestampEntities,
         reply_markup: scheduleKeyboard
       });
     } catch (imgError) {
@@ -95,7 +94,6 @@ async function handleMenuSchedule(bot, query) {
       if (messageDeleted) {
         await bot.api.sendMessage(query.message.chat.id, fullCaption, {
           parse_mode: 'HTML',
-          entities: timestampEntities,
           reply_markup: scheduleKeyboard
         });
       } else {
@@ -105,7 +103,6 @@ async function handleMenuSchedule(bot, query) {
             chat_id: query.message.chat.id,
             message_id: query.message.message_id,
             parse_mode: 'HTML',
-            entities: timestampEntities,
             reply_markup: scheduleKeyboard
           }
         );
@@ -478,33 +475,63 @@ async function handleScheduleRefresh(bot, query) {
     };
 
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
-    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+    const fullCaption = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
-    // Видаляємо старе повідомлення і надсилаємо нове з фото
+    // Fetch image once, then try editMessageMedia; fall back to delete+send on failure
+    let imageBuffer;
+    let photoInput;
+    try {
+      imageBuffer = await fetchScheduleImage(user.region, user.queue);
+      photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+    } catch (_fetchError) {
+      // Image unavailable — will fall back to text-only path below
+    }
+
+    // Оновлюємо фото і caption існуючого повідомлення через editMessageMedia
+    if (photoInput) {
+      try {
+        await bot.api.editMessageMedia(chatId, query.message.message_id, {
+          media: {
+            type: 'photo',
+            media: photoInput,
+            caption: fullCaption,
+            parse_mode: 'HTML',
+          },
+          reply_markup: scheduleKeyboard
+        });
+        return;
+      } catch (editError) {
+        // Якщо edit не вдалося — fallback на delete+send
+        console.log('editMessageMedia failed, falling back to delete+send:', editError.message);
+      }
+    }
+
+    // Fallback: delete old message and send new one
     try {
       await bot.api.deleteMessage(chatId, query.message.message_id);
     } catch (_e) {
       // Ігноруємо помилку видалення
     }
 
-    try {
-      const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-      const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-      await bot.api.sendPhoto(chatId, photoInput, {
-        caption: fullCaption,
-        parse_mode: 'HTML',
-        caption_entities: timestampEntities,
-        reply_markup: scheduleKeyboard
-      });
-    } catch (_imgError) {
-      await bot.api.sendMessage(chatId, fullCaption, {
-        parse_mode: 'HTML',
-        entities: timestampEntities,
-        reply_markup: scheduleKeyboard
-      });
+    if (photoInput) {
+      try {
+        await bot.api.sendPhoto(chatId, photoInput, {
+          caption: fullCaption,
+          parse_mode: 'HTML',
+          reply_markup: scheduleKeyboard
+        });
+        return;
+      } catch (_imgError) {
+        // Fall through to text-only
+      }
     }
+
+    await bot.api.sendMessage(chatId, fullCaption, {
+      parse_mode: 'HTML',
+      reply_markup: scheduleKeyboard
+    });
   } catch (error) {
     console.error('Помилка handleScheduleRefresh:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
