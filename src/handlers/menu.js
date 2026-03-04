@@ -1,6 +1,6 @@
 const { InputFile } = require('grammy');
 const config = require('../config');
-const { getMainMenu, getHelpKeyboard, getSettingsKeyboard, getErrorKeyboard } = require('../keyboards/inline');
+const { getMainMenu, getHelpKeyboard, getSettingsKeyboard, getErrorKeyboard, getScheduleViewKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTimerPopup } = require('../formatter');
 const { generateLiveStatusMessage } = require('../utils');
@@ -9,6 +9,9 @@ const usersDb = require('../database/users');
 const { fetchScheduleData, fetchScheduleImage } = require('../api');
 const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { getWeeklyStats, formatStatsPopup } = require('../statistics');
+const { getUpdateTypeV2 } = require('../publisher');
+const { appendTimestamp } = require('../utils/timestamp');
+const { updateScheduleCheckTime } = require('../database/scheduleChecks');
 
 // Константа для FAQ popup
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевірте налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
@@ -56,15 +59,20 @@ async function handleMenuSchedule(bot, query) {
     }
 
     // Format message
-    const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
-    const scheduleKeyboard = {
-      inline_keyboard: [
-        [
-          { text: '⏱ Таймер', callback_data: 'menu_timer' },
-          { text: '⤴︎ Меню', callback_data: 'back_to_main' }
-        ]
-      ]
+    const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    const updateType = {
+      tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+      todayUpdated: updateTypeV2.todayChanged,
+      todayUnchanged: !updateTypeV2.todayChanged,
     };
+    const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
+
+    // Зберігаємо час перевірки та додаємо tg-timestamp
+    const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+
+    const scheduleKeyboard = getScheduleViewKeyboard();
 
     // Try to get and send image with edit
     let messageDeleted = false;
@@ -76,25 +84,28 @@ async function handleMenuSchedule(bot, query) {
       messageDeleted = true;
       const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
       await bot.api.sendPhoto(query.message.chat.id, photoInput, {
-        caption: message,
+        caption: fullCaption,
         parse_mode: 'HTML',
+        caption_entities: timestampEntities,
         reply_markup: scheduleKeyboard
       });
     } catch (imgError) {
       // If image unavailable, send/edit text message
       console.log('Schedule image unavailable:', imgError.message);
       if (messageDeleted) {
-        await bot.api.sendMessage(query.message.chat.id, message, {
+        await bot.api.sendMessage(query.message.chat.id, fullCaption, {
           parse_mode: 'HTML',
+          entities: timestampEntities,
           reply_markup: scheduleKeyboard
         });
       } else {
         await safeEditMessageText(bot,
-          message,
+          fullCaption,
           {
             chat_id: query.message.chat.id,
             message_id: query.message.message_id,
             parse_mode: 'HTML',
+            entities: timestampEntities,
             reply_markup: scheduleKeyboard
           }
         );
@@ -432,6 +443,85 @@ async function handleStatsCallback(bot, query, data) {
   }
 }
 
+// Обробник callback schedule_refresh — оновити графік і показати заново
+async function handleScheduleRefresh(bot, query) {
+  const chatId = query.message.chat.id;
+  const telegramId = String(query.from.id);
+
+  try {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) {
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Користувач не знайдений',
+        show_alert: true
+      });
+      return;
+    }
+
+    // Answer Telegram immediately to avoid timeout
+    await bot.api.answerCallbackQuery(query.id).catch(() => {});
+    await bot.api.sendChatAction(chatId, 'typing').catch(() => {});
+
+    const apiData = await fetchScheduleData(user.region);
+    const scheduleData = parseScheduleForQueue(apiData, user.queue);
+    const nextEvent = findNextEvent(scheduleData);
+
+    // Оновлюємо час перевірки та отримуємо точний timestamp
+    const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+
+    const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    const updateType = {
+      tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+      todayUpdated: updateTypeV2.todayChanged,
+      todayUnchanged: !updateTypeV2.todayChanged,
+    };
+
+    const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
+    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+
+    const scheduleKeyboard = getScheduleViewKeyboard();
+
+    // Видаляємо старе повідомлення і надсилаємо нове з фото
+    try {
+      await bot.api.deleteMessage(chatId, query.message.message_id);
+    } catch (_e) {
+      // Ігноруємо помилку видалення
+    }
+
+    try {
+      const imageBuffer = await fetchScheduleImage(user.region, user.queue);
+      const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+      await bot.api.sendPhoto(chatId, photoInput, {
+        caption: fullCaption,
+        parse_mode: 'HTML',
+        caption_entities: timestampEntities,
+        reply_markup: scheduleKeyboard
+      });
+    } catch (_imgError) {
+      await bot.api.sendMessage(chatId, fullCaption, {
+        parse_mode: 'HTML',
+        entities: timestampEntities,
+        reply_markup: scheduleKeyboard
+      });
+    }
+  } catch (error) {
+    console.error('Помилка handleScheduleRefresh:', error);
+    await safeAnswerCallbackQuery(bot, query.id, {
+      text: '😅 Щось пішло не так. Спробуйте ще раз!',
+      show_alert: true
+    });
+  }
+}
+
+// Обробник callback my_queues
+async function handleMyQueues(bot, query) {
+  await safeAnswerCallbackQuery(bot, query.id, {
+    text: '🚧 Функціонал "Мої черги" в розробці',
+    show_alert: true
+  });
+}
+
 module.exports = {
   handleMenuSchedule,
   handleMenuTimer,
@@ -443,4 +533,6 @@ module.exports = {
   handleHelpFaq,
   handleTimerCallback,
   handleStatsCallback,
+  handleScheduleRefresh,
+  handleMyQueues,
 };

@@ -147,20 +147,47 @@ async function checkUserSchedule(user, data) {
       try {
         const { formatScheduleMessage } = require('./formatter');
         const { fetchScheduleImage } = require('./api');
+        const { getUpdateTypeV2 } = require('./publisher');
+        const { appendTimestamp } = require('./utils/timestamp');
+        const { updateScheduleCheckTime } = require('./database/scheduleChecks');
+        const { getScheduleViewKeyboard } = require('./keyboards/inline');
 
-        const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent);
+        // Зберігаємо час останньої перевірки та отримуємо точний timestamp
+        const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+
+        // Обчислюємо updateType (як для каналу)
+        const userSnapshots = await usersDb.getSnapshotHashes(user.telegram_id);
+        const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+        const updateType = {
+          tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+          todayUpdated: updateTypeV2.todayChanged,
+          todayUnchanged: !updateTypeV2.todayChanged,
+        };
+
+        const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
+
+        // Додаємо tg-timestamp з часом останньої перевірки
+        const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+
+        const scheduleKeyboard = getScheduleViewKeyboard();
 
         // Спробуємо з фото
         try {
           const imageBuffer = await fetchScheduleImage(user.region, user.queue);
           const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
           await bot.api.sendPhoto(user.telegram_id, photoInput, {
-            caption: message,
-            parse_mode: 'HTML'
+            caption: fullCaption,
+            parse_mode: 'HTML',
+            caption_entities: timestampEntities,
+            reply_markup: scheduleKeyboard
           });
         } catch (_imgError) {
           // Без фото
-          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          await bot.api.sendMessage(user.telegram_id, fullCaption, {
+            parse_mode: 'HTML',
+            entities: timestampEntities,
+            reply_markup: scheduleKeyboard
+          });
         }
 
         console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
