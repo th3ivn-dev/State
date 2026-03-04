@@ -11,7 +11,7 @@ const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { getWeeklyStats, formatStatsPopup } = require('../statistics');
 const { getUpdateTypeV2 } = require('../publisher');
 const { appendTimestamp } = require('../utils/timestamp');
-const { updateScheduleCheckTime } = require('../database/scheduleChecks');
+const { getScheduleCheckTime } = require('../database/scheduleChecks');
 
 // Константа для FAQ popup
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевірте налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
@@ -69,13 +69,13 @@ async function handleMenuSchedule(bot, query) {
     };
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-    // Зберігаємо час перевірки та додаємо date_time entity
+    // Читаємо час останньої перевірки ботом та додаємо date_time entity
     let lastCheck;
     try {
-      lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+      lastCheck = await getScheduleCheckTime(user.region, user.queue);
     } catch (dbError) {
-      console.error('Failed to update schedule check time:', dbError.message);
-      lastCheck = new Date();
+      console.error('Failed to get schedule check time:', dbError.message);
+      lastCheck = Math.floor(Date.now() / 1000);
     }
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
@@ -319,16 +319,23 @@ async function handleBackToMain(bot, query) {
     message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
     message += '\n💬 Допоможіть нам стати краще — скористайтеся ❓ Допомога\n';
 
-    // If current message is a photo/media, skip editMessageText and go straight to delete+send
-    const isMediaMessage = !!(query.message.photo || query.message.document ||
-                              query.message.video || query.message.animation);
-
-    if (isMediaMessage) {
-      // Delete the media message and send a new text message
+    // Try editMessageText first (works even on media messages in some cases)
+    try {
+      await safeEditMessageText(bot,
+        message,
+        {
+          chat_id: query.message.chat.id,
+          message_id: query.message.message_id,
+          parse_mode: 'HTML',
+          reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
+        }
+      );
+    } catch (_error) {
+      // If edit fails (e.g., media→text not supported, message deleted), delete and send new
       try {
         await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
       } catch (_deleteError) {
-        // Ignore delete errors - message may already be deleted or inaccessible
+        // Ignore delete errors
       }
       await bot.api.sendMessage(
         query.message.chat.id,
@@ -338,34 +345,6 @@ async function handleBackToMain(bot, query) {
           ...getMainMenu(botStatus, channelPaused)
         }
       );
-    } else {
-      // Try to edit message text first
-      try {
-        await safeEditMessageText(bot,
-          message,
-          {
-            chat_id: query.message.chat.id,
-            message_id: query.message.message_id,
-            parse_mode: 'HTML',
-            reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
-          }
-        );
-      } catch (_error) {
-        // If edit fails for other reasons (e.g., message deleted, permission issues), delete and send new message
-        try {
-          await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
-        } catch (_deleteError) {
-          // Ignore delete errors - message may already be deleted or inaccessible
-        }
-        await bot.api.sendMessage(
-          query.message.chat.id,
-          message,
-          {
-            parse_mode: 'HTML',
-            ...getMainMenu(botStatus, channelPaused)
-          }
-        );
-      }
     }
   }
 }
@@ -501,19 +480,18 @@ async function handleScheduleRefresh(bot, query) {
 
     // Answer Telegram immediately to avoid timeout
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
-    await bot.api.sendChatAction(chatId, 'typing').catch(() => {});
 
     const apiData = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(apiData, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
-    // Оновлюємо час перевірки та отримуємо точний timestamp
+    // Читаємо час останньої перевірки ботом та отримуємо точний timestamp
     let lastCheck;
     try {
-      lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+      lastCheck = await getScheduleCheckTime(user.region, user.queue);
     } catch (dbError) {
-      console.error('Failed to update schedule check time:', dbError.message);
-      lastCheck = new Date();
+      console.error('Failed to get schedule check time:', dbError.message);
+      lastCheck = Math.floor(Date.now() / 1000);
     }
 
     const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
