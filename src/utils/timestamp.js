@@ -6,11 +6,18 @@
 
 /**
  * Strips HTML tags to calculate plain-text length for entity offsets.
+ * Uses an iterative approach to handle nested/overlapping edge cases.
  * @param {string} html - HTML-formatted string
  * @returns {string} Plain text without HTML tags
  */
 function stripHtmlTags(html) {
-  return html.replace(/<[^>]*>/g, '');
+  let result = html;
+  let prev;
+  do {
+    prev = result;
+    result = prev.replace(/<[^>]*>/g, '');
+  } while (result !== prev);
+  return result;
 }
 
 /**
