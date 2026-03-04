@@ -64,8 +64,8 @@ function buildNotificationSettingsMessage(user) {
   const factOn = user.notify_fact_off !== false;
 
   return `🔔 <b>Керування сповіщеннями</b>\n\n` +
-    `📈 Оновлення графіків — ${scheduleOn ? '✅' : '❌'}\n\n` +
-    `⏳ Нагадування про події перед (вимкнення / відновлення):\n` +
+    `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? '✅' : '❌'}\n\n` +
+    `<tg-emoji emoji-id="5451732530048802485">⏳</tg-emoji> Нагадування про події перед (вимкнення / відновлення):\n` +
     `├ За 1 год — ${t60 ? '✅' : '❌'}\n` +
     `├ За 30 хв — ${t30 ? '✅' : '❌'}\n` +
     `├ За 15 хв — ${t15 ? '✅' : '❌'}\n` +

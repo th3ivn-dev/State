@@ -1250,30 +1250,32 @@ function getNotificationKeyboard(user) {
   const factOn = user.notify_fact_off !== false;
 
   const scheduleBtn = {
-    text: `📈 Оновлення графіків ${scheduleOn ? '✅' : '❌'}`,
+    text: 'Оновлення графіків',
     callback_data: 'notif_toggle_schedule',
+    icon_custom_emoji_id: '5231200819986047254',
     ...(scheduleOn ? { style: 'success' } : {}),
   };
 
   const btn60 = {
-    text: t60 ? '✅ 1 год' : '1 год',
+    text: '1 год',
     callback_data: 'notif_time_60',
     ...(t60 ? { style: 'success' } : {}),
   };
   const btn30 = {
-    text: t30 ? '✅ 30 хв' : '30 хв',
+    text: '30 хв',
     callback_data: 'notif_time_30',
     ...(t30 ? { style: 'success' } : {}),
   };
   const btn15 = {
-    text: t15 ? '✅ 15 хв' : '15 хв',
+    text: '15 хв',
     callback_data: 'notif_time_15',
     ...(t15 ? { style: 'success' } : {}),
   };
 
   const factBtn = {
-    text: `⏱ Фактично за графіком ${factOn ? '✅' : '❌'}`,
+    text: 'Фактично за графіком',
     callback_data: 'notif_toggle_fact',
+    icon_custom_emoji_id: '5382194935057372936',
     ...(factOn ? { style: 'success' } : {}),
   };
 
@@ -1284,8 +1286,8 @@ function getNotificationKeyboard(user) {
         [btn60, btn30, btn15],
         [factBtn],
         [
-          { text: '↩ Назад', callback_data: 'back_to_settings', icon_custom_emoji_id: '5210952531676504517' },
-          { text: '✅ Готово', callback_data: 'back_to_main', style: 'success', icon_custom_emoji_id: '5206607081334906820' },
+          { text: 'Назад', callback_data: 'back_to_settings', icon_custom_emoji_id: '5255703720078879038' },
+          { text: 'Готово', callback_data: 'back_to_main', style: 'success', icon_custom_emoji_id: '5206607081334906820' },
         ],
       ],
     },
