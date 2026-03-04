@@ -44,6 +44,8 @@ const {
   handleHelpFaq,
   handleTimerCallback,
   handleStatsCallback,
+  handleScheduleRefresh,
+  handleMyQueues,
 } = require('./handlers/menu');
 const { escapeHtml, isAdmin } = require('./utils');
 const { safeAnswerCallbackQuery, safeDeleteMessage, isTelegramUserInactiveError } = require('./utils/errorHandler');
@@ -336,6 +338,16 @@ bot.on('callback_query:data', async (ctx) => {
     // Menu callbacks
     if (data === 'menu_schedule') {
       await handleMenuSchedule(bot, query);
+      return;
+    }
+
+    if (data === 'schedule_refresh') {
+      await handleScheduleRefresh(bot, query);
+      return;
+    }
+
+    if (data === 'my_queues') {
+      await handleMyQueues(bot, query);
       return;
     }
 

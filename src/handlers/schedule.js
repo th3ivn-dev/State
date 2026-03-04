@@ -4,6 +4,9 @@ const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { formatScheduleMessage, formatNextEventMessage, formatTimerMessage } = require('../formatter');
 const { safeSendMessage, safeDeleteMessage, safeSendPhoto } = require('../utils/errorHandler');
 const { getUpdateTypeV2 } = require('../publisher');
+const { appendTimestamp } = require('../utils/timestamp');
+const { getScheduleViewKeyboard } = require('../keyboards/inline');
+const { updateScheduleCheckTime } = require('../database/scheduleChecks');
 
 // Обробник команди /schedule
 async function handleSchedule(bot, msg) {
@@ -46,18 +49,30 @@ async function handleSchedule(bot, msg) {
     // Pass null for changes parameter since we're not marking new events in bot view
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
+    // Зберігаємо час перевірки та додаємо tg-timestamp
+    const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
+    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+
+    const scheduleKeyboard = getScheduleViewKeyboard();
+
     // Спробуємо відправити зображення графіка з caption
     let sentMsg;
     try {
       const imageBuffer = await fetchScheduleImage(user.region, user.queue);
       sentMsg = await safeSendPhoto(bot, chatId, imageBuffer, {
-        caption: message,
+        caption: fullCaption,
         parse_mode: 'HTML',
+        caption_entities: timestampEntities,
+        reply_markup: scheduleKeyboard,
       }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
       // Якщо зображення недоступне, відправляємо тільки текст
       console.log('Зображення графіка недоступне:', imgError.message);
-      sentMsg = await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
+      sentMsg = await safeSendMessage(bot, chatId, fullCaption, {
+        parse_mode: 'HTML',
+        entities: timestampEntities,
+        reply_markup: scheduleKeyboard,
+      });
     }
 
     if (sentMsg) {

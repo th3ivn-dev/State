@@ -36,6 +36,21 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
   };
 }
 
+// Клавіатура для перегляду графіка (кнопки 🔄 Оновити / ⭐ Мої черги / ⤴ Меню)
+function getScheduleViewKeyboard() {
+  return {
+    inline_keyboard: [
+      [
+        { text: '🔄 Оновити', callback_data: 'schedule_refresh' },
+        { text: '⭐ Мої черги', callback_data: 'my_queues' }
+      ],
+      [
+        { text: '⤴ Меню', callback_data: 'back_to_main' }
+      ]
+    ]
+  };
+}
+
 // Вибір регіону
 function getRegionKeyboard() {
   const buttons = [];
@@ -1368,4 +1383,5 @@ module.exports = {
   getNotificationTargetSelectKeyboard,
   getNotificationKeyboard,
   getCleanupKeyboard,
+  getScheduleViewKeyboard,
 };

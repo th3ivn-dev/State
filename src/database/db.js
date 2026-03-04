@@ -281,6 +281,13 @@ async function initializeDatabase() {
       
       CREATE INDEX IF NOT EXISTS idx_admin_router_history_telegram_id ON admin_router_history(admin_telegram_id);
       CREATE INDEX IF NOT EXISTS idx_admin_router_history_event_at ON admin_router_history(event_at);
+      
+      CREATE TABLE IF NOT EXISTS schedule_checks (
+        region VARCHAR(50) NOT NULL,
+        queue VARCHAR(10) NOT NULL,
+        last_checked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        PRIMARY KEY (region, queue)
+      );
     `);
 
     console.log('✅ База даних ініціалізована');
