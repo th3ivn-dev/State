@@ -55,6 +55,23 @@ function restoreIpSetupStates() {
   console.log('✅ IP setup states restored by centralized state manager');
 }
 
+// Build the notification settings message (single screen)
+function buildNotificationSettingsMessage(user) {
+  const scheduleOn = user.notify_schedule_changes !== false;
+  const t60 = user.remind_1h === true;
+  const t30 = user.remind_30m === true;
+  const t15 = user.remind_15m !== false;
+  const factOn = user.notify_fact_off !== false;
+
+  return `🔔 <b>Керування сповіщеннями</b>\n\n` +
+    `📈 Оновлення графіків — ${scheduleOn ? '✅' : '❌'}\n\n` +
+    `⏳ Нагадування про події перед (вимкнення / відновлення):\n` +
+    `├ За 1 год — ${t60 ? '✅' : '❌'}\n` +
+    `├ За 30 хв — ${t30 ? '✅' : '❌'}\n` +
+    `├ За 15 хв — ${t15 ? '✅' : '❌'}\n` +
+    `└ Фактично за графіком — ${factOn ? '✅' : '❌'}`;
+}
+
 // Build the alerts message in tree format
 function buildAlertsMessage(isActive, currentTarget) {
   const targetLabels = {
@@ -132,5 +149,6 @@ module.exports = {
   sendMainMenu,
   restoreIpSetupStates,
   buildAlertsMessage,
+  buildNotificationSettingsMessage,
   isValidIPorDomain,
 };

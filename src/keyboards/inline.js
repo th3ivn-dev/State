@@ -1241,6 +1241,57 @@ function getNotificationTargetSelectKeyboard(type, currentTarget) {
   };
 }
 
+// Single-screen notification settings keyboard
+function getNotificationKeyboard(user) {
+  const scheduleOn = user.notify_schedule_changes !== false;
+  const t60 = user.remind_1h === true;
+  const t30 = user.remind_30m === true;
+  const t15 = user.remind_15m !== false;
+  const factOn = user.notify_fact_off !== false;
+
+  const scheduleBtn = {
+    text: `📈 Оновлення графіків ${scheduleOn ? '✅' : '❌'}`,
+    callback_data: 'notif_toggle_schedule',
+    ...(scheduleOn ? { style: 'success' } : {}),
+  };
+
+  const btn60 = {
+    text: t60 ? '✅ 1 год' : '1 год',
+    callback_data: 'notif_time_60',
+    ...(t60 ? { style: 'success' } : {}),
+  };
+  const btn30 = {
+    text: t30 ? '✅ 30 хв' : '30 хв',
+    callback_data: 'notif_time_30',
+    ...(t30 ? { style: 'success' } : {}),
+  };
+  const btn15 = {
+    text: t15 ? '✅ 15 хв' : '15 хв',
+    callback_data: 'notif_time_15',
+    ...(t15 ? { style: 'success' } : {}),
+  };
+
+  const factBtn = {
+    text: `⏱ Фактично за графіком ${factOn ? '✅' : '❌'}`,
+    callback_data: 'notif_toggle_fact',
+    ...(factOn ? { style: 'success' } : {}),
+  };
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [scheduleBtn],
+        [btn60, btn30, btn15],
+        [factBtn],
+        [
+          { text: '↩ Назад', callback_data: 'back_to_settings', icon_custom_emoji_id: '5210952531676504517' },
+          { text: '✅ Готово', callback_data: 'back_to_main', style: 'success', icon_custom_emoji_id: '5206607081334906820' },
+        ],
+      ],
+    },
+  };
+}
+
 // Auto-cleanup settings keyboard
 function getCleanupKeyboard(user) {
   const delCmds = user.auto_delete_commands === true;
@@ -1313,5 +1364,6 @@ module.exports = {
   getNotificationRemindersKeyboard,
   getNotificationTargetsKeyboard,
   getNotificationTargetSelectKeyboard,
+  getNotificationKeyboard,
   getCleanupKeyboard,
 };
