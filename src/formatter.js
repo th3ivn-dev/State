@@ -553,7 +553,7 @@ function getCurrentDateTimeForTemplate() {
 // Форматувати повідомлення про помилку
 function formatErrorMessage() {
   const lines = [];
-  lines.push('😅 Щось пішло не так.');
+  lines.push('⚠️ Щось пішло не так.');
   lines.push('');
   lines.push('Якщо помітили, що щось не працює —');
   lines.push('напишіть нам, будь ласка!');
