@@ -32,11 +32,12 @@ function appendTimestamp(htmlMessage, checkTime) {
   const fullText = plainMessage + prefix + timestampStr;
   const offset = plainMessage.length + prefix.length;
 
+  // Bot API 9.5: date_time entity with field "unix_time" (NOT "unix_timestamp")
   entities.push({
     type: 'date_time',
     offset,
     length: timestampStr.length,
-    unix_timestamp: unixTimestamp,
+    unix_time: unixTimestamp,
   });
 
   return { text: fullText, entities };
