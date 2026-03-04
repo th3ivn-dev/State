@@ -69,7 +69,7 @@ async function handleMenuSchedule(bot, query) {
     };
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-    // Зберігаємо час перевірки та додаємо tg-timestamp
+    // Зберігаємо час перевірки та додаємо date_time entity
     let lastCheck;
     try {
       lastCheck = await updateScheduleCheckTime(user.region, user.queue);

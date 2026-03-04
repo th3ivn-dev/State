@@ -1,14 +1,15 @@
 /**
- * Helpers for appending a live tg-timestamp to Telegram messages.
- * Uses the tg-timestamp MessageEntity (Bot API 8.3) which Telegram clients
- * render as a live relative time counter that updates automatically.
+ * Helpers for appending a date_time entity to Telegram messages.
+ * Uses the date_time MessageEntity (Bot API 9.5) which Telegram clients
+ * render as a formatted, tappable timestamp.
  */
 
 const { htmlToEntities } = require('./htmlToEntities');
 
 /**
- * Converts an HTML-formatted message to plain text + MessageEntity array,
- * then appends a tg-timestamp entity so Telegram renders a live relative time.
+ * Appends a date_time entity (Bot API 9.5) to an HTML-formatted message.
+ * Converts HTML to plain text + entities, then adds the timestamp entity.
+ * Telegram clients render date_time entities as formatted, tappable timestamps.
  *
  * NOTE: The returned object must be used with the `entities` / `caption_entities`
  * parameter — NOT with `parse_mode: 'HTML'`. Mixing parse_mode with entities
@@ -32,10 +33,10 @@ function appendTimestamp(htmlMessage, checkTime) {
   const offset = plainMessage.length + prefix.length;
 
   entities.push({
-    type: 'tg-timestamp',
+    type: 'date_time',
     offset,
     length: timestampStr.length,
-    value: unixTimestamp,
+    unix_timestamp: unixTimestamp,
   });
 
   return { text: fullText, entities };
