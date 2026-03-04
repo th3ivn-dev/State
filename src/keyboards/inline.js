@@ -1287,7 +1287,7 @@ function getNotificationKeyboard(user) {
         [factBtn],
         [
           { text: 'Назад', callback_data: 'back_to_settings', icon_custom_emoji_id: '5255703720078879038' },
-          { text: 'Готово', callback_data: 'back_to_main', style: 'success', icon_custom_emoji_id: '5206607081334906820' },
+          { text: 'Готово', callback_data: 'back_to_main', icon_custom_emoji_id: '5206607081334906820' },
         ],
       ],
     },
