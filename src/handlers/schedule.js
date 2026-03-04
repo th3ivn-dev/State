@@ -49,7 +49,7 @@ async function handleSchedule(bot, msg) {
     // Pass null for changes parameter since we're not marking new events in bot view
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-    // Зберігаємо час перевірки та додаємо tg-timestamp
+    // Зберігаємо час перевірки та додаємо date_time entity
     const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
