@@ -140,6 +140,13 @@ async function checkUserSchedule(user, data) {
       return;
     }
 
+    // Якщо це перший запуск для нового користувача — тільки зберегти хеш, не публікувати
+    if (user.last_hash == null) {
+      await usersDb.updateUserHashes(user.id, newHash);
+      console.log(`[${user.telegram_id}] Перший запуск — зберігаємо хеш, публікацію пропускаємо`);
+      return;
+    }
+
     // Перевіряємо чи графік вже опублікований з цим хешем
     if (newHash === user.last_published_hash) {
       // Оновлюємо last_hash для синхронізації
@@ -217,7 +224,7 @@ async function checkUserSchedule(user, data) {
     if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
-        const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue, { force: true });
+        const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
         if (sentMsg && sentMsg.message_id) {
           await usersDb.updateUserPostId(user.id, sentMsg.message_id);
         }
