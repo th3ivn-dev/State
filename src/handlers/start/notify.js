@@ -95,9 +95,17 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
 
     // Відправляємо головне меню
     const botStatus = 'no_channel'; // New user won't have channel yet
+    let menuMessage = '<b>🚧 Бот у розробці</b>\n';
+    menuMessage += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
+    menuMessage += '🏠 <b>Головне меню</b>\n\n';
+    menuMessage += `📍 Регіон: ${region} • ${state.queue}\n`;
+    menuMessage += `📺 Канал: не підключено\n`;
+    menuMessage += `🔔 Сповіщення: увімкнено ✅\n`;
+    menuMessage += '\n💬 Допоможіть нам стати краще — скористайтеся ❓ Допомога\n';
+
     const sentMessage = await bot.api.sendMessage(
       chatId,
-      '🏠 <b>Головне меню</b>',
+      menuMessage,
       {
         parse_mode: 'HTML',
         ...getMainMenu(botStatus, false)

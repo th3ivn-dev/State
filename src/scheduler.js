@@ -110,6 +110,15 @@ async function checkUserSchedule(user, data) {
       return;
     }
 
+    // Skip recently registered users (give them time to explore the menu)
+    const GRACE_PERIOD_MS = 2 * 60 * 1000; // 2 minutes
+    if (user.created_at) {
+      const createdAt = new Date(user.created_at).getTime();
+      if (Date.now() - createdAt < GRACE_PERIOD_MS) {
+        return;
+      }
+    }
+
     // Оновлюємо час перевірки ЗАВЖДИ (незалежно від зміни хешу)
     // Це дозволяє показувати коректний час останньої перевірки в меню графіка
     await updateScheduleCheckTime(user.region, user.queue);
