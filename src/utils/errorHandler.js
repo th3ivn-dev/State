@@ -233,7 +233,8 @@ async function safeSetChatDescription(bot, chatId, description) {
  */
 async function safeSetChatPhoto(bot, chatId, photo, _options = {}, _fileOpts = {}) {
   try {
-    await bot.api.setChatPhoto(chatId, photo);
+    const input = Buffer.isBuffer(photo) ? new InputFile(photo, 'photo.jpg') : photo;
+    await bot.api.setChatPhoto(chatId, input);
     return true;
   } catch (error) {
     logger.error(`Помилка зміни фото чату ${chatId}:`, { error: error.message });
