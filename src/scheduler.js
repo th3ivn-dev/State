@@ -7,6 +7,7 @@ const schedulerManager = require('./scheduler/schedulerManager');
 const { getSetting } = require('./database/db');
 const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('./utils/errorHandler');
+const { updateScheduleCheckTime } = require('./database/scheduleChecks');
 
 let bot = null;
 
@@ -109,6 +110,10 @@ async function checkUserSchedule(user, data) {
       return;
     }
 
+    // Оновлюємо час перевірки ЗАВЖДИ (незалежно від зміни хешу)
+    // Це дозволяє показувати коректний час останньої перевірки в меню графіка
+    await updateScheduleCheckTime(user.region, user.queue);
+
     const queueKey = `GPV${user.queue}`;
 
     // Отримуємо timestamps для сьогодні та завтра
@@ -149,11 +154,7 @@ async function checkUserSchedule(user, data) {
         const { fetchScheduleImage } = require('./api');
         const { getUpdateTypeV2 } = require('./publisher');
         const { appendTimestamp } = require('./utils/timestamp');
-        const { updateScheduleCheckTime } = require('./database/scheduleChecks');
         const { getScheduleViewKeyboard } = require('./keyboards/inline');
-
-        // Зберігаємо час останньої перевірки та отримуємо точний timestamp
-        const lastCheck = await updateScheduleCheckTime(user.region, user.queue);
 
         // Обчислюємо updateType (як для каналу)
         const userSnapshots = await usersDb.getSnapshotHashes(user.telegram_id);
@@ -166,8 +167,8 @@ async function checkUserSchedule(user, data) {
 
         const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-        // Додаємо date_time entity з часом останньої перевірки
-        const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+        // Додаємо date_time entity з поточним часом (бот щойно перевірив)
+        const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, Math.floor(Date.now() / 1000));
 
         const scheduleKeyboard = getScheduleViewKeyboard();
 
