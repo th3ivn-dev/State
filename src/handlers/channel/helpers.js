@@ -1,6 +1,7 @@
 const path = require('path');
 const usersDb = require('../../database/users');
 const { getState, setState, clearState } = require('../../state/stateManager');
+const { pendingChannels, removePendingChannel } = require('../../state/pendingChannels');
 
 // Helper functions to manage conversation states (now using centralized state manager)
 async function setConversationState(telegramId, data) {
@@ -168,11 +169,10 @@ async function validateChannelConnection(bot, channelId, telegramId) {
 
 // Helper function: Remove pending channel by telegram ID
 // Returns true if a channel was removed, false otherwise
-function removePendingChannelByTelegramId(telegramId) {
-  const { pendingChannels } = require('../../bot');
+async function removePendingChannelByTelegramId(telegramId) {
   for (const [channelId, pending] of pendingChannels.entries()) {
     if (pending.telegramId === telegramId) {
-      pendingChannels.delete(channelId);
+      await removePendingChannel(channelId);
       return true;
     }
   }

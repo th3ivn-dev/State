@@ -12,6 +12,7 @@ const {
   removePendingChannelByTelegramId,
 } = require('./helpers');
 const { escapeHtml, getChannelConnectionInstructions } = require('../../utils');
+const { pendingChannels, removePendingChannel } = require('../../state/pendingChannels');
 
 // Handle channel_connect and related connect callbacks
 async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _user) {
@@ -48,8 +49,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       });
       return true;
     }
-
-    const { pendingChannels } = require('../../bot');
 
     // Перевіряємо чи є pending channel для ЦЬОГО користувача
     let pendingChannel = null;
@@ -207,7 +206,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
     }
 
     // Отримуємо інфо про канал з pendingChannels
-    const { pendingChannels } = require('../../bot');
     const pendingChannel = pendingChannels.get(channelId);
 
     if (!pendingChannel) {
@@ -219,7 +217,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
     }
 
     // Видаляємо з pending
-    pendingChannels.delete(channelId);
+    removePendingChannel(channelId);
 
     // Зберігаємо channel_id та початкуємо conversation для налаштування
     await usersDb.resetUserChannel(telegramId, channelId);
@@ -248,7 +246,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
   // Handle connect_channel_ - connect new channel (automatic detection)
   if (data.startsWith('connect_channel_')) {
     const channelId = data.replace('connect_channel_', '');
-    const { pendingChannels } = require('../../bot');
     const pending = pendingChannels.get(channelId);
 
     if (pending && pending.telegramId === telegramId) {
@@ -284,7 +281,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       await usersDb.resetUserChannel(telegramId, channelId);
 
       // Видаляємо з pending
-      pendingChannels.delete(channelId);
+      removePendingChannel(channelId);
 
       // Початкуємо conversation для налаштування
       await setConversationState(telegramId, {
@@ -319,7 +316,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
   // Handle replace_channel_ - replace existing channel (automatic detection)
   if (data.startsWith('replace_channel_')) {
     const channelId = data.replace('replace_channel_', '');
-    const { pendingChannels } = require('../../bot');
     const pending = pendingChannels.get(channelId);
 
     if (pending && pending.telegramId === telegramId) {
@@ -355,7 +351,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       await usersDb.resetUserChannel(telegramId, channelId);
 
       // Видаляємо з pending
-      pendingChannels.delete(channelId);
+      removePendingChannel(channelId);
 
       // Початкуємо conversation для налаштування
       await setConversationState(telegramId, {
@@ -391,7 +387,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
   // Handle keep_current_channel - keep current channel
   if (data === 'keep_current_channel') {
     // Видаляємо pending channel для цього користувача
-    removePendingChannelByTelegramId(telegramId);
+    await removePendingChannelByTelegramId(telegramId);
 
     await bot.api.editMessageText(
       chatId,
@@ -404,7 +400,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
   // Handle cancel_channel_connect - cancel channel connection
   if (data === 'cancel_channel_connect') {
     // Видаляємо pending channel для цього користувача
-    removePendingChannelByTelegramId(telegramId);
+    await removePendingChannelByTelegramId(telegramId);
 
     await bot.api.editMessageText(
       chatId,
