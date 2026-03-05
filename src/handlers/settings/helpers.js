@@ -1,6 +1,7 @@
 const usersDb = require('../../database/users');
 const { getMainMenu } = require('../../keyboards/inline');
 const { getState, setState, clearState } = require('../../state/stateManager');
+const { REGIONS } = require('../../constants/regions');
 
 // Helper functions to manage IP setup states (now using centralized state manager)
 async function setIpSetupState(telegramId, data) {
@@ -28,6 +29,15 @@ async function clearIpSetupState(telegramId) {
 async function sendMainMenu(bot, chatId, telegramId) {
   const user = await usersDb.getUserByTelegramId(telegramId);
 
+  // Delete previous menu message if exists
+  if (user.last_start_message_id) {
+    try {
+      await bot.api.deleteMessage(chatId, user.last_start_message_id);
+    } catch (_e) {
+      // Ignore - message might already be deleted
+    }
+  }
+
   let botStatus = 'active';
   if (!user.channel_id) {
     botStatus = 'no_channel';
@@ -35,15 +45,26 @@ async function sendMainMenu(bot, chatId, telegramId) {
     botStatus = 'paused';
   }
   const channelPaused = user.channel_paused === true;
+  const region = REGIONS[user.region]?.name || user.region;
 
-  await bot.api.sendMessage(
+  // Use full menu message (same as handleStart and handleBackToMain)
+  let message = '<b>🚧 Бот у розробці</b>\n';
+  message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
+  message += '🏠 <b>Головне меню</b>\n\n';
+  message += `📍 Регіон: ${region} • ${user.queue}\n`;
+  message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
+  message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
+  message += '\n💬 Допоможіть нам стати краще — скористайтеся ❓ Допомога\n';
+
+  const sentMessage = await bot.api.sendMessage(
     chatId,
-    '🏠 <b>Головне меню</b>',
-    {
-      parse_mode: 'HTML',
-      ...getMainMenu(botStatus, channelPaused),
-    }
-  ).catch(() => {});
+    message,
+    { parse_mode: 'HTML', ...getMainMenu(botStatus, channelPaused) }
+  ).catch(() => null);
+
+  if (sentMessage) {
+    await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+  }
 }
 
 /**

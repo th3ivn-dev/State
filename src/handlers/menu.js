@@ -311,6 +311,15 @@ async function handleBackToMain(bot, query) {
   const user = await usersDb.getUserByTelegramId(telegramId);
 
   if (user) {
+    // Delete previous main menu message if it exists AND is different from current
+    if (user.last_start_message_id && user.last_start_message_id !== query.message.message_id) {
+      try {
+        await bot.api.deleteMessage(query.message.chat.id, user.last_start_message_id);
+      } catch (_e) {
+        // Ignore - message might already be deleted
+      }
+    }
+
     const region = REGIONS[user.region]?.name || user.region;
 
     // Determine bot status
@@ -343,6 +352,8 @@ async function handleBackToMain(bot, query) {
           reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
         }
       );
+      // Update last_start_message_id to current message
+      await usersDb.updateUser(telegramId, { last_start_message_id: query.message.message_id });
     } catch (_error) {
       // If edit fails (e.g., media→text not supported, message deleted), delete and send new
       try {
@@ -350,14 +361,18 @@ async function handleBackToMain(bot, query) {
       } catch (_deleteError) {
         // Ignore delete errors
       }
-      await bot.api.sendMessage(
+      const sentMessage = await bot.api.sendMessage(
         query.message.chat.id,
         message,
         {
           parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
-      );
+      ).catch(() => null);
+      // Update last_start_message_id to new message
+      if (sentMessage) {
+        await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
+      }
     }
   }
 }
