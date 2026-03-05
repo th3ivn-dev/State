@@ -6,7 +6,7 @@ const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/er
 const { getSetting } = require('../../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setConversationState } = require('../channel');
-const { pendingChannels, removePendingChannel } = require('../../bot');
+const { pendingChannels, removePendingChannel } = require('../../state/pendingChannels');
 const {
   PENDING_CHANNEL_EXPIRATION_MS,
   CHANNEL_NAME_PREFIX,
