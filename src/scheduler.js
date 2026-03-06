@@ -55,33 +55,49 @@ async function checkAllSchedules() {
   }
 }
 
+const BATCH_SIZE = 50; // process up to 50 users concurrently
+const BATCH_STAGGER_MS = 200; // pause between batches to spread Telegram load
+
 async function checkRegionSchedule(region) {
   try {
     const data = await fetchScheduleData(region);
 
-    // Lightweight projection — only scheduler-needed columns
     const users = await usersDb.getUsersByRegionForScheduler(region);
 
     if (users.length === 0) {
       return;
     }
 
-    console.log(`Перевірка ${region}: знайдено ${users.length} користувачів`);
+    console.log(`Перевірка ${region}: ${users.length} користувачів`);
 
-    // Update schedule_checks once per unique region+queue (not per user)
+    // Pre-compute hash per queue (same data → same hash for all users in queue)
+    const availableTimestamps = Object.keys(data?.fact?.data || {}).map(Number).sort((a, b) => a - b);
+    const todayTimestamp = availableTimestamps[0] || null;
+    const tomorrowTimestamp = availableTimestamps.length > 1 ? availableTimestamps[1] : null;
+
+    const queueHashCache = new Map();
+
+    // Update schedule_checks once per unique region+queue
     const checkedQueues = new Set();
-
     for (const user of users) {
-      try {
-        const queueKey = `${region}:${user.queue}`;
-        if (!checkedQueues.has(queueKey)) {
-          checkedQueues.add(queueKey);
-          await updateScheduleCheckTime(region, user.queue);
-        }
+      const qk = user.queue;
+      if (!checkedQueues.has(qk)) {
+        checkedQueues.add(qk);
+        await updateScheduleCheckTime(region, qk);
 
-        await checkUserSchedule(user, data);
-      } catch (error) {
-        console.error(`Помилка перевірки графіка для користувача ${user.telegram_id}:`, error.message);
+        const gpvKey = `GPV${qk}`;
+        queueHashCache.set(qk, calculateHash(data, gpvKey, todayTimestamp, tomorrowTimestamp));
+      }
+    }
+
+    // Process users in parallel batches
+    for (let i = 0; i < users.length; i += BATCH_SIZE) {
+      const batch = users.slice(i, i + BATCH_SIZE);
+      await Promise.allSettled(
+        batch.map(user => processUser(user, data, queueHashCache.get(user.queue)))
+      );
+      if (i + BATCH_SIZE < users.length) {
+        await new Promise(r => setTimeout(r, BATCH_STAGGER_MS));
       }
     }
 
@@ -90,34 +106,20 @@ async function checkRegionSchedule(region) {
   }
 }
 
-async function checkUserSchedule(user, data) {
+async function processUser(user, data, precomputedHash) {
   try {
-    if (user.channel_status === 'blocked') {
+    if (user.channel_status === 'blocked') return;
+
+    const GRACE_PERIOD_MS = 2 * 60 * 1000;
+    if (user.created_at && Date.now() - new Date(user.created_at).getTime() < GRACE_PERIOD_MS) {
       return;
     }
 
-    const GRACE_PERIOD_MS = 2 * 60 * 1000;
-    if (user.created_at) {
-      const createdAt = new Date(user.created_at).getTime();
-      if (Date.now() - createdAt < GRACE_PERIOD_MS) {
-        return;
-      }
-    }
-
-    const queueKey = `GPV${user.queue}`;
-
-    const availableTimestamps = Object.keys(data?.fact?.data || {}).map(Number).sort((a, b) => a - b);
-    const todayTimestamp = availableTimestamps[0] || null;
-    const tomorrowTimestamp = availableTimestamps.length > 1 ? availableTimestamps[1] : null;
-
-    const newHash = calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp);
-
-    if (newHash !== user.last_hash) {
-      // Hash changed — handle publication
-      await handleScheduleChange(user, data, newHash);
+    if (precomputedHash !== user.last_hash) {
+      await handleScheduleChange(user, data, precomputedHash);
     }
   } catch (error) {
-    console.error(`Помилка checkUserSchedule для користувача ${user.telegram_id}:`, error);
+    console.error(`Помилка перевірки графіка для ${user.telegram_id}:`, error.message);
   }
 }
 
