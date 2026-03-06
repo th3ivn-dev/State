@@ -16,8 +16,11 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   const webhookPath = config.WEBHOOK_PATH;
   const webhookSecret = config.WEBHOOK_SECRET;
 
+  const MAX_BODY_BYTES = 1024 * 1024; // 1 MB — Telegram updates are small
+  const REQUEST_TIMEOUT_MS = 10_000;
+
   server = http.createServer(async (req, res) => {
-    // Webhook endpoint
+    // Webhook endpoint — hardened with body size limit and timeout
     if (useWebhook && req.method === 'POST' && req.url === webhookPath) {
       const incomingSecret = req.headers['x-telegram-bot-api-secret-token'];
       if (incomingSecret !== webhookSecret) {
@@ -25,12 +28,40 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         res.end(JSON.stringify({ ok: false, error: 'Unauthorized' }));
         return;
       }
+
       let body = '';
-      req.on('data', (chunk) => { body += chunk.toString(); });
+      let aborted = false;
+
+      const timer = setTimeout(() => {
+        aborted = true;
+        res.writeHead(408, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: false, error: 'Request timeout' }));
+        req.destroy();
+      }, REQUEST_TIMEOUT_MS);
+
+      req.on('data', (chunk) => {
+        body += chunk.toString();
+        if (body.length > MAX_BODY_BYTES) {
+          aborted = true;
+          clearTimeout(timer);
+          res.writeHead(413, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: 'Payload too large' }));
+          req.destroy();
+        }
+      });
+
       req.on('end', () => {
+        clearTimeout(timer);
+        if (aborted) return;
+
         try {
           const update = JSON.parse(body);
-          bot.handleUpdate(update);
+
+          // Fire-and-forget with error isolation — a bad update must never crash the server
+          Promise.resolve(bot.handleUpdate(update)).catch((err) => {
+            console.error('Webhook handleUpdate error (isolated):', err.message);
+          });
+
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (error) {
@@ -38,6 +69,10 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
         }
+      });
+
+      req.on('error', () => {
+        clearTimeout(timer);
       });
       return;
     }

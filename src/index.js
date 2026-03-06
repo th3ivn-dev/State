@@ -108,10 +108,23 @@ async function main() {
     checkExistingUsers(bot);
   }, 5000); // Wait 5 seconds after startup
 
+  // Memory watchdog — triggers graceful shutdown if heap grows dangerously large.
+  // Railway will OOM-kill without warning; we prefer a controlled restart.
+  const HEAP_LIMIT_MB = parseInt(process.env.HEAP_LIMIT_MB || '450', 10);
+  const memoryWatchdog = setInterval(() => {
+    const heapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
+    if (heapMB > HEAP_LIMIT_MB) {
+      console.error(`🚨 Heap ${heapMB}MB > ${HEAP_LIMIT_MB}MB limit — triggering graceful restart`);
+      notifyAdminsAboutError(bot, new Error(`Heap limit exceeded: ${heapMB}MB`), 'memoryWatchdog');
+      clearInterval(memoryWatchdog);
+      shutdown('MEMORY_LIMIT');
+    }
+  }, 60_000);
+  memoryWatchdog.unref();
+
   console.log('✨ Бот успішно запущено та готовий до роботи!');
 }
 
-// Запуск з обробкою помилок
 main().catch(error => {
   console.error('❌ Критична помилка запуску:', error);
   process.exit(1);
@@ -211,21 +224,34 @@ const shutdown = async (signal) => {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
-// Обробка необроблених помилок
+// Track consecutive uncaught exceptions — shut down if they happen too fast
+let uncaughtCount = 0;
+let uncaughtResetTimer = null;
+const MAX_UNCAUGHT_PER_MINUTE = 10;
+
 process.on('uncaughtException', (error) => {
   console.error('❌ Необроблена помилка:', error);
-  // Track error in monitoring system
+
   try {
     const metricsCollector = monitoringManager.getMetricsCollector();
     metricsCollector.trackError(error, { context: 'uncaughtException' });
   } catch (_e) {
     // Monitoring may not be initialized yet
   }
-  // Notify admins about the error
+
   notifyAdminsAboutError(bot, error, 'uncaughtException');
-  // Do not shutdown on uncaughtException to keep bot running
-  // Only critical errors that would corrupt state should trigger shutdown
-  // The error is logged and tracked — the bot continues operating
+
+  uncaughtCount++;
+  if (!uncaughtResetTimer) {
+    uncaughtResetTimer = setTimeout(() => { uncaughtCount = 0; uncaughtResetTimer = null; }, 60_000);
+    uncaughtResetTimer.unref();
+  }
+
+  // If exceptions are cascading, the process is likely in a corrupted state
+  if (uncaughtCount >= MAX_UNCAUGHT_PER_MINUTE) {
+    console.error(`🚨 ${uncaughtCount} uncaughtExceptions in 1 min — shutting down`);
+    shutdown('EXCEPTION_CASCADE');
+  }
 });
 
 process.on('unhandledRejection', (reason, _promise) => {
