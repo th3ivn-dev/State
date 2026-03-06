@@ -35,10 +35,8 @@ async function handleSchedule(bot, msg) {
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
-    // Get snapshot-based updateType for contextual headers
-    const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
-    // getUpdateTypeV2 uses snapshot-based logic only (previousSchedule is not used)
-    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    // user object already contains snapshot fields (today_snapshot_hash, etc.)
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
     const updateType = {
       tomorrowAppeared: updateTypeV2.tomorrowAppeared,
       todayUpdated: updateTypeV2.todayChanged,

@@ -123,11 +123,30 @@ async function checkImageExists(region, queue) {
   }
 }
 
-function fetchScheduleImage(region, queue) {
-  const timestamp = Date.now();
+// Image cache — same region+queue image is reused across thousands of users
+const imageCache = new Map();
+const IMAGE_CACHE_TTL = 2 * 60 * 1000;
+
+async function fetchScheduleImage(region, queue) {
+  const cacheKey = `img_${region}_${queue}`;
+  const cached = imageCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < IMAGE_CACHE_TTL) {
+    return cached.data;
+  }
+
   const baseUrl = getImageUrl(region, queue);
-  const url = `${baseUrl}?t=${timestamp}`;
-  return fetchWithRetry(url, 2, true);
+  const url = `${baseUrl}?t=${Date.now()}`;
+  const data = await fetchWithRetry(url, 2, true);
+
+  imageCache.set(cacheKey, { data, ts: Date.now() });
+
+  // Evict old entries
+  if (imageCache.size > 100) {
+    const oldest = [...imageCache.entries()].sort((a, b) => a[1].ts - b[1].ts)[0];
+    if (oldest) imageCache.delete(oldest[0]);
+  }
+
+  return data;
 }
 
 function clearCache() {

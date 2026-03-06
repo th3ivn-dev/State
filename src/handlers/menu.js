@@ -68,9 +68,7 @@ async function handleMenuSchedule(bot, query) {
       return;
     }
 
-    // Format message
-    const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
-    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
     const updateType = {
       tomorrowAppeared: updateTypeV2.tomorrowAppeared,
       todayUpdated: updateTypeV2.todayChanged,
@@ -78,7 +76,6 @@ async function handleMenuSchedule(bot, query) {
     };
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-    // Читаємо час останньої перевірки ботом та додаємо date_time entity
     let lastCheck;
     try {
       lastCheck = await getScheduleCheckTime(user.region, user.queue);
@@ -522,8 +519,7 @@ async function handleScheduleRefresh(bot, query) {
       lastCheck = Math.floor(Date.now() / 1000);
     }
 
-    const userSnapshots = await usersDb.getSnapshotHashes(telegramId);
-    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
     const updateType = {
       tomorrowAppeared: updateTypeV2.tomorrowAppeared,
       todayUpdated: updateTypeV2.todayChanged,

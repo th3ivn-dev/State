@@ -122,30 +122,33 @@ async function handleBroadcast(bot, msg) {
       return;
     }
 
-    const users = await usersDb.getAllActiveUsers();
+    const stats = await usersDb.getUserStats();
 
-    if (users.length === 0) {
+    if (stats.active === 0) {
       await bot.api.sendMessage(chatId, 'ℹ️ Немає активних користувачів.');
       return;
     }
 
-    await bot.api.sendMessage(chatId, `📤 Розсилка повідомлення ${users.length} користувачам...`);
+    await bot.api.sendMessage(chatId, `📤 Розсилка повідомлення ~${stats.active} користувачам...`);
 
     let sent = 0;
     let failed = 0;
 
-    for (const user of users) {
-      try {
-        await bot.api.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
-          parse_mode: 'HTML',
-        });
-        sent++;
-
-        // Затримка для уникнення rate limit
-        await new Promise(resolve => setTimeout(resolve, 50));
-      } catch (error) {
-        console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
-        failed++;
+    // Paginated broadcast — loads 500 users at a time instead of all at once
+    for await (const page of usersDb.paginateActiveUsers(500)) {
+      for (const user of page) {
+        try {
+          await bot.api.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
+            parse_mode: 'HTML',
+          });
+          sent++;
+          await new Promise(resolve => setTimeout(resolve, 40));
+        } catch (error) {
+          if (!error.message?.includes('bot was blocked') && !error.message?.includes('chat not found')) {
+            console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
+          }
+          failed++;
+        }
       }
     }
 

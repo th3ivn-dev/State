@@ -100,10 +100,9 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
       reply_markup: getMaintenanceKeyboard(newEnabled).reply_markup,
     });
 
-    // Broadcast to all users in background
+    // Paginated broadcast in background
     (async () => {
       try {
-        const users = await usersDb.getAllActiveUsers();
         let broadcastText;
         if (newEnabled) {
           broadcastText =
@@ -120,6 +119,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
         }
 
         let sent = 0;
+        let total = 0;
         const broadcastOptions = { parse_mode: 'HTML' };
         if (!newEnabled) {
           broadcastOptions.reply_markup = {
@@ -129,14 +129,17 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
           };
         }
 
-        for (const user of users) {
-          const result = await safeSendMessage(bot, user.telegram_id, broadcastText, broadcastOptions);
-          if (result) sent++;
-          await new Promise(resolve => setTimeout(resolve, 50));
+        for await (const page of usersDb.paginateActiveUsers(500)) {
+          for (const user of page) {
+            total++;
+            const result = await safeSendMessage(bot, user.telegram_id, broadcastText, broadcastOptions);
+            if (result) sent++;
+            await new Promise(resolve => setTimeout(resolve, 40));
+          }
         }
 
         await safeSendMessage(bot, chatId,
-          `📤 Сповіщення надіслано: ${sent} з ${users.length} користувачів`,
+          `📤 Сповіщення надіслано: ${sent} з ${total} користувачів`,
           { parse_mode: 'HTML' }
         );
       } catch (err) {
