@@ -75,11 +75,13 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const region = REGIONS[state.region]?.name || state.region;
 
     await safeEditMessageText(bot,
-      `✅ <b>Налаштування завершено!</b>\n\n` +
+      `✅ <b>Готово!</b>\n\n` +
       `📍 Регіон: ${region}\n` +
-      `⚡️ Черга: ${state.queue}\n` +
-      `📬 Сповіщення: у цей чат\n\n` +
-      `Сповіщення приходитимуть у цей чат.`,
+      `⚡ Черга: ${state.queue}\n` +
+      `🔔 Сповіщення: увімкнено ✅\n\n` +
+      `Я одразу повідомлю вас про наступне\n` +
+      `відключення або появу світла.\n\n` +
+      `Переходьте до головного меню 👇`,
       {
         chat_id: chatId,
         message_id: query.message.message_id,
@@ -195,12 +197,10 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     }
 
     if (pendingChannel) {
-      // Є канал для підключення - показати підтвердження
       await safeEditMessageText(bot,
-        `📺 <b>Знайдено канал!</b>\n\n` +
-        `Канал: <b>${escapeHtml(pendingChannel.channelTitle)}</b>\n` +
-        `(${pendingChannel.channelUsername})\n\n` +
-        `Підключити цей канал?`,
+        `🟢 <b>Автодетект каналу</b>\n\n` +
+        `✅ Канал знайдено: "<b>${escapeHtml(pendingChannel.channelTitle)}</b>"\n\n` +
+        `Використовувати його для сповіщень?`,
         {
           chat_id: chatId,
           message_id: query.message.message_id,
@@ -248,18 +248,13 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     state.step = 'notify_target';
     await setWizardState(telegramId, state);
 
-    const region = REGIONS[state.region]?.name || state.region;
-
     await safeEditMessageText(bot,
-      `✅ Налаштування:\n\n` +
-      `📍 Регіон: ${region}\n` +
-      `⚡️ Черга: ${state.queue}\n\n` +
-      `📬 Куди надсилати сповіщення про світло та графіки?\n\n` +
-      `Оберіть, де вам зручніше їх отримувати:\n\n` +
+      `✅ Черга: ${state.queue}\n\n` +
+      `📬 Крок 3 із 3 — Куди надсилати сповіщення?\n\n` +
       `📱 <b>У цьому боті</b>\n` +
       `Сповіщення приходитимуть прямо в цей чат\n\n` +
-      `📺 <b>У вашому Telegram-каналі</b>\n` +
-      `Бот публікуватиме сповіщення у ваш канал\n` +
+      `📺 <b>У Telegram-каналі</b>\n` +
+      `Бот публікуватиме у ваш канал\n` +
       `(потрібно додати бота як адміністратора)`,
       {
         chat_id: chatId,
@@ -343,11 +338,11 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
 
     // Показуємо форму введення назви
     await safeEditMessageText(bot,
-      '✅ Канал підключено!\n\n' +
-      '📝 <b>Введіть назву для каналу</b>\n\n' +
-      `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
+      '✅ <b>Канал підключено!</b>\n\n' +
+      'Як назвати канал?\n\n' +
+      `Назва буде додана після "${CHANNEL_NAME_PREFIX}"\n\n` +
       '<b>Приклад:</b> Київ Черга 3.1\n' +
-      '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
+      '<b>Результат:</b> СвітлоБот ⚡ Київ Черга 3.1',
       {
         chat_id: chatId,
         message_id: query.message.message_id,
