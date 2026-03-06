@@ -1,4 +1,4 @@
-const { pool } = require('./db');
+const { pool, safeQuery } = require('./db');
 
 // Створити нового користувача
 async function createUser(telegramId, username, region, queue) {
@@ -38,10 +38,10 @@ async function saveUser(telegramId, username, region, queue) {
   }
 }
 
-// Отримати користувача по telegram_id
+// Отримати користувача по telegram_id (uses safeQuery for connection resilience)
 async function getUserByTelegramId(telegramId) {
   try {
-    const result = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
+    const result = await safeQuery('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
     return result.rows[0];
   } catch (error) {
     console.error('Error getting user by telegram_id:', error.message);
@@ -274,7 +274,7 @@ const SCHEDULER_COLUMNS = [
 
 async function getUsersByRegionForScheduler(region) {
   try {
-    const result = await pool.query(
+    const result = await safeQuery(
       `SELECT ${SCHEDULER_COLUMNS} FROM users WHERE region = $1 AND is_active = TRUE`,
       [region]
     );

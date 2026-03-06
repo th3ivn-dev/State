@@ -3,12 +3,13 @@ const { TELEGRAM_RATE_LIMIT_PER_SEC, TELEGRAM_RETRY_AFTER_DEFAULT_MS, TELEGRAM_M
 
 const logger = createLogger('MessageQueue');
 
-// Priority levels
 const PRIORITY = {
-  high: 0,    // User interactions
-  normal: 1,  // Schedule updates
-  low: 2      // Admin notifications
+  high: 0,
+  normal: 1,
+  low: 2
 };
+
+const MAX_QUEUE_SIZE = 50_000;
 
 class MessageQueue {
   constructor() {
@@ -18,7 +19,8 @@ class MessageQueue {
     this.metrics = {
       sent: 0,
       retries: 0,
-      failures: 0
+      failures: 0,
+      dropped: 0,
     };
     this.rateLimit = TELEGRAM_RATE_LIMIT_PER_SEC;
     this.intervalMs = 1000 / this.rateLimit;
@@ -46,6 +48,13 @@ class MessageQueue {
       return Promise.reject(new Error('Message queue not initialized'));
     }
 
+    // Back-pressure: reject low-priority items when queue is overloaded
+    if (this.queue.length >= MAX_QUEUE_SIZE) {
+      this.metrics.dropped++;
+      logger.warn(`Queue full (${MAX_QUEUE_SIZE}), dropping ${priority} ${method}`);
+      return Promise.reject(new Error('Message queue full'));
+    }
+
     return new Promise((resolve, reject) => {
       const item = {
         method,
@@ -57,7 +66,6 @@ class MessageQueue {
         timestamp: Date.now()
       };
 
-      // Insert based on priority
       const insertIndex = this.queue.findIndex(q => q.priority > item.priority);
       if (insertIndex === -1) {
         this.queue.push(item);
@@ -79,7 +87,7 @@ class MessageQueue {
 
     this.processing = true;
 
-    while (this.queue.length > 0 && !this.draining) {
+    while (this.queue.length > 0) {
       const item = this.queue.shift();
 
       try {
@@ -92,7 +100,6 @@ class MessageQueue {
         logger.error(`Failed to send message after ${item.retries} retries:`, { error: error.message });
       }
 
-      // Rate limiting delay
       await this.sleep(this.intervalMs);
     }
 
@@ -219,15 +226,22 @@ class MessageQueue {
    */
   async drain(timeoutMs = 10000) {
     this.draining = true;
-    logger.info('Draining message queue...');
+    logger.info(`Draining message queue (${this.queue.length} pending)...`);
 
+    // The process() loop continues running — we just wait for it to finish
     const deadline = Date.now() + timeoutMs;
     while ((this.queue.length > 0 || this.processing) && Date.now() < deadline) {
       await this.sleep(100);
     }
 
     if (this.queue.length > 0 || this.processing) {
-      logger.warn(`Message queue drain timed out with ${this.queue.length} messages remaining`);
+      const remaining = this.queue.length;
+      logger.warn(`Drain timed out — discarding ${remaining} messages`);
+      // Reject remaining items so callers are not stuck forever
+      for (const item of this.queue) {
+        item.reject(new Error('Message queue shutdown'));
+      }
+      this.queue = [];
     } else {
       logger.success('Message queue drained');
     }

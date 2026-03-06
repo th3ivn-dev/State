@@ -1,12 +1,24 @@
 const axios = require('axios');
 const config = require('./config');
+const { CircuitBreaker, CircuitOpenError } = require('./utils/circuitBreaker');
 
-// Кешування даних для зменшення навантаження на GitHub API
 const cache = new Map();
-const CACHE_TTL = 2 * 60 * 1000; // 2 хвилини
+const CACHE_TTL = 2 * 60 * 1000;
 const MAX_CACHE_SIZE = 100;
 
-// Periodic cache cleanup
+// Circuit breaker per region — prevents hammering GitHub when it's down
+const regionBreakers = new Map();
+
+function getRegionBreaker(region) {
+  if (!regionBreakers.has(region)) {
+    regionBreakers.set(region, new CircuitBreaker(`github:${region}`, {
+      failureThreshold: 3,
+      resetTimeoutMs: 90_000,
+    }));
+  }
+  return regionBreakers.get(region);
+}
+
 function cleanupCache() {
   const now = Date.now();
   for (const [key, value] of cache.entries()) {
@@ -14,9 +26,6 @@ function cleanupCache() {
       cache.delete(key);
     }
   }
-  // Evict oldest if over max size
-  // Note: O(n log n) complexity is acceptable for MAX_CACHE_SIZE=100
-  // More complex structures would be overkill for this scale
   if (cache.size > MAX_CACHE_SIZE) {
     const sortedEntries = [...cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
     const toDelete = cache.size - MAX_CACHE_SIZE;
@@ -28,12 +37,10 @@ function cleanupCache() {
 
 const cacheCleanupInterval = setInterval(cleanupCache, 5 * 60 * 1000);
 
-// Export cleanup for graceful shutdown
 function stopCacheCleanup() {
   clearInterval(cacheCleanupInterval);
 }
 
-// Fetch with retry logic
 async function fetchWithRetry(url, retries = 3, isImage = false) {
   const delays = [5000, 15000, 45000];
 
@@ -61,43 +68,42 @@ async function fetchWithRetry(url, retries = 3, isImage = false) {
   }
 }
 
-// Отримати URL для даних регіону
 function getDataUrl(region) {
   return config.dataUrlTemplate.replace('{region}', region);
 }
 
-// Отримати URL для зображення графіка
 function getImageUrl(region, queue) {
   return config.imageUrlTemplate
     .replace('{region}', region)
-    .replace('{queue}', queue.replace('.', '-'));  // Замінюємо "3.1" на "3-1"
+    .replace('{queue}', queue.replace('.', '-'));
 }
 
-// Отримати дані графіка для регіону
 async function fetchScheduleData(region) {
   const cacheKey = `schedule_${region}`;
   const cached = cache.get(cacheKey);
 
-  // Перевірка кешу
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
   }
 
-  try {
-    const url = getDataUrl(region);
-    const data = await fetchWithRetry(url, 3, false);
+  const breaker = getRegionBreaker(region);
 
-    // Збереження в кеш
-    cache.set(cacheKey, {
-      data,
-      timestamp: Date.now(),
+  try {
+    const data = await breaker.execute(() => {
+      const url = getDataUrl(region);
+      return fetchWithRetry(url, 3, false);
     });
 
+    cache.set(cacheKey, { data, timestamp: Date.now() });
     return data;
   } catch (error) {
-    console.error(`Помилка отримання даних для ${region}:`, error.message);
+    if (error instanceof CircuitOpenError) {
+      console.warn(`⚡ Circuit breaker OPEN для ${region} — використання кешу`);
+    } else {
+      console.error(`Помилка отримання даних для ${region}:`, error.message);
+    }
 
-    // Повернути дані з кешу якщо є помилка
+    // Stale-cache fallback — return old data rather than crashing
     if (cached) {
       console.log(`Використання застарілих даних з кешу для ${region}`);
       return cached.data;
@@ -107,7 +113,6 @@ async function fetchScheduleData(region) {
   }
 }
 
-// Перевірити доступність зображення
 async function checkImageExists(region, queue) {
   try {
     const url = getImageUrl(region, queue);
@@ -118,19 +123,23 @@ async function checkImageExists(region, queue) {
   }
 }
 
-// Fetch schedule image as Buffer
 function fetchScheduleImage(region, queue) {
   const timestamp = Date.now();
   const baseUrl = getImageUrl(region, queue);
   const url = `${baseUrl}?t=${timestamp}`;
-  console.log(`Fetching schedule image from: ${url}`);
-  // Явно вказуємо що це зображення для arraybuffer
-  return fetchWithRetry(url, 3, true);
+  return fetchWithRetry(url, 2, true);
 }
 
-// Очистити кеш
 function clearCache() {
   cache.clear();
+}
+
+function getCircuitBreakerStatuses() {
+  const statuses = {};
+  for (const [region, breaker] of regionBreakers) {
+    statuses[region] = breaker.getStatus();
+  }
+  return statuses;
 }
 
 module.exports = {
@@ -140,4 +149,5 @@ module.exports = {
   checkImageExists,
   clearCache,
   stopCacheCleanup,
+  getCircuitBreakerStatuses,
 };
