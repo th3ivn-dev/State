@@ -30,19 +30,19 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
     sentMessage = await safeSendMessage(
       bot,
       chatId,
-      '👋 Привіт! Я СвітлоБот 🤖\n\n' +
-      'Я допоможу відстежувати відключення світла\n' +
-      'та повідомлю, коли воно зʼявиться або зникне.\n\n' +
-      'Давайте налаштуємося.\n\n' +
+      '<tg-emoji emoji-id="5472055112702629499">👋</tg-emoji> Вітаю! Я СвітлоБот ⚡\n\n' +
+      'Слідкую за відключеннями світла і одразу\n' +
+      'повідомлю, як тільки щось зміниться.\n\n' +
+      'Налаштування займе ~1 хвилину.\n\n' +
       DEVELOPMENT_WARNING + '\n\n' +
-      'Оберіть свій регіон:',
+      '📍 Крок 1 із 3 — Оберіть свій регіон:',
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
   } else {
     sentMessage = await safeSendMessage(
       bot,
       chatId,
-      '1️⃣ Оберіть ваш регіон:\n\n' +
+      '📍 Крок 1 із 3 — Оберіть свій регіон:\n\n' +
       DEVELOPMENT_WARNING,
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
@@ -57,13 +57,13 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
     // safeSendMessage повернула null — спробуємо відправити повторно напряму
     try {
       const retryText = mode === 'new'
-        ? '👋 Привіт! Я СвітлоБот 🤖\n\n' +
-          'Я допоможу відстежувати відключення світла\n' +
-          'та повідомлю, коли воно зʼявиться або зникне.\n\n' +
-          'Давайте налаштуємося.\n\n' +
+        ? '<tg-emoji emoji-id="5472055112702629499">👋</tg-emoji> Вітаю! Я СвітлоБот ⚡\n\n' +
+          'Слідкую за відключеннями світла і одразу\n' +
+          'повідомлю, як тільки щось зміниться.\n\n' +
+          'Налаштування займе ~1 хвилину.\n\n' +
           DEVELOPMENT_WARNING + '\n\n' +
-          'Оберіть свій регіон:'
-        : '1️⃣ Оберіть ваш регіон:\n\n' +
+          '📍 Крок 1 із 3 — Оберіть свій регіон:'
+        : '📍 Крок 1 із 3 — Оберіть свій регіон:\n\n' +
           DEVELOPMENT_WARNING;
 
       const retryMessage = await bot.api.sendMessage(

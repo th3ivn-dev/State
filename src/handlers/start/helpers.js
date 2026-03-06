@@ -21,15 +21,13 @@ const NEWS_CHANNEL_MESSAGE = {
   }
 };
 
-// Development phase warning text
+// Development phase warning text (used in edit mode back_to_region)
 const DEVELOPMENT_WARNING =
-  '⚠️ Бот знаходиться в активній фазі розробки.\n\n' +
-  'Наразі підтримуються такі регіони:\n' +
-  '• Київ\n' +
-  '• Київщина\n' +
-  '• Дніпропетровщина\n' +
-  '• Одещина\n\n' +
-  'Якщо вашого регіону немає — ви можете запропонувати його додати.';
+  '⚠️ Бот у активній розробці — деякі функції\nможуть працювати нестабільно.\n\n' +
+  'Доступні регіони:\n' +
+  '• Київ • Київщина\n' +
+  '• Дніпропетровщина • Одещина\n\n' +
+  'Немає вашого регіону? Запропонуйте — додамо!';
 
 // Helper function to check if user is in wizard
 function isInWizard(telegramId) {

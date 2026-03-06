@@ -24,7 +24,8 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
     await setWizardState(telegramId, state);
 
     await safeEditMessageText(bot,
-      `✅ Регіон: ${REGIONS[region].name}\n\n2️⃣ Оберіть свою чергу:`,
+      `✅ Регіон: ${REGIONS[region].name}\n\n` +
+      `⚡ Крок 2 із 3 — Оберіть свою чергу:`,
       {
         chat_id: chatId,
         message_id: query.message.message_id,
@@ -39,7 +40,8 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
     const pageNum = parseInt(data.replace('queue_page_', ''), 10);
 
     await safeEditMessageText(bot,
-      `✅ Регіон: ${REGIONS[state.region].name}\n\n2️⃣ Оберіть свою чергу:`,
+      `✅ Регіон: ${REGIONS[state.region].name}\n\n` +
+      `⚡ Крок 2 із 3 — Оберіть свою чергу:`,
       {
         chat_id: chatId,
         message_id: query.message.message_id,
@@ -59,18 +61,13 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
       state.step = 'notify_target';
       await setWizardState(telegramId, state);
 
-      const region = REGIONS[state.region]?.name || state.region;
-
       await safeEditMessageText(bot,
-        `✅ Налаштування:\n\n` +
-        `📍 Регіон: ${region}\n` +
-        `⚡️ Черга: ${queue}\n\n` +
-        `📬 Куди надсилати сповіщення про світло та графіки?\n\n` +
-        `Оберіть, де вам зручніше їх отримувати:\n\n` +
+        `✅ Черга: ${queue}\n\n` +
+        `📬 Крок 3 із 3 — Куди надсилати сповіщення?\n\n` +
         `📱 <b>У цьому боті</b>\n` +
         `Сповіщення приходитимуть прямо в цей чат\n\n` +
-        `📺 <b>У вашому Telegram-каналі</b>\n` +
-        `Бот публікуватиме сповіщення у ваш канал\n` +
+        `📺 <b>У Telegram-каналі</b>\n` +
+        `Бот публікуватиме у ваш канал\n` +
         `(потрібно додати бота як адміністратора)`,
         {
           chat_id: chatId,
@@ -197,7 +194,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
     await setWizardState(telegramId, state);
 
     await safeEditMessageText(bot,
-      '1️⃣ Оберіть ваш регіон:\n\n' +
+      '📍 Крок 1 із 3 — Оберіть свій регіон:\n\n' +
       DEVELOPMENT_WARNING,
       {
         chat_id: chatId,
