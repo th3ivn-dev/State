@@ -198,7 +198,6 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
 
     if (pendingChannel) {
       await safeEditMessageText(bot,
-        `🟢 <b>Автодетект каналу</b>\n\n` +
         `✅ Канал знайдено: "<b>${escapeHtml(pendingChannel.channelTitle)}</b>"\n\n` +
         `Використовувати його для сповіщень?`,
         {
