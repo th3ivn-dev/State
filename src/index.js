@@ -8,7 +8,8 @@ const { startPowerMonitoring, stopPowerMonitoring, saveAllUserStates } = require
 const { initChannelGuard, checkExistingUsers } = require('./channelGuard');
 const { formatInterval } = require('./utils');
 const config = require('./config');
-const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging, getSetting } = require('./database/db');
+const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging } = require('./database/db');
+const settingsCache = require('./utils/settingsCache');
 const { restoreWizardStates } = require('./handlers/start');
 const { restoreConversationStates } = require('./handlers/channel');
 const { restoreIpSetupStates } = require('./handlers/settings');
@@ -30,8 +31,8 @@ async function main() {
   await initializeDatabase();
   await runMigrations();
 
-  // Read schedule interval from database for logging
-  const intervalStr = await getSetting('schedule_check_interval', '60');
+  // Read schedule interval from database for logging (via settings cache)
+  const intervalStr = await settingsCache.get('schedule_check_interval', '60');
   let checkIntervalSeconds = parseInt(intervalStr, 10);
 
   // Validate the interval

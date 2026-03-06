@@ -2,20 +2,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Копіюємо package files
 COPY package*.json ./
 
-# Встановлюємо залежності
-RUN npm ci --only=production
+RUN npm ci --only=production && npm cache clean --force
 
-# Копіюємо весь код
 COPY . .
 
-# Змінна середовища для timezone
 ENV TZ=Europe/Kyiv
+ENV NODE_ENV=production
 
-# Expose port for webhook/health check
 EXPOSE 3000
 
-# Запускаємо бота
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://localhost:3000/health || exit 1
+
 CMD ["node", "src/index.js"]

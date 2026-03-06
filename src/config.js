@@ -24,9 +24,9 @@ const config = {
   ROUTER_HOST: process.env.ROUTER_HOST || null,
   ROUTER_PORT: process.env.ROUTER_PORT || 80,
 
-  // Scaling configuration (new)
-  DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX || '50', 10),
-  DB_POOL_MIN: parseInt(process.env.DB_POOL_MIN || '5', 10),
+  // Scaling configuration — Railway Postgres starter allows ~25 connections
+  DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX || '20', 10),
+  DB_POOL_MIN: parseInt(process.env.DB_POOL_MIN || '2', 10),
 
   // Message queue
   TELEGRAM_RATE_LIMIT: parseInt(process.env.TELEGRAM_RATE_LIMIT || '25', 10), // msg/sec

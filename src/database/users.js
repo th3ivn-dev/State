@@ -258,6 +258,33 @@ async function getUsersByRegion(region) {
   }
 }
 
+// Lightweight projection for scheduler — fetches only the columns
+// required by checkUserSchedule / publishScheduleWithPhoto.
+// Avoids transferring large text fields (descriptions, branding) for every user.
+const SCHEDULER_COLUMNS = [
+  'id', 'telegram_id', 'region', 'queue',
+  'last_hash', 'last_published_hash',
+  'channel_id', 'channel_paused', 'channel_status',
+  'power_notify_target', 'router_ip', 'created_at',
+  'today_snapshot_hash', 'tomorrow_snapshot_hash', 'tomorrow_published_date',
+  'schedule_caption', 'period_format', 'power_off_text', 'power_on_text',
+  'delete_old_message', 'picture_only',
+  'last_schedule_message_id', 'last_post_id',
+].join(', ');
+
+async function getUsersByRegionForScheduler(region) {
+  try {
+    const result = await pool.query(
+      `SELECT ${SCHEDULER_COLUMNS} FROM users WHERE region = $1 AND is_active = TRUE`,
+      [region]
+    );
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getUsersByRegionForScheduler:', error.message);
+    return [];
+  }
+}
+
 // Отримати всіх активних користувачів
 async function getAllActiveUsers() {
   try {
@@ -1013,29 +1040,35 @@ async function getActiveUsersByRegionQueue() {
   }
 }
 
-// NEW: Batch update hashes for multiple users at once
+// Batch update hashes using a single SQL statement (unnest) — O(1) round-trips.
 async function batchUpdateHashes(updates) {
-  // updates = [{ id, lastHash, lastPublishedHash }, ...]
-  if (updates.length === 0) return;
+  if (!updates || updates.length === 0) return;
 
-  const client = await pool.connect();
+  const ids = [];
+  const hashes = [];
+  const pubHashes = [];
+  for (const { id, lastHash, lastPublishedHash } of updates) {
+    ids.push(id);
+    hashes.push(lastHash);
+    pubHashes.push(lastPublishedHash);
+  }
+
   try {
-    await client.query('BEGIN');
-
-    for (const { id, lastHash, lastPublishedHash } of updates) {
-      await client.query(`
-        UPDATE users SET last_hash = $1, last_published_hash = $2, updated_at = NOW()
-        WHERE id = $3
-      `, [lastHash, lastPublishedHash, id]);
-    }
-
-    await client.query('COMMIT');
+    await pool.query(`
+      UPDATE users u SET
+        last_hash = v.lh,
+        last_published_hash = v.lph,
+        updated_at = NOW()
+      FROM (
+        SELECT unnest($1::int[])  AS id,
+               unnest($2::text[]) AS lh,
+               unnest($3::text[]) AS lph
+      ) v
+      WHERE u.id = v.id
+    `, [ids, hashes, pubHashes]);
   } catch (error) {
-    await client.query('ROLLBACK');
     console.error('Error in batchUpdateHashes:', error.message);
     throw error;
-  } finally {
-    client.release();
   }
 }
 
@@ -1178,7 +1211,7 @@ module.exports = {
   updateUser,
   updateSnapshotHashes,
   getSnapshotHashes,
-  // New batch operations
+  getUsersByRegionForScheduler,
   getActiveUsersByRegionQueue,
   batchUpdateHashes,
   getUserCount,

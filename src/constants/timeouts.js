@@ -29,10 +29,18 @@ module.exports = {
   PENDING_CHANNEL_CLEANUP_INTERVAL_MS: 60 * 60 * 1000,
   OLD_STATE_MAX_AGE_HOURS: 24,
 
-  // Maps
+  // Maps (bounded to prevent memory leaks at scale)
   MAX_INSTRUCTION_MESSAGES_MAP_SIZE: 500,
   MAX_PENDING_CHANNELS_MAP_SIZE: 200,
+  MAX_SENT_REMINDERS_MAP_SIZE: 100_000,
 
   // Health
   POOL_STATS_LOG_INTERVAL_MS: 5 * 60 * 1000,
+
+  // Database (Railway-aware defaults)
+  DB_POOL_MAX_DEFAULT: 20,
+  DB_POOL_MIN_DEFAULT: 2,
+
+  // Migration
+  SCHEMA_VERSION: 2,
 };

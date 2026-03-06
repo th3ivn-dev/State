@@ -17,8 +17,9 @@ const { parseScheduleForQueue } = require('./parser');
 const { REGIONS } = require('./constants/regions');
 const usersDb = require('./database/users');
 const { safeSendMessage } = require('./utils/errorHandler');
+const { MAX_SENT_REMINDERS_MAP_SIZE } = require('./constants/timeouts');
 
-// In-memory tracking of already-sent reminders (cleared daily)
+// In-memory tracking of already-sent reminders (cleared daily, bounded)
 // Key: `${telegramId}:${eventType}:${eventTimeIso}`
 const sentReminders = new Map();
 
@@ -241,12 +242,19 @@ async function checkReminders(bot) {
 }
 
 /**
- * Clear old sent reminders (called once a day)
+ * Clear old sent reminders and enforce size limit
  */
 function clearOldReminders() {
   const oneDayAgo = Date.now() - 86400000;
   for (const [key, ts] of sentReminders) {
     if (ts < oneDayAgo) sentReminders.delete(key);
+  }
+  // Enforce hard size limit to prevent memory leaks at 50K+ users
+  if (sentReminders.size > MAX_SENT_REMINDERS_MAP_SIZE) {
+    const excess = sentReminders.size - MAX_SENT_REMINDERS_MAP_SIZE;
+    const keys = Array.from(sentReminders.keys()).slice(0, excess);
+    keys.forEach(k => sentReminders.delete(k));
+    console.log(`🧹 Очищено ${excess} старих записів sentReminders (ліміт ${MAX_SENT_REMINDERS_MAP_SIZE})`);
   }
 }
 
