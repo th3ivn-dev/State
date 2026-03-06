@@ -10,9 +10,6 @@ const { formatInterval } = require('./utils');
 const config = require('./config');
 const { initializeDatabase, runMigrations, cleanupOldStates, checkPoolHealth, startPoolMetricsLogging } = require('./database/db');
 const settingsCache = require('./utils/settingsCache');
-const { restoreWizardStates } = require('./handlers/start');
-const { restoreConversationStates } = require('./handlers/channel');
-const { restoreIpSetupStates } = require('./handlers/settings');
 const { initStateManager, stopCleanup } = require('./state/stateManager');
 const { monitoringManager } = require('./monitoring/monitoringManager');
 const { startHealthCheck, stopHealthCheck } = require('./healthcheck');
@@ -50,38 +47,27 @@ async function main() {
   // Запуск логування метрик пулу
   startPoolMetricsLogging();
 
-  // Ініціалізація message queue
   messageQueue.init(bot);
 
-  // Ініціалізація централізованого state manager
-  await initStateManager();
+  // State restoration — initStateManager handles wizard/conversation/ipSetup
+  await Promise.all([
+    initStateManager(),
+    restorePendingChannels(),
+    cleanupOldStates(),
+  ]);
 
-  // Legacy state restoration calls - can be removed once state manager migration is complete
-  // These are now handled by initStateManager() but kept for backward compatibility
-  console.log('🔄 Відновлення станів...');
-  await restorePendingChannels(); // TODO: Migrate to state manager
-  restoreWizardStates(); // Handled by state manager
-  restoreConversationStates(); // Handled by state manager
-  restoreIpSetupStates(); // Handled by state manager
+  // Init all background subsystems in parallel (they are independent)
+  await Promise.all([
+    initScheduler(bot),
+    startPowerMonitoring(bot),
+    (async () => {
+      const { startAdminRouterMonitoring } = require('./adminRouterMonitor');
+      await startAdminRouterMonitoring(bot);
+    })(),
+  ]);
 
-  // Очистка старих станів (старше 24 годин)
-  await cleanupOldStates();
-
-  // Ініціалізація планувальника
-  await initScheduler(bot);
-
-  // Ініціалізація захисту каналів
   initChannelGuard(bot);
-
-  // Запуск планувальника нагадувань
   startReminderScheduler(bot);
-
-  // Ініціалізація моніторингу живлення
-  await startPowerMonitoring(bot);
-
-  // Ініціалізація моніторингу роутерів адміністраторів
-  const { startAdminRouterMonitoring } = require('./adminRouterMonitor');
-  await startAdminRouterMonitoring(bot);
 
   // Ініціалізація системи моніторингу та алертів
   console.log('🔎 Ініціалізація системи моніторингу...');

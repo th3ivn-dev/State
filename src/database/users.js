@@ -302,14 +302,12 @@ async function* paginateActiveUsers(pageSize = 500) {
   let lastId = 0;
   while (true) {
     const result = await safeQuery(
-      'SELECT telegram_id FROM users WHERE is_active = TRUE AND id > $1 ORDER BY id LIMIT $2',
+      'SELECT id, telegram_id FROM users WHERE is_active = TRUE AND id > $1 ORDER BY id LIMIT $2',
       [lastId, pageSize]
     );
     if (result.rows.length === 0) break;
     yield result.rows;
-    lastId = result.rows.length > 0
-      ? (await safeQuery('SELECT id FROM users WHERE telegram_id = $1', [result.rows[result.rows.length - 1].telegram_id])).rows[0].id
-      : lastId;
+    lastId = result.rows[result.rows.length - 1].id;
     if (result.rows.length < pageSize) break;
   }
 }

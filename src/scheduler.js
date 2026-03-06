@@ -8,7 +8,9 @@ const settingsCache = require('./utils/settingsCache');
 const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { updateScheduleCheckTime } = require('./database/scheduleChecks');
+const { createLogger } = require('./utils/logger');
 
+const logger = createLogger('Scheduler');
 let bot = null;
 
 async function initScheduler(botInstance) {
@@ -68,7 +70,7 @@ async function checkRegionSchedule(region) {
       return;
     }
 
-    console.log(`Перевірка ${region}: ${users.length} користувачів`);
+    logger.debug(`Перевірка ${region}: ${users.length} користувачів`);
 
     // Pre-compute hash per queue (same data → same hash for all users in queue)
     const availableTimestamps = Object.keys(data?.fact?.data || {}).map(Number).sort((a, b) => a - b);
@@ -140,7 +142,7 @@ async function handleScheduleChange(user, data, newHash) {
 
   const notifyTarget = user.power_notify_target || 'both';
 
-  console.log(`[${user.telegram_id}] Графік оновлено, публікуємо (target: ${notifyTarget})`);
+  logger.debug(`[${user.telegram_id}] Графік оновлено (target: ${notifyTarget})`);
 
   if (notifyTarget === 'bot' || notifyTarget === 'both') {
     try {

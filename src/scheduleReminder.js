@@ -24,6 +24,7 @@ const { MAX_SENT_REMINDERS_MAP_SIZE } = require('./constants/timeouts');
 const sentReminders = new Map();
 
 let reminderInterval = null;
+let cleanupReminderInterval = null;
 
 /**
  * Format a time object (Date) as HH:MM
@@ -269,8 +270,7 @@ function startReminderScheduler(bot) {
     checkReminders(bot);
   }, 60000);
 
-  // Clear old reminders once a day
-  setInterval(clearOldReminders, 86400000);
+  cleanupReminderInterval = setInterval(clearOldReminders, 86400000);
 
   console.log('✅ Schedule reminder scheduler started');
 }
@@ -282,8 +282,12 @@ function stopReminderScheduler() {
   if (reminderInterval) {
     clearInterval(reminderInterval);
     reminderInterval = null;
-    console.log('✅ Schedule reminder scheduler stopped');
   }
+  if (cleanupReminderInterval) {
+    clearInterval(cleanupReminderInterval);
+    cleanupReminderInterval = null;
+  }
+  console.log('✅ Schedule reminder scheduler stopped');
 }
 
 module.exports = {
