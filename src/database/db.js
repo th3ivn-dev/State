@@ -8,19 +8,18 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// Створення connection pool для кращої продуктивності
+// Railway Postgres starter allows ~25 connections; keep defaults safe
+const { DB_POOL_MAX_DEFAULT, DB_POOL_MIN_DEFAULT } = require('../constants/timeouts');
+
 const pool = new Pool({
   connectionString,
-  // SSL налаштування для Railway та інших хмарних провайдерів
-  ssl: process.env.NODE_ENV === 'production'
+  ssl: process.env.NODE_ENV === 'production' || connectionString.includes('railway')
     ? { rejectUnauthorized: false }
     : false,
-  // Налаштування пулу для масштабованості (оновлено для 2000+ користувачів)
-  max: parseInt(process.env.DB_POOL_MAX || '50', 10),  // Збільшено з 20 до 50
-  min: parseInt(process.env.DB_POOL_MIN || '5', 10),    // Мінімум 5 вільних з'єднань у пулі
+  max: parseInt(process.env.DB_POOL_MAX || String(DB_POOL_MAX_DEFAULT), 10),
+  min: parseInt(process.env.DB_POOL_MIN || String(DB_POOL_MIN_DEFAULT), 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  // Таймаут для запитів для запобігання блокуванню
   statement_timeout: 30000,
 });
 
@@ -301,7 +300,27 @@ async function initializeDatabase() {
 
 // Міграція: додавання нових полів для існуючих БД
 async function runMigrations() {
-  console.log('🔄 Запуск міграції бази даних...');
+  const { SCHEMA_VERSION } = require('../constants/timeouts');
+
+  // Skip migrations if schema is already at current version
+  try {
+    const versionResult = await pool.query(
+      "SELECT value FROM settings WHERE key = 'schema_version'"
+    );
+    if (versionResult.rows.length > 0) {
+      const dbVersion = parseInt(versionResult.rows[0].value, 10);
+      if (dbVersion >= SCHEMA_VERSION) {
+        console.log(`✅ Міграція: схема актуальна (v${dbVersion})`);
+        return;
+      }
+      console.log(`🔄 Міграція: оновлення v${dbVersion} → v${SCHEMA_VERSION}...`);
+    } else {
+      console.log('🔄 Запуск міграції бази даних (перша версія)...');
+    }
+  } catch (_e) {
+    console.log('🔄 Запуск міграції бази даних...');
+  }
+
   const client = await pool.connect();
 
   try {
@@ -407,7 +426,19 @@ async function runMigrations() {
       }
     }
 
-    console.log(`✅ Міграція завершена: перевірено ${addedCount} колонок`);
+    // Store schema version so subsequent startups skip this block
+    const { SCHEMA_VERSION } = require('../constants/timeouts');
+    try {
+      await client.query(`
+        INSERT INTO settings (key, value, updated_at)
+        VALUES ('schema_version', $1, NOW())
+        ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+      `, [String(SCHEMA_VERSION)]);
+    } catch (vErr) {
+      console.error('⚠️ Не вдалося зберегти schema_version:', vErr.message);
+    }
+
+    console.log(`✅ Міграція завершена (v${SCHEMA_VERSION}): перевірено ${addedCount} колонок`);
   } catch (error) {
     console.error('❌ Помилка міграції:', error);
   } finally {

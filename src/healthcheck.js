@@ -6,6 +6,10 @@ const { getUserCount } = require('./database/users');
 let server = null;
 let botRef = null;
 
+// Cache health check data to avoid hammering the DB on frequent probes
+let healthCache = { data: null, ts: 0 };
+const HEALTH_CACHE_TTL = 10_000; // 10 seconds
+
 function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   botRef = bot;
   const useWebhook = config.USE_WEBHOOK;
@@ -15,7 +19,6 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   server = http.createServer(async (req, res) => {
     // Webhook endpoint
     if (useWebhook && req.method === 'POST' && req.url === webhookPath) {
-      // Verify secret token
       const incomingSecret = req.headers['x-telegram-bot-api-secret-token'];
       if (incomingSecret !== webhookSecret) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -39,9 +42,22 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       return;
     }
 
-    // Health check endpoint
+    // Health check endpoint (cached to reduce DB load from probes)
     if (req.url === '/health' || req.url === '/') {
       try {
+        const now = Date.now();
+        if (healthCache.data && now - healthCache.ts < HEALTH_CACHE_TTL) {
+          const cached = healthCache.data;
+          cached.uptime = Math.floor(process.uptime());
+          cached.timestamp = new Date().toISOString();
+          const mem = process.memoryUsage();
+          cached.memory = { rss: Math.round(mem.rss / 1024 / 1024), heapUsed: Math.round(mem.heapUsed / 1024 / 1024) };
+          const statusCode = cached.database === 'connected' ? 200 : 503;
+          res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(cached));
+          return;
+        }
+
         const dbCheck = await pool.query('SELECT 1').then(() => true).catch((err) => {
           console.error('Health check DB error:', err.message);
           return false;
@@ -61,6 +77,8 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
             heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
           },
         };
+
+        healthCache = { data: health, ts: now };
 
         const statusCode = dbCheck ? 200 : 503;
         res.writeHead(statusCode, { 'Content-Type': 'application/json' });

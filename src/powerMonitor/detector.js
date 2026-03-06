@@ -6,7 +6,7 @@
 
 const config = require('../config');
 const usersDb = require('../database/users');
-const { getSetting } = require('../database/db');
+const settingsCache = require('../utils/settingsCache');
 const {
   POWER_MAX_CONCURRENT_PINGS,
   POWER_PING_TIMEOUT_MS
@@ -165,7 +165,7 @@ async function checkUserPower(user) {
     userState.pendingStateTime = new Date().toISOString();
     await usersDb.setPendingPowerChange(user.telegram_id, newState);
 
-    const debounceMinutes = parseInt(await getSetting('power_debounce_minutes', '5'), 10);
+    const debounceMinutes = parseInt(await settingsCache.get('power_debounce_minutes', '5'), 10);
 
     let debounceMs;
     if (debounceMinutes === 0) {

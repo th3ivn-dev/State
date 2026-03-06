@@ -97,53 +97,6 @@ function calculateScheduleHash(events) {
   return crypto.createHash('md5').update(JSON.stringify(normalized)).digest('hex');
 }
 
-// Визначити тип оновлення графіка
-function _getUpdateType(previousSchedule, currentSchedule) {
-  // Split events into today and tomorrow
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  const tomorrowEnd = new Date(tomorrowStart);
-  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
-
-  // Get tomorrow events from current schedule
-  const currentTomorrowEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
-    const eventStart = new Date(event.start);
-    return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
-  }) : [];
-
-  // Get tomorrow events from previous schedule
-  const previousTomorrowEvents = previousSchedule && previousSchedule.events ? previousSchedule.events.filter(event => {
-    const eventStart = new Date(event.start);
-    return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
-  }) : [];
-
-  // Get today events from current schedule
-  const todayEnd = new Date(todayStart);
-  todayEnd.setHours(23, 59, 59, 999);
-  const currentTodayEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
-    const eventStart = new Date(event.start);
-    return eventStart >= todayStart && eventStart <= todayEnd;
-  }) : [];
-
-  // Get today events from previous schedule
-  const previousTodayEvents = previousSchedule && previousSchedule.events ? previousSchedule.events.filter(event => {
-    const eventStart = new Date(event.start);
-    return eventStart >= todayStart && eventStart <= todayEnd;
-  }) : [];
-
-  const hadTomorrow = previousTomorrowEvents.length > 0;
-  const hasTomorrow = currentTomorrowEvents.length > 0;
-  const todayChanged = JSON.stringify(previousTodayEvents) !== JSON.stringify(currentTodayEvents);
-
-  return {
-    tomorrowAppeared: !hadTomorrow && hasTomorrow,
-    todayUpdated: todayChanged,
-    todayUnchanged: !todayChanged,
-  };
-}
-
 // Публікувати графік з фото та кнопками
 async function publishScheduleWithPhoto(bot, user, region, queue, { force = false } = {}) {
   try {
@@ -255,12 +208,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     const scheduleData = parseScheduleForQueue(data, queue);
     const nextEvent = findNextEvent(scheduleData);
 
-    // Get current snapshots from user
-    const { getSnapshotHashes, updateSnapshotHashes } = require('./database/users');
-    const userSnapshots = await getSnapshotHashes(user.telegram_id);
+    // Use snapshot fields already present on the user object (avoids extra DB query)
+    const { updateSnapshotHashes } = require('./database/users');
 
-    // Use v2 snapshot logic
-    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, userSnapshots);
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
 
     // Skip publication if nothing changed (unless forced)
     if (!force && !updateTypeV2.todayChanged && !updateTypeV2.tomorrowChanged) {
