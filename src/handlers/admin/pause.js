@@ -276,7 +276,7 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'admin_pause' },
-            { text: '⤴ Меню', callback_data: 'back_to_main' }
+            { text: '⤵ Меню', callback_data: 'back_to_main' }
           ]
         ]
       }

@@ -1,3 +1,4 @@
+const cron = require('node-cron');
 const { fetchScheduleData } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { calculateHash } = require('./utils');
@@ -13,6 +14,15 @@ const { notificationsQueue } = require('./queue/notificationsQueue');
 const logger = createLogger('Scheduler');
 let bot = null;
 
+// In-memory store for notifications deferred during quiet hours (00:00–05:59 Kyiv time)
+// Map<telegramId, { user, data, newHash }>
+const pendingNightNotifications = new Map();
+
+function isQuietHours() {
+  const hour = new Date().getHours(); // TZ=Europe/Kyiv is set via env
+  return hour >= 0 && hour < 6;
+}
+
 async function initScheduler(botInstance) {
   bot = botInstance;
   console.log('📅 Ініціалізація планувальника...');
@@ -27,6 +37,21 @@ async function initScheduler(botInstance) {
 
   schedulerManager.init({ checkIntervalSeconds });
   schedulerManager.start({ bot: botInstance, checkAllSchedules });
+
+  // Cron job: send pending quiet-hours notifications at 06:00 Kyiv time
+  cron.schedule('0 6 * * *', async () => {
+    if (pendingNightNotifications.size === 0) return;
+    console.log(`⏰ 06:00 — відправка відкладених сповіщень (${pendingNightNotifications.size})`);
+    const entries = Array.from(pendingNightNotifications.entries());
+    pendingNightNotifications.clear();
+    for (const [telegramId, { user, data }] of entries) {
+      try {
+        await sendScheduleNotifications(user, data);
+      } catch (error) {
+        console.error(`Помилка відправки відкладеного сповіщення для ${telegramId}:`, error.message);
+      }
+    }
+  }, { timezone: 'Europe/Kyiv' });
 
   console.log(`✅ Планувальник запущено через scheduler manager`);
 }
@@ -137,6 +162,20 @@ async function handleScheduleChange(user, data, newHash) {
     return;
   }
 
+  if (isQuietHours()) {
+    // Save hashes now so the scheduler won't re-trigger on the same change
+    await usersDb.updateUserHashes(user.id, newHash);
+    // Store the latest state for this user (overwrite if already pending)
+    pendingNightNotifications.set(user.telegram_id, { user, data, newHash });
+    console.log(`🌙 [${user.telegram_id}] Quiet hours — сповіщення відкладено до 06:00`);
+    return;
+  }
+
+  await sendScheduleNotifications(user, data);
+  await usersDb.updateUserHashes(user.id, newHash);
+}
+
+async function sendScheduleNotifications(user, data) {
   const scheduleData = parseScheduleForQueue(data, user.queue);
   const nextEvent = findNextEvent(scheduleData);
 
@@ -190,8 +229,6 @@ async function handleScheduleChange(user, data, newHash) {
       console.error(`Помилка підготовки графіка для ${user.telegram_id}:`, error.message);
     }
   }
-
-  await usersDb.updateUserHashes(user.id, newHash);
 
   if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
     try {

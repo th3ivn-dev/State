@@ -79,14 +79,16 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       `⚡ Черга: ${state.queue}\n` +
       `🔔 Сповіщення: увімкнено ✅\n\n` +
       `Я одразу повідомлю вас про наступне\n` +
-      `відключення або появу світла.`,
+      `відключення або появу світла.\n\n` +
+      `⤵ Меню — перейти в головне меню\n` +
+      `📢 Новини бота — канал з оновленнями`,
       {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+            [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
             [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
           ]
         }

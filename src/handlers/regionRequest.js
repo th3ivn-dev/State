@@ -101,7 +101,7 @@ async function handleRegionRequestStart(bot, query) {
 
       const navigationButton = isInWizardFlow
         ? [{ text: '← Назад', callback_data: 'back_to_region' }]
-        : [{ text: '⤴ Меню', callback_data: 'back_to_main' }];
+        : [{ text: '⤵ Меню', callback_data: 'back_to_main' }];
 
       await safeSendMessage(
         bot,
@@ -259,7 +259,7 @@ async function handleRegionRequestConfirm(bot, query) {
 
     const navigationButton = isInWizardFlow
       ? [{ text: '← Назад', callback_data: 'back_to_region' }]
-      : [{ text: '⤴ Меню', callback_data: 'back_to_main' }];
+      : [{ text: '⤵ Меню', callback_data: 'back_to_main' }];
 
     // Відправляємо підтвердження користувачу
     await safeSendMessage(
@@ -317,7 +317,7 @@ async function handleRegionRequestCancel(bot, query) {
 
     const navigationButton = isInWizardFlow
       ? [{ text: '← Назад', callback_data: 'back_to_region' }]
-      : [{ text: '⤴ Меню', callback_data: 'back_to_main' }];
+      : [{ text: '⤵ Меню', callback_data: 'back_to_main' }];
 
     await safeSendMessage(bot, chatId, '❌ Запит скасовано.', {
       reply_markup: {

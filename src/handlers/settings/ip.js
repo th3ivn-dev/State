@@ -134,7 +134,7 @@ DDNS (Dynamic Domain Name System) дозволяє
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'settings_ip' },
-            { text: '⤴ Меню', callback_data: 'back_to_main' }
+            { text: '⤵ Меню', callback_data: 'back_to_main' }
           ]
         ]
       }
@@ -168,7 +168,7 @@ DDNS (Dynamic Domain Name System) дозволяє
               ],
               [
                 { text: '← Назад', callback_data: 'settings_ip' },
-                { text: '⤴ Меню', callback_data: 'back_to_main' }
+                { text: '⤵ Меню', callback_data: 'back_to_main' }
               ]
             ]
           }
@@ -258,7 +258,7 @@ DDNS (Dynamic Domain Name System) дозволяє
           inline_keyboard: [
             [
               { text: '← Назад', callback_data: 'settings_ip' },
-              { text: '⤴ Меню', callback_data: 'back_to_main' }
+              { text: '⤵ Меню', callback_data: 'back_to_main' }
             ]
           ]
         }
@@ -319,7 +319,7 @@ DDNS (Dynamic Domain Name System) дозволяє
           inline_keyboard: [
             [
               { text: '← Назад', callback_data: 'settings_ip' },
-              { text: '⤴ Меню', callback_data: 'back_to_main' }
+              { text: '⤵ Меню', callback_data: 'back_to_main' }
             ]
           ]
         }
@@ -411,7 +411,7 @@ async function handleIpConversation(bot, msg) {
           inline_keyboard: [
             [
               { text: '← Назад', callback_data: 'settings_ip' },
-              { text: '⤴ Меню', callback_data: 'back_to_main' }
+              { text: '⤵ Меню', callback_data: 'back_to_main' }
             ]
           ]
         }

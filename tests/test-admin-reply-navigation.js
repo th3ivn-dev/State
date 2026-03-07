@@ -31,21 +31,21 @@ function testAdminReplyNavigation() {
                                 functionContent.includes("callback_data: 'admin_tickets'");
   const hasAdminMenuButton = functionContent.includes("'← Назад'") &&
                             functionContent.includes("callback_data: 'admin_menu'");
-  const hasBackToMainButton = functionContent.includes("'⤴ Меню'") &&
+  const hasBackToMainButton = functionContent.includes("'⤵ Меню'") &&
                              functionContent.includes("callback_data: 'back_to_main'");
 
   // Check that unicode arrows are used (not emoji)
   const usesUnicodeBackArrow = functionContent.includes('← Назад');
-  const usesUnicodeMenuArrow = functionContent.includes('⤴ Меню');
+  const usesUnicodeMenuArrow = functionContent.includes('⤵ Меню');
 
   console.log('✅ Confirmation message found:', hasConfirmationMessage);
   console.log('✅ Has reply_markup:', hasReplyMarkup);
   console.log('✅ Has inline_keyboard:', hasInlineKeyboard);
   console.log('✅ Has "📩 Звернення" button (admin_tickets):', hasAdminTicketsButton);
   console.log('✅ Has "← Назад" button (admin_menu):', hasAdminMenuButton);
-  console.log('✅ Has "⤴ Меню" button (back_to_main):', hasBackToMainButton);
+  console.log('✅ Has "⤵ Меню" button (back_to_main):', hasBackToMainButton);
   console.log('✅ Uses unicode arrow for Back (←):', usesUnicodeBackArrow);
-  console.log('✅ Uses unicode arrow for Menu (⤴):', usesUnicodeMenuArrow);
+  console.log('✅ Uses unicode arrow for Menu (⤵):', usesUnicodeMenuArrow);
 
   const allChecksPassed = hasConfirmationMessage &&
                          hasReplyMarkup &&

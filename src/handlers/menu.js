@@ -67,7 +67,7 @@ async function handleMenuSchedule(bot, query) {
           reply_markup: {
             inline_keyboard: [
               [{ text: '🔄 Оновити', callback_data: 'schedule_refresh' }],
-              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+              [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
             ]
           }
         }
@@ -336,14 +336,11 @@ async function handleBackToMain(bot, query) {
 
     const channelPaused = user.channel_paused === true;
 
-    // Build main menu message with beta warning
-    let message = '<b>🚧 Бот у розробці</b>\n';
-    message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
-    message += '🏠 <b>Головне меню</b>\n\n';
+    // Build main menu message
+    let message = '🏠 <b>Головне меню</b>\n\n';
     message += `📍 Регіон: ${region} • ${user.queue}\n`;
     message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
     message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
-    message += '\n💬 Допоможіть нам стати краще — скористайтеся ❓ Допомога\n';
 
     // Try editMessageText first (works even on media messages in some cases)
     try {
@@ -403,7 +400,7 @@ async function handleHelpHowto(bot, query) {
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'menu_help' },
-            { text: '⤴ Меню', callback_data: 'back_to_main' }
+            { text: '⤵ Меню', callback_data: 'back_to_main' }
           ]
         ]
       }
