@@ -9,7 +9,7 @@ const { notifyAdminsAboutError } = require('../../utils/adminNotifier');
 const { clearFeedbackState } = require('../feedback');
 const { clearRegionRequestState } = require('../regionRequest');
 const { clearIpSetupState } = require('../settings');
-const { isInWizard, setWizardState, getWizardState, clearWizardState, DEVELOPMENT_WARNING } = require('./helpers');
+const { isInWizard, setWizardState, getWizardState, clearWizardState } = require('./helpers');
 
 // Запустити wizard для нового або існуючого користувача
 async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
@@ -34,7 +34,6 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       'Слідкую за відключеннями світла і одразу\n' +
       'повідомлю, як тільки щось зміниться.\n\n' +
       'Налаштування займе ~1 хвилину.\n\n' +
-      DEVELOPMENT_WARNING + '\n\n' +
       '📍 Крок 1 із 3 — Оберіть свій регіон:',
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
@@ -42,8 +41,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
     sentMessage = await safeSendMessage(
       bot,
       chatId,
-      '📍 Крок 1 із 3 — Оберіть свій регіон:\n\n' +
-      DEVELOPMENT_WARNING,
+      '📍 Крок 1 із 3 — Оберіть свій регіон:',
       { parse_mode: 'HTML', ...getRegionKeyboard() }
     );
   }
@@ -61,10 +59,8 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
           'Слідкую за відключеннями світла і одразу\n' +
           'повідомлю, як тільки щось зміниться.\n\n' +
           'Налаштування займе ~1 хвилину.\n\n' +
-          DEVELOPMENT_WARNING + '\n\n' +
           '📍 Крок 1 із 3 — Оберіть свій регіон:'
-        : '📍 Крок 1 із 3 — Оберіть свій регіон:\n\n' +
-          DEVELOPMENT_WARNING;
+        : '📍 Крок 1 із 3 — Оберіть свій регіон:';
 
       const retryMessage = await bot.api.sendMessage(
         chatId,
@@ -181,9 +177,7 @@ async function handleStart(bot, msg) {
       const channelPaused = user.channel_paused === true;
 
       // Build main menu message
-      let message = '<b>🚧 Бот у розробці</b>\n';
-      message += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
-      message += '🏠 <b>Головне меню</b>\n\n';
+      let message = '🏠 <b>Головне меню</b>\n\n';
       message += `📍 Регіон: ${region} • ${user.queue}\n`;
       message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
       message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
