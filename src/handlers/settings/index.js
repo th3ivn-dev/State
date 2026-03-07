@@ -75,7 +75,7 @@ async function handleSettingsCallback(bot, query) {
     // Route to appropriate sub-handler
     if (data === 'settings_region' || data === 'settings_region_confirm' || data === 'back_to_settings') {
       await handleRegionCallback(bot, query, user);
-    } else if (data === 'settings_alerts' || data === 'notif_main' || data === 'alert_toggle' || data === 'settings_admin' || data.startsWith('notify_target_') || data.startsWith('notif_') || data.startsWith('schedule_alert_')) {
+    } else if (data === 'settings_alerts' || data === 'notif_main' || data === 'alert_toggle' || data === 'settings_admin' || data.startsWith('notify_target_') || data.startsWith('notif_')) {
       await handleAlertsCallback(bot, query, user);
     } else if (data === 'settings_cleanup' || data.startsWith('cleanup_')) {
       await handleCleanupCallback(bot, query, user);

@@ -4,7 +4,6 @@
  */
 
 const config = require('../config');
-const { escapeHtml } = require('../utils');
 
 // Rate limiting для запобігання спаму
 const errorNotifications = new Map();
@@ -13,6 +12,19 @@ const CLEANUP_INTERVAL_MS = 30 * 60 * 1000; // 30 хвилин
 
 // Лічильник повторних помилок
 const errorCounts = new Map();
+
+/**
+ * Екранування HTML спецсимволів для безпечного відображення в Telegram
+ * @param {string} text - Текст для екранування
+ * @returns {string} - Екранований текст
+ */
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 /**
  * Отримати ключ для rate limiting (перші 100 символів повідомлення помилки)

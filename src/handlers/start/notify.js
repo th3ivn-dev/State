@@ -79,8 +79,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       `⚡ Черга: ${state.queue}\n` +
       `🔔 Сповіщення: увімкнено ✅\n\n` +
       `Я одразу повідомлю вас про наступне\n` +
-      `відключення або появу світла.\n\n` +
-      `Натисніть <b>⤴ Меню</b>, щоб перейти до головного меню.`,
+      `відключення або появу світла.`,
       {
         chat_id: chatId,
         message_id: query.message.message_id,
