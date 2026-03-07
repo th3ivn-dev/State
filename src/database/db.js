@@ -13,6 +13,7 @@ const { DB_POOL_MAX_DEFAULT, DB_POOL_MIN_DEFAULT } = require('../constants/timeo
 
 const pool = new Pool({
   connectionString,
+  application_name: process.env.APP_NAME || 'svitlobot',
   ssl: process.env.NODE_ENV === 'production' || connectionString.includes('railway')
     ? { rejectUnauthorized: false }
     : false,
@@ -465,6 +466,9 @@ async function runMigrations() {
       'CREATE INDEX IF NOT EXISTS idx_users_active_channel ON users(id) WHERE channel_id IS NOT NULL AND is_active = TRUE AND channel_status = \'active\'',
       'CREATE INDEX IF NOT EXISTS idx_users_reminders ON users(region, queue) WHERE is_active = TRUE AND (notify_remind_off = TRUE OR notify_fact_off = TRUE OR notify_remind_on = TRUE OR notify_fact_on = TRUE)',
       'CREATE INDEX IF NOT EXISTS idx_users_created_at_desc ON users(created_at DESC)',
+      'CREATE INDEX IF NOT EXISTS idx_schedule_history_user_id_created_at ON schedule_history(user_id, created_at DESC)',
+      'CREATE INDEX IF NOT EXISTS idx_power_history_user_id_timestamp ON power_history(user_id, timestamp DESC)',
+      'CREATE INDEX IF NOT EXISTS idx_tickets_telegram_id_status ON tickets(telegram_id, status)',
     ];
     for (const ddl of scaleIndexes) {
       try {

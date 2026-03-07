@@ -1,9 +1,12 @@
 const { pool, safeQuery } = require('./db');
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('UsersDb');
 
 // Створити нового користувача
 async function createUser(telegramId, username, region, queue) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       INSERT INTO users (telegram_id, username, region, queue)
       VALUES ($1, $2, $3, $4)
       RETURNING id
@@ -11,7 +14,7 @@ async function createUser(telegramId, username, region, queue) {
 
     return result.rows[0].id;
   } catch (error) {
-    console.error('Помилка створення користувача:', error.message);
+    logger.error('Помилка створення користувача:', { error: error.message });
     throw error;
   }
 }
@@ -19,7 +22,7 @@ async function createUser(telegramId, username, region, queue) {
 // Зберегти користувача (створити або оновити через upsert)
 async function saveUser(telegramId, username, region, queue) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       INSERT INTO users (telegram_id, username, region, queue)
       VALUES ($1, $2, $3, $4)
       ON CONFLICT (telegram_id) 
@@ -33,7 +36,7 @@ async function saveUser(telegramId, username, region, queue) {
 
     return result.rows[0].id;
   } catch (error) {
-    console.error('Помилка збереження користувача:', error.message);
+    logger.error('Помилка збереження користувача:', { error: error.message });
     throw error;
   }
 }
@@ -44,7 +47,7 @@ async function getUserByTelegramId(telegramId) {
     const result = await safeQuery('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting user by telegram_id:', error.message);
+    logger.error('Error getting user by telegram_id:', { error: error.message });
     throw error;
   }
 }
@@ -52,10 +55,10 @@ async function getUserByTelegramId(telegramId) {
 // Отримати користувача по ID
 async function getUserById(id) {
   try {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+    const result = await safeQuery('SELECT * FROM users WHERE id = $1', [id]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting user by id:', error.message);
+    logger.error('Error getting user by id:', { error: error.message });
     throw error;
   }
 }
@@ -63,10 +66,10 @@ async function getUserById(id) {
 // Отримати користувача по channel_id
 async function getUserByChannelId(channelId) {
   try {
-    const result = await pool.query('SELECT * FROM users WHERE channel_id = $1', [channelId]);
+    const result = await safeQuery('SELECT * FROM users WHERE channel_id = $1', [channelId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error getting user by channel_id:', error.message);
+    logger.error('Error getting user by channel_id:', { error: error.message });
     throw error;
   }
 }
@@ -74,7 +77,7 @@ async function getUserByChannelId(channelId) {
 // Оновити регіон та чергу користувача
 async function updateUserRegionQueue(telegramId, region, queue) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET region = $1, queue = $2, updated_at = NOW()
       WHERE telegram_id = $3
@@ -82,7 +85,7 @@ async function updateUserRegionQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRegionQueue:', error.message);
+    logger.error('Error in updateUserRegionQueue:', { error: error.message });
     return false;
   }
 }
@@ -90,7 +93,7 @@ async function updateUserRegionQueue(telegramId, region, queue) {
 // Оновити регіон та чергу користувача і скинути хеші
 async function updateUserRegionAndQueue(telegramId, region, queue) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET region = $1, 
           queue = $2, 
@@ -102,7 +105,7 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRegionAndQueue:', error.message);
+    logger.error('Error in updateUserRegionAndQueue:', { error: error.message });
     return false;
   }
 }
@@ -110,7 +113,7 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
 // Оновити channel_id користувача
 async function updateUserChannel(telegramId, channelId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET channel_id = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -118,7 +121,7 @@ async function updateUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserChannel:', error.message);
+    logger.error('Error in updateUserChannel:', { error: error.message });
     return false;
   }
 }
@@ -154,7 +157,7 @@ async function updateUserAlertSettings(telegramId, settings) {
     fields.push('updated_at = NOW()');
     values.push(telegramId);
 
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
@@ -162,7 +165,7 @@ async function updateUserAlertSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserAlertSettings:', error.message);
+    logger.error('Error in updateUserAlertSettings:', { error: error.message });
     return false;
   }
 }
@@ -170,7 +173,7 @@ async function updateUserAlertSettings(telegramId, settings) {
 // Оновити last_hash користувача
 async function updateUserHash(id, hash) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET last_hash = $1, updated_at = NOW()
       WHERE id = $2
@@ -178,7 +181,7 @@ async function updateUserHash(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserHash:', error.message);
+    logger.error('Error in updateUserHash:', { error: error.message });
     return false;
   }
 }
@@ -186,7 +189,7 @@ async function updateUserHash(id, hash) {
 // Оновити last_published_hash користувача
 async function updateUserPublishedHash(id, hash) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET last_published_hash = $1, updated_at = NOW()
       WHERE id = $2
@@ -194,7 +197,7 @@ async function updateUserPublishedHash(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPublishedHash:', error.message);
+    logger.error('Error in updateUserPublishedHash:', { error: error.message });
     return false;
   }
 }
@@ -202,7 +205,7 @@ async function updateUserPublishedHash(id, hash) {
 // Оновити обидва хеші користувача
 async function updateUserHashes(id, hash) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET last_hash = $1, last_published_hash = $2, updated_at = NOW()
       WHERE id = $3
@@ -210,7 +213,7 @@ async function updateUserHashes(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserHashes:', error.message);
+    logger.error('Error in updateUserHashes:', { error: error.message });
     return false;
   }
 }
@@ -218,7 +221,7 @@ async function updateUserHashes(id, hash) {
 // Оновити last_post_id користувача
 async function updateUserPostId(id, postId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET last_post_id = $1, updated_at = NOW()
       WHERE id = $2
@@ -226,7 +229,7 @@ async function updateUserPostId(id, postId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPostId:', error.message);
+    logger.error('Error in updateUserPostId:', { error: error.message });
     return false;
   }
 }
@@ -234,7 +237,7 @@ async function updateUserPostId(id, postId) {
 // Активувати/деактивувати користувача
 async function setUserActive(telegramId, isActive) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET is_active = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -242,7 +245,7 @@ async function setUserActive(telegramId, isActive) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in setUserActive:', error.message);
+    logger.error('Error in setUserActive:', { error: error.message });
     return false;
   }
 }
@@ -250,10 +253,10 @@ async function setUserActive(telegramId, isActive) {
 // Отримати всіх користувачів по регіону
 async function getUsersByRegion(region) {
   try {
-    const result = await pool.query('SELECT * FROM users WHERE region = $1 AND is_active = TRUE', [region]);
+    const result = await safeQuery('SELECT * FROM users WHERE region = $1 AND is_active = TRUE', [region]);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersByRegion:', error.message);
+    logger.error('Error in getUsersByRegion:', { error: error.message });
     return [];
   }
 }
@@ -280,7 +283,7 @@ async function getUsersByRegionForScheduler(region) {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersByRegionForScheduler:', error.message);
+    logger.error('Error in getUsersByRegionForScheduler:', { error: error.message });
     return [];
   }
 }
@@ -288,10 +291,10 @@ async function getUsersByRegionForScheduler(region) {
 // Отримати всіх активних користувачів
 async function getAllActiveUsers() {
   try {
-    const result = await pool.query('SELECT * FROM users WHERE is_active = TRUE');
+    const result = await safeQuery('SELECT * FROM users WHERE is_active = TRUE');
     return result.rows;
   } catch (error) {
-    console.error('Error in getAllActiveUsers:', error.message);
+    logger.error('Error in getAllActiveUsers:', { error: error.message });
     return [];
   }
 }
@@ -315,10 +318,10 @@ async function* paginateActiveUsers(pageSize = 500) {
 // Отримати всіх користувачів
 async function getAllUsers() {
   try {
-    const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
+    const result = await safeQuery('SELECT * FROM users ORDER BY created_at DESC');
     return result.rows;
   } catch (error) {
-    console.error('Error in getAllUsers:', error.message);
+    logger.error('Error in getAllUsers:', { error: error.message });
     return [];
   }
 }
@@ -326,10 +329,10 @@ async function getAllUsers() {
 // Отримати останніх N користувачів
 async function getRecentUsers(limit = 20) {
   try {
-    const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC LIMIT $1', [limit]);
+    const result = await safeQuery('SELECT * FROM users ORDER BY created_at DESC LIMIT $1', [limit]);
     return result.rows;
   } catch (error) {
-    console.error('Error in getRecentUsers:', error.message);
+    logger.error('Error in getRecentUsers:', { error: error.message });
     return [];
   }
 }
@@ -337,7 +340,7 @@ async function getRecentUsers(limit = 20) {
 // Отримати статистику користувачів
 async function getUserStats() {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT 
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE is_active = TRUE) as active,
@@ -345,7 +348,7 @@ async function getUserStats() {
       FROM users
     `);
 
-    const byRegionResult = await pool.query(`
+    const byRegionResult = await safeQuery(`
       SELECT region, COUNT(*) as count 
       FROM users WHERE is_active = TRUE 
       GROUP BY region
@@ -358,7 +361,7 @@ async function getUserStats() {
       byRegion: byRegionResult.rows,
     };
   } catch (error) {
-    console.error('Error in getUserStats:', error.message);
+    logger.error('Error in getUserStats:', { error: error.message });
     return { total: 0, active: 0, withChannels: 0, byRegion: [] };
   }
 }
@@ -386,7 +389,7 @@ async function deleteUser(telegramId) {
     return true;
   } catch (error) {
     await client.query('ROLLBACK');
-    console.error('Error deleting user:', error.message);
+    logger.error('Error deleting user:', { error: error.message });
     return false;
   } finally {
     client.release();
@@ -396,7 +399,7 @@ async function deleteUser(telegramId) {
 // Оновити router_ip користувача
 async function updateUserRouterIp(telegramId, routerIp) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET router_ip = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -404,7 +407,7 @@ async function updateUserRouterIp(telegramId, routerIp) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRouterIp:', error.message);
+    logger.error('Error in updateUserRouterIp:', { error: error.message });
     return false;
   }
 }
@@ -412,7 +415,7 @@ async function updateUserRouterIp(telegramId, routerIp) {
 // Оновити стан живлення користувача
 async function updateUserPowerState(telegramId, state) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET power_state = $1, power_changed_at = NOW(), updated_at = NOW()
       WHERE telegram_id = $2
@@ -420,7 +423,7 @@ async function updateUserPowerState(telegramId, state) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPowerState:', error.message);
+    logger.error('Error in updateUserPowerState:', { error: error.message });
     return false;
   }
 }
@@ -428,7 +431,7 @@ async function updateUserPowerState(telegramId, state) {
 // Атомарно оновити стан живлення і повернути тривалість попереднього стану
 async function changePowerStateAndGetDuration(telegramId, newState) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       WITH old_state AS (
         SELECT power_changed_at AS old_changed_at
         FROM users 
@@ -449,7 +452,7 @@ async function changePowerStateAndGetDuration(telegramId, newState) {
 
     return result.rows[0];
   } catch (error) {
-    console.error('Error in changePowerStateAndGetDuration:', error.message);
+    logger.error('Error in changePowerStateAndGetDuration:', { error: error.message });
     return null;
   }
 }
@@ -457,7 +460,7 @@ async function changePowerStateAndGetDuration(telegramId, newState) {
 // Зберегти pending стан живлення в БД
 async function setPendingPowerChange(telegramId, pendingState) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET pending_power_state = $1, pending_power_change_at = NOW(), updated_at = NOW()
       WHERE telegram_id = $2
@@ -465,7 +468,7 @@ async function setPendingPowerChange(telegramId, pendingState) {
     `, [pendingState, telegramId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error in setPendingPowerChange:', error.message);
+    logger.error('Error in setPendingPowerChange:', { error: error.message });
     return null;
   }
 }
@@ -473,23 +476,23 @@ async function setPendingPowerChange(telegramId, pendingState) {
 // Очистити pending стан живлення в БД
 async function clearPendingPowerChange(telegramId) {
   try {
-    await pool.query(`
+    await safeQuery(`
       UPDATE users 
       SET pending_power_state = NULL, pending_power_change_at = NULL, updated_at = NOW()
       WHERE telegram_id = $1
     `, [telegramId]);
   } catch (error) {
-    console.error('Error in clearPendingPowerChange:', error.message);
+    logger.error('Error in clearPendingPowerChange:', { error: error.message });
   }
 }
 
 // Отримати всіх користувачів з налаштованим router_ip
 async function getUsersWithRouterIp() {
   try {
-    const result = await pool.query("SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = TRUE");
+    const result = await safeQuery("SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = TRUE");
     return result.rows;
   } catch (error) {
-    console.error('Помилка getUsersWithRouterIp:', error.message);
+    logger.error('Помилка getUsersWithRouterIp:', { error: error.message });
     return [];
   }
 }
@@ -497,7 +500,7 @@ async function getUsersWithRouterIp() {
 // Оновити channel_id та скинути інформацію про брендування
 async function resetUserChannel(telegramId, channelId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET channel_id = $1,
           channel_title = NULL,
@@ -512,7 +515,7 @@ async function resetUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in resetUserChannel:', error.message);
+    logger.error('Error in resetUserChannel:', { error: error.message });
     return false;
   }
 }
@@ -522,7 +525,7 @@ async function resetUserChannel(telegramId, channelId) {
 // Returns: true if update succeeded, false otherwise
 async function updateChannelBranding(telegramId, brandingData) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET channel_title = $1,
           channel_description = $2,
@@ -544,7 +547,7 @@ async function updateChannelBranding(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateChannelBranding:', error.message);
+    logger.error('Error in updateChannelBranding:', { error: error.message });
     return false;
   }
 }
@@ -583,7 +586,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
     }
 
     if (fields.length === 0) {
-      console.warn('updateChannelBrandingPartial викликано без полів для оновлення');
+      logger.warn('updateChannelBrandingPartial викликано без полів для оновлення');
       return false;
     }
 
@@ -592,7 +595,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
     fields.push('updated_at = NOW()');
     values.push(telegramId);
 
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
@@ -600,7 +603,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateChannelBrandingPartial:', error.message);
+    logger.error('Error in updateChannelBrandingPartial:', { error: error.message });
     return false;
   }
 }
@@ -608,7 +611,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
 // Оновити статус каналу
 async function updateChannelStatus(telegramId, status) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET channel_status = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -616,7 +619,7 @@ async function updateChannelStatus(telegramId, status) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateChannelStatus:', error.message);
+    logger.error('Error in updateChannelStatus:', { error: error.message });
     return false;
   }
 }
@@ -624,7 +627,7 @@ async function updateChannelStatus(telegramId, status) {
 // Отримати всіх активних користувачів з каналами
 async function getUsersWithActiveChannels() {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT * FROM users 
       WHERE channel_id IS NOT NULL 
       AND is_active = TRUE 
@@ -632,7 +635,7 @@ async function getUsersWithActiveChannels() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersWithActiveChannels:', error.message);
+    logger.error('Error in getUsersWithActiveChannels:', { error: error.message });
     return [];
   }
 }
@@ -640,7 +643,7 @@ async function getUsersWithActiveChannels() {
 // Отримати всіх користувачів з каналами для перевірки
 async function getUsersWithChannelsForVerification() {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT * FROM users 
       WHERE channel_id IS NOT NULL 
       AND channel_title IS NOT NULL
@@ -648,7 +651,7 @@ async function getUsersWithChannelsForVerification() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersWithChannelsForVerification:', error.message);
+    logger.error('Error in getUsersWithChannelsForVerification:', { error: error.message });
     return [];
   }
 }
@@ -694,7 +697,7 @@ async function updateUserFormatSettings(telegramId, settings) {
     fields.push('updated_at = NOW()');
     values.push(telegramId);
 
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
@@ -702,7 +705,7 @@ async function updateUserFormatSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserFormatSettings:', error.message);
+    logger.error('Error in updateUserFormatSettings:', { error: error.message });
     return false;
   }
 }
@@ -710,14 +713,14 @@ async function updateUserFormatSettings(telegramId, settings) {
 // Отримати налаштування формату користувача
 async function getUserFormatSettings(telegramId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT schedule_caption, period_format, power_off_text, power_on_text, 
              delete_old_message, picture_only, last_schedule_message_id
       FROM users WHERE telegram_id = $1
     `, [telegramId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error in getUserFormatSettings:', error.message);
+    logger.error('Error in getUserFormatSettings:', { error: error.message });
     return null;
   }
 }
@@ -725,7 +728,7 @@ async function getUserFormatSettings(telegramId) {
 // Оновити ID останнього повідомлення з графіком
 async function updateLastScheduleMessageId(telegramId, messageId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET last_schedule_message_id = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -733,7 +736,7 @@ async function updateLastScheduleMessageId(telegramId, messageId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateLastScheduleMessageId:', error.message);
+    logger.error('Error in updateLastScheduleMessageId:', { error: error.message });
     return false;
   }
 }
@@ -741,7 +744,7 @@ async function updateLastScheduleMessageId(telegramId, messageId) {
 // Оновити статус паузи каналу користувача
 async function updateUserChannelPaused(telegramId, paused) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET channel_paused = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -749,7 +752,7 @@ async function updateUserChannelPaused(telegramId, paused) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserChannelPaused:', error.message);
+    logger.error('Error in updateUserChannelPaused:', { error: error.message });
     return false;
   }
 }
@@ -758,7 +761,7 @@ async function updateUserChannelPaused(telegramId, paused) {
 async function updateUserPowerNotifyTarget(telegramId, target) {
   try {
     // target: 'bot' | 'channel' | 'both'
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET power_notify_target = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -766,7 +769,7 @@ async function updateUserPowerNotifyTarget(telegramId, target) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPowerNotifyTarget:', error.message);
+    logger.error('Error in updateUserPowerNotifyTarget:', { error: error.message });
     return false;
   }
 }
@@ -774,7 +777,7 @@ async function updateUserPowerNotifyTarget(telegramId, target) {
 // Оновити стан попереджень про графік
 async function updateScheduleAlertEnabled(telegramId, enabled) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET schedule_alert_enabled = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -782,7 +785,7 @@ async function updateScheduleAlertEnabled(telegramId, enabled) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertEnabled:', error.message);
+    logger.error('Error in updateScheduleAlertEnabled:', { error: error.message });
     return false;
   }
 }
@@ -790,7 +793,7 @@ async function updateScheduleAlertEnabled(telegramId, enabled) {
 // Оновити час попередження про графік (у хвилинах)
 async function updateScheduleAlertMinutes(telegramId, minutes) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET schedule_alert_minutes = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -798,7 +801,7 @@ async function updateScheduleAlertMinutes(telegramId, minutes) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertMinutes:', error.message);
+    logger.error('Error in updateScheduleAlertMinutes:', { error: error.message });
     return false;
   }
 }
@@ -807,7 +810,7 @@ async function updateScheduleAlertMinutes(telegramId, minutes) {
 async function updateScheduleAlertTarget(telegramId, target) {
   try {
     // target: 'bot', 'channel', 'both'
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET schedule_alert_target = $1, updated_at = NOW()
       WHERE telegram_id = $2
@@ -815,7 +818,7 @@ async function updateScheduleAlertTarget(telegramId, target) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertTarget:', error.message);
+    logger.error('Error in updateScheduleAlertTarget:', { error: error.message });
     return false;
   }
 }
@@ -846,7 +849,7 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
     fields.push('updated_at = NOW()');
     values.push(telegramId);
 
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
@@ -854,7 +857,7 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserScheduleAlertSettings:', error.message);
+    logger.error('Error in updateUserScheduleAlertSettings:', { error: error.message });
     return false;
   }
 }
@@ -985,7 +988,7 @@ async function updateUser(telegramId, updates) {
     fields.push('updated_at = NOW()');
     values.push(telegramId);
 
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET ${fields.join(', ')}
       WHERE telegram_id = $${values.length}
@@ -993,7 +996,7 @@ async function updateUser(telegramId, updates) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUser:', error.message);
+    logger.error('Error in updateUser:', { error: error.message });
     return false;
   }
 }
@@ -1001,7 +1004,7 @@ async function updateUser(telegramId, updates) {
 // Update snapshot hashes for today and tomorrow
 async function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorrowDate = null) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       UPDATE users 
       SET today_snapshot_hash = $1, 
           tomorrow_snapshot_hash = $2,
@@ -1012,7 +1015,7 @@ async function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorro
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateSnapshotHashes:', error.message);
+    logger.error('Error in updateSnapshotHashes:', { error: error.message });
     return false;
   }
 }
@@ -1020,7 +1023,7 @@ async function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorro
 // Get snapshot hashes for user
 async function getSnapshotHashes(telegramId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT today_snapshot_hash, tomorrow_snapshot_hash, tomorrow_published_date
       FROM users 
       WHERE telegram_id = $1
@@ -1028,7 +1031,7 @@ async function getSnapshotHashes(telegramId) {
 
     return result.rows[0];
   } catch (error) {
-    console.error('Error in getSnapshotHashes:', error.message);
+    logger.error('Error in getSnapshotHashes:', { error: error.message });
     return null;
   }
 }
@@ -1036,7 +1039,7 @@ async function getSnapshotHashes(telegramId) {
 // NEW: Get all active users grouped by region+queue (for scheduler optimization)
 async function getActiveUsersByRegionQueue() {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT * FROM users 
       WHERE is_active = TRUE 
       ORDER BY region, queue
@@ -1051,7 +1054,7 @@ async function getActiveUsersByRegionQueue() {
     }
     return groups;
   } catch (error) {
-    console.error('Error in getActiveUsersByRegionQueue:', error.message);
+    logger.error('Error in getActiveUsersByRegionQueue:', { error: error.message });
     return {};
   }
 }
@@ -1070,7 +1073,7 @@ async function batchUpdateHashes(updates) {
   }
 
   try {
-    await pool.query(`
+    await safeQuery(`
       UPDATE users u SET
         last_hash = v.lh,
         last_published_hash = v.lph,
@@ -1083,7 +1086,7 @@ async function batchUpdateHashes(updates) {
       WHERE u.id = v.id
     `, [ids, hashes, pubHashes]);
   } catch (error) {
-    console.error('Error in batchUpdateHashes:', error.message);
+    logger.error('Error in batchUpdateHashes:', { error: error.message });
     throw error;
   }
 }
@@ -1091,10 +1094,10 @@ async function batchUpdateHashes(updates) {
 // NEW: Get user count for health check
 async function getUserCount() {
   try {
-    const result = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_active = TRUE');
+    const result = await safeQuery('SELECT COUNT(*) as count FROM users WHERE is_active = TRUE');
     return parseInt(result.rows[0].count, 10);
   } catch (error) {
-    console.error('Error in getUserCount:', error.message);
+    logger.error('Error in getUserCount:', { error: error.message });
     return 0;
   }
 }
@@ -1124,13 +1127,13 @@ async function updateNotificationSettings(telegramId, updates) {
     fields.push('updated_at = NOW()');
     values.push(telegramId);
 
-    const result = await pool.query(
+    const result = await safeQuery(
       `UPDATE users SET ${fields.join(', ')} WHERE telegram_id = $${values.length}`,
       values
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateNotificationSettings:', error.message);
+    logger.error('Error in updateNotificationSettings:', { error: error.message });
     return false;
   }
 }
@@ -1154,13 +1157,13 @@ async function updateCleanupSettings(telegramId, updates) {
     fields.push('updated_at = NOW()');
     values.push(telegramId);
 
-    const result = await pool.query(
+    const result = await safeQuery(
       `UPDATE users SET ${fields.join(', ')} WHERE telegram_id = $${values.length}`,
       values
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateCleanupSettings:', error.message);
+    logger.error('Error in updateCleanupSettings:', { error: error.message });
     return false;
   }
 }
@@ -1168,7 +1171,7 @@ async function updateCleanupSettings(telegramId, updates) {
 // Get active users with reminders enabled (for schedule reminder scheduler)
 async function getActiveUsersWithReminders() {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT * FROM users
       WHERE is_active = TRUE
         AND (notify_remind_off = TRUE OR notify_fact_off = TRUE OR notify_remind_on = TRUE OR notify_fact_on = TRUE)
@@ -1177,7 +1180,7 @@ async function getActiveUsersWithReminders() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getActiveUsersWithReminders:', error.message);
+    logger.error('Error in getActiveUsersWithReminders:', { error: error.message });
     return [];
   }
 }
