@@ -44,8 +44,12 @@ async function handleMenuSchedule(bot, query) {
     // Answer Telegram immediately to avoid timeout (after user validation)
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
-    // Get schedule data
-    const data = await fetchScheduleData(user.region);
+    // Fetch data, image, and check time in parallel
+    const [data, imageResult, lastCheck] = await Promise.all([
+      fetchScheduleData(user.region),
+      fetchScheduleImage(user.region, user.queue).catch(() => null),
+      getScheduleCheckTime(user.region, user.queue).catch(() => Math.floor(Date.now() / 1000)),
+    ]);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
@@ -83,26 +87,13 @@ async function handleMenuSchedule(bot, query) {
     };
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-    let lastCheck;
-    try {
-      lastCheck = await getScheduleCheckTime(user.region, user.queue);
-    } catch (dbError) {
-      logger.error('Failed to get schedule check time', { error: dbError.message });
-      lastCheck = Math.floor(Date.now() / 1000);
-    }
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
-    // Fetch schedule image
-    let imageBuffer;
-    let photoInput;
-    try {
-      imageBuffer = await fetchScheduleImage(user.region, user.queue);
-      photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-    } catch (_fetchError) {
-      // Image unavailable — will fall back to text-only path below
-    }
+    const photoInput = imageResult
+      ? (Buffer.isBuffer(imageResult) ? new InputFile(imageResult, 'schedule.png') : imageResult)
+      : null;
 
     if (photoInput) {
       // Try editMessageMedia first to avoid delete+send flicker
@@ -510,18 +501,14 @@ async function handleScheduleRefresh(bot, query) {
     // Answer Telegram immediately to avoid timeout
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
-    const apiData = await fetchScheduleData(user.region);
+    // Fetch data, image, and check time in parallel
+    const [apiData, imageResult, lastCheck] = await Promise.all([
+      fetchScheduleData(user.region),
+      fetchScheduleImage(user.region, user.queue).catch(() => null),
+      getScheduleCheckTime(user.region, user.queue).catch(() => Math.floor(Date.now() / 1000)),
+    ]);
     const scheduleData = parseScheduleForQueue(apiData, user.queue);
     const nextEvent = findNextEvent(scheduleData);
-
-    // Читаємо час останньої перевірки ботом та отримуємо точний timestamp
-    let lastCheck;
-    try {
-      lastCheck = await getScheduleCheckTime(user.region, user.queue);
-    } catch (dbError) {
-      logger.error('Failed to get schedule check time', { error: dbError.message });
-      lastCheck = Math.floor(Date.now() / 1000);
-    }
 
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
     const updateType = {
@@ -535,15 +522,10 @@ async function handleScheduleRefresh(bot, query) {
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
-    // Fetch image once, then try editMessageMedia; fall back to delete+send on failure
-    let imageBuffer;
-    let photoInput;
-    try {
-      imageBuffer = await fetchScheduleImage(user.region, user.queue);
-      photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-    } catch (_fetchError) {
-      // Image unavailable — will fall back to text-only path below
-    }
+    // Build photoInput from parallel result
+    const photoInput = imageResult
+      ? (Buffer.isBuffer(imageResult) ? new InputFile(imageResult, 'schedule.png') : imageResult)
+      : null;
 
     // Оновлюємо фото і caption існуючого повідомлення через editMessageMedia
     if (photoInput) {

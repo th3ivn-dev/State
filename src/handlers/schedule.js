@@ -31,8 +31,13 @@ async function handleSchedule(bot, msg) {
     // Показуємо індикатор завантаження
     await bot.api.sendChatAction(chatId, 'typing');
 
-    // Отримуємо дані графіка
-    const data = await fetchScheduleData(user.region);
+    // Fetch data, image, and check time in parallel
+    const [data, imageResult, lastCheck] = await Promise.all([
+      fetchScheduleData(user.region),
+      fetchScheduleImage(user.region, user.queue).catch(() => null),
+      getScheduleCheckTime(user.region, user.queue).catch(() => Math.floor(Date.now() / 1000)),
+    ]);
+
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
@@ -48,25 +53,22 @@ async function handleSchedule(bot, msg) {
     // Pass null for changes parameter since we're not marking new events in bot view
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-    // Читаємо час останньої перевірки ботом та додаємо date_time entity
-    const lastCheck = await getScheduleCheckTime(user.region, user.queue);
+    // Додаємо date_time entity до повідомлення
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
     // Спробуємо відправити зображення графіка з caption
     let sentMsg;
-    try {
-      const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-      sentMsg = await safeSendPhoto(bot, chatId, imageBuffer, {
+    if (imageResult) {
+      sentMsg = await safeSendPhoto(bot, chatId, imageResult, {
         caption: fullCaption,
         caption_entities: timestampEntities,
         parse_mode: undefined, // Override global parseMode — entities handle formatting
         reply_markup: scheduleKeyboard,
       }, { filename: 'schedule.png', contentType: 'image/png' });
-    } catch (imgError) {
-      // Якщо зображення недоступне, відправляємо тільки текст
-      logger.info('Зображення графіка недоступне', { error: imgError.message });
+    }
+    if (!sentMsg) {
       sentMsg = await safeSendMessage(bot, chatId, fullCaption, {
         entities: timestampEntities,
         parse_mode: undefined, // Override global parseMode — entities handle formatting
