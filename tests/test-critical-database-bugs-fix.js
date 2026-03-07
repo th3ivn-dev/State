@@ -75,11 +75,11 @@ assert(
 console.log('✓ ScheduleService.js correctly imports and uses scheduleHistory functions\n');
 
 // ============================================================================
-// Test 2: Verify publisher.js awaits async database functions
+// Test 2: Verify publisher/publish.js awaits async database functions
 // ============================================================================
-console.log('Test 2: publisher.js correctly awaits all async database functions');
+console.log('Test 2: publisher/publish.js correctly awaits all async database functions');
 
-const publisherCode = fs.readFileSync(path.join(__dirname, '../src/publisher.js'), 'utf8');
+const publisherCode = fs.readFileSync(path.join(__dirname, '../src/publisher/publish.js'), 'utf8');
 
 // Check that updateSnapshotHashes is awaited
 const updateSnapshotMatch = publisherCode.match(/await updateSnapshotHashes\s*\(/);
@@ -130,7 +130,7 @@ assert(
   'All async database function calls should be awaited'
 );
 
-console.log('✓ publisher.js correctly awaits all async database functions\n');
+console.log('✓ publisher/publish.js correctly awaits all async database functions\n');
 
 // ============================================================================
 // Test 3: Verify user_power_states.telegram_id is TEXT not INTEGER

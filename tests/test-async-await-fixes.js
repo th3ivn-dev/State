@@ -54,22 +54,17 @@ assert(
 console.log('✓ cleanOldSchedules() is correctly awaited\n');
 
 // ============================================================================
-// Test 2: publisher.js awaits getSnapshotHashes()
+// Test 2: publisher/publish.js awaits updateSnapshotHashes()
 // ============================================================================
-console.log('Test 2: publisher.js awaits getSnapshotHashes()');
+console.log('Test 2: publisher/publish.js awaits updateSnapshotHashes()');
 
-const publisherCode = fs.readFileSync(path.join(__dirname, '../src/publisher.js'), 'utf8');
+const publisherCode = fs.readFileSync(path.join(__dirname, '../src/publisher/publish.js'), 'utf8');
 
-// Check that getSnapshotHashes is awaited
-const getSnapshotMatch = publisherCode.match(/const userSnapshots = (await )?getSnapshotHashes\(/);
-assert(getSnapshotMatch, 'getSnapshotHashes() call should exist');
+// Check that updateSnapshotHashes is awaited
+const updateSnapshotMatch = publisherCode.match(/await updateSnapshotHashes\s*\(/);
+assert(updateSnapshotMatch, 'updateSnapshotHashes() call should exist and be awaited');
 
-assert(
-  getSnapshotMatch[1] === 'await ',
-  'getSnapshotHashes() should be awaited'
-);
-
-console.log('✓ getSnapshotHashes() is correctly awaited\n');
+console.log('✓ updateSnapshotHashes() is correctly awaited\n');
 
 // ============================================================================
 // Test 3: analytics.js awaits getIpMonitoringCount()
@@ -195,7 +190,7 @@ console.log('✅ All 6 async/await bug tests passed!\n');
 
 console.log('Summary of fixes:');
 console.log('1. ✅ channelGuard.js awaits cleanOldSchedules()');
-console.log('2. ✅ publisher.js awaits getSnapshotHashes()');
+console.log('2. ✅ publisher/publish.js awaits updateSnapshotHashes()');
 console.log('3. ✅ analytics.js awaits getIpMonitoringCount() and stores in variable');
 console.log('4. ✅ scheduler.js has null check for sentMsg before accessing message_id');
 console.log('5. ✅ channelGuard.js has no duplicate const { pool } declaration');
