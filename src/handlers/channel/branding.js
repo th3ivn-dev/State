@@ -98,8 +98,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         `• Публікацію повідомлень\n` +
         `• Редагування інформації каналу\n\n` +
         `Спробуйте ще раз через:\n` +
-        `Налаштування → Канал → Підключити канал`,
-        { parse_mode: 'HTML' }
+        `Налаштування → Канал → Підключити канал`
       );
       await clearConversationState(telegramId);
       return;
@@ -121,7 +120,6 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         state.channelId,
         getChannelWelcomeMessage(user),
         {
-          parse_mode: 'HTML',
           disable_web_page_preview: true
         }
       );
@@ -145,7 +143,6 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       `і канал потрібно буде налаштувати заново.`;
 
     await bot.api.sendMessage(chatId, successMessage, {
-      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -186,7 +183,6 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -223,8 +219,7 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
       `<b>Приклад:</b> ЖК "Сонячний", під'їзд 2`,
       {
         chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML'
+        message_id: query.message.message_id
       }
     );
 
@@ -250,8 +245,7 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
         'Наприклад: ЖК "Сонячний", під\'їзд 2',
         {
           chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML'
+          message_id: query.message.message_id
         }
       );
 

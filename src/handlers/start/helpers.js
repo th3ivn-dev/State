@@ -12,7 +12,6 @@ const CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ ';
 const NEWS_CHANNEL_MESSAGE = {
   text: '📢 <b>Підпишіться на канал оновлень</b>\nЩоб не пропустити нові функції та важливі зміни:',
   options: {
-    parse_mode: 'HTML',
     reply_markup: {
       inline_keyboard: [
         [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }]
@@ -94,7 +93,7 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
 
     for (const adminId of allAdmins) {
       try {
-        await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(adminId, message);
       } catch (_error) {
         // Ігноруємо помилки (адмін може мати заблоковані повідомлення)
       }

@@ -26,7 +26,6 @@ async function handleAdmin(bot, msg) {
       chatId,
       '👨‍💼 <b>Адмін панель</b>\n\nОберіть опцію:',
       {
-        parse_mode: 'HTML',
         ...getAdminKeyboard(openTicketsCount),
       }
     );
@@ -50,7 +49,7 @@ async function handleStats(bot, msg) {
     // Use new analytics module
     const message = await formatAnalytics();
 
-    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, chatId, message);
 
   } catch (error) {
     console.error('Помилка в handleStats:', error);
@@ -88,7 +87,7 @@ async function handleUsers(bot, msg) {
       message += `   ID: <code>${user.telegram_id}</code>\n\n`;
     });
 
-    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
     console.error('Помилка в handleUsers:', error);
@@ -139,7 +138,6 @@ async function handleBroadcast(bot, msg) {
       for (const user of page) {
         try {
           await bot.api.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
-            parse_mode: 'HTML',
           });
           sent++;
           await new Promise(resolve => setTimeout(resolve, 40));
@@ -198,7 +196,7 @@ async function handleSystem(bot, msg) {
       message += `Service: ${process.env.RAILWAY_SERVICE_NAME || 'N/A'}\n`;
     }
 
-    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
     console.error('Помилка в handleSystem:', error);
@@ -375,8 +373,7 @@ async function handleGetDebounce(bot, msg) {
       'Зміни стану світла публікуються після ' +
       `${value} хвилин стабільного стану.\n\n` +
       'Для зміни використайте:\n' +
-      '/setdebounce <хвилини>',
-      { parse_mode: 'HTML' }
+      '/setdebounce <хвилини>'
     );
 
   } catch (error) {
@@ -398,7 +395,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
@@ -423,7 +419,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getUsersMenuKeyboard().reply_markup,
       }
     );
@@ -449,7 +444,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [{ text: '← Назад', callback_data: 'admin_users' }],
@@ -505,7 +499,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: { inline_keyboard: keyboard }
     });
     return;
@@ -526,7 +519,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminKeyboard().reply_markup,
       }
     );
@@ -552,7 +544,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
@@ -571,7 +562,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminAnalyticsKeyboard().reply_markup,
       }
     );
@@ -584,7 +574,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminSettingsMenuKeyboard().reply_markup,
       }
     );
@@ -600,7 +589,6 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminKeyboard(openTicketsCount).reply_markup,
       }
     );

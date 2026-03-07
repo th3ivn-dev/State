@@ -38,7 +38,6 @@ async function handleSettings(bot, msg) {
     const message = generateLiveStatusMessage(user, regionName);
 
     const sentMessage = await safeSendMessage(bot, chatId, message, {
-      parse_mode: 'HTML',
       ...getSettingsKeyboard(userIsAdmin),
     });
 
@@ -50,7 +49,6 @@ async function handleSettings(bot, msg) {
     console.error('Помилка в handleSettings:', error);
     const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
-      parse_mode: 'HTML',
       ...errorKeyboard
     });
   }

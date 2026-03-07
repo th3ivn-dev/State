@@ -14,7 +14,6 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -38,8 +37,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
     if (updatedUser.channel_id) {
       try {
         await bot.api.sendMessage(updatedUser.channel_id,
-          '<tg-emoji emoji-id="5458603043203327669">⚠</tg-emoji> <b>Канал зупинено на технічну перерву!</b>',
-          { parse_mode: 'HTML' }
+          '<tg-emoji emoji-id="5458603043203327669">⚠</tg-emoji> <b>Канал зупинено на технічну перерву!</b>'
         );
       } catch (error) {
         console.error('Помилка відправки повідомлення про паузу в канал:', error);
@@ -70,7 +68,6 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getMainMenu(botStatus, true).reply_markup,
       }
     );
@@ -85,7 +82,6 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -109,8 +105,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
     if (updatedUser.channel_id) {
       try {
         await bot.api.sendMessage(updatedUser.channel_id,
-          '<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> <b>Роботу каналу відновлено!</b>',
-          { parse_mode: 'HTML' }
+          '<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> <b>Роботу каналу відновлено!</b>'
         );
       } catch (error) {
         console.error('Помилка відправки повідомлення про відновлення в канал:', error);
@@ -141,7 +136,6 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getMainMenu(botStatus, false).reply_markup,
       }
     );

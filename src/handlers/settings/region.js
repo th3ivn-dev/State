@@ -31,7 +31,6 @@ async function handleRegionCallback(bot, query, user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: confirmKeyboard,
       }
     );
@@ -75,7 +74,6 @@ async function handleRegionCallback(bot, query, user) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getSettingsKeyboard(userIsAdmin).reply_markup,
     });
     return;

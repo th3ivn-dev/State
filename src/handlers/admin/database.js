@@ -15,7 +15,6 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -55,7 +54,6 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getAdminSettingsMenuKeyboard().reply_markup
         }
       );
@@ -80,7 +78,6 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getRestartConfirmKeyboard().reply_markup,
       }
     );
@@ -99,7 +96,6 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
       }
     );
 

@@ -101,7 +101,7 @@ async function handleNext(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatNextEventMessage(nextEvent);
-    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, chatId, message);
 
   } catch (error) {
     console.error('Помилка в handleNext:', error);
@@ -134,7 +134,7 @@ async function handleTimer(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerMessage(nextEvent);
-    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
     console.error('Помилка в handleTimer:', error);

@@ -127,7 +127,7 @@ async function notifyAdminsAboutError(bot, error, context) {
     // Надсилаємо повідомлення кожному адміну окремо
     for (const adminId of adminList) {
       try {
-        await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(adminId, message);
       } catch (sendError) {
         // Ігноруємо помилки відправки окремим адмінам
         // (можливо бот заблокований або chat не існує)

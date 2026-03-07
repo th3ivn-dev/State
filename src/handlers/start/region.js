@@ -72,7 +72,6 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getWizardNotifyTargetKeyboard().reply_markup,
         }
       );
@@ -119,7 +118,6 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -145,8 +143,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
             `Спробуйте пізніше або зв'яжіться з підтримкою.`,
             {
               chat_id: chatId,
-              message_id: query.message.message_id,
-              parse_mode: 'HTML'
+              message_id: query.message.message_id
             }
           );
           await clearWizardState(telegramId);

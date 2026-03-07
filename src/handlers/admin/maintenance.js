@@ -53,7 +53,6 @@ async function showMaintenanceScreen(bot, chatId, messageId) {
   await safeEditMessageText(bot, buildMaintenanceText(enabled, message, startedAt), {
     chat_id: chatId,
     message_id: messageId,
-    parse_mode: 'HTML',
     reply_markup: getMaintenanceKeyboard(enabled).reply_markup,
   });
 }
@@ -96,7 +95,6 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, buildMaintenanceText(newEnabled, message, startedAt), {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getMaintenanceKeyboard(newEnabled).reply_markup,
     });
 
@@ -120,7 +118,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
 
         let sent = 0;
         let total = 0;
-        const broadcastOptions = { parse_mode: 'HTML' };
+        const broadcastOptions = {};
         if (!newEnabled) {
           broadcastOptions.reply_markup = {
             inline_keyboard: [
@@ -139,8 +137,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
         }
 
         await safeSendMessage(bot, chatId,
-          `📤 Сповіщення надіслано: ${sent} з ${total} користувачів`,
-          { parse_mode: 'HTML' }
+          `📤 Сповіщення надіслано: ${sent} з ${total} користувачів`
         );
       } catch (err) {
         console.error('Помилка масової розсилки maintenance:', err);
@@ -165,7 +162,6 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'admin_maintenance' }]
@@ -217,7 +213,6 @@ async function handleMaintenanceConversation(bot, msg) {
     message += buildMaintenanceText(enabled, text);
 
     await safeSendMessage(bot, chatId, message, {
-      parse_mode: 'HTML',
       reply_markup: getMaintenanceKeyboard(enabled).reply_markup,
     });
 

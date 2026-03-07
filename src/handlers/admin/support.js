@@ -21,7 +21,6 @@ async function showSupportSettingsScreen(bot, chatId, messageId) {
   await safeEditMessageText(bot, message, {
     chat_id: chatId,
     message_id: messageId,
-    parse_mode: 'HTML',
     ...getAdminSupportKeyboard(mode, url),
   });
 }
@@ -60,7 +59,6 @@ async function handleSupportCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'admin_support' }]
@@ -123,7 +121,6 @@ async function handleAdminSupportUrlConversation(bot, msg) {
 
     // Send new message with support settings
     await safeSendMessage(bot, chatId, message, {
-      parse_mode: 'HTML',
       ...getAdminSupportKeyboard(mode, url),
     });
 

@@ -24,7 +24,6 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
       }
     );
@@ -40,7 +39,6 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getScheduleIntervalKeyboard().reply_markup,
       }
     );
@@ -56,7 +54,6 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getIpIntervalKeyboard().reply_markup,
       }
     );
@@ -97,7 +94,6 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
       }
     );
@@ -144,7 +140,6 @@ async function handleIntervalsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted).reply_markup,
       }
     );

@@ -37,7 +37,7 @@ async function handleChannel(bot, msg) {
           `Для зміни каналу використайте меню налаштувань.`
         : `ℹ️ Канал ще не підключено.`);
 
-    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, chatId, message);
 
   } catch (error) {
     console.error('Помилка в handleChannel:', error);
@@ -76,7 +76,6 @@ async function handleSetChannel(bot, msg, match) {
         chatId,
         '❌ Вкажіть канал.\n\nПриклад: <code>/setchannel @mychannel</code>\n\nОберіть наступну дію:',
         {
-          parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
       );
@@ -229,8 +228,7 @@ async function handleSetChannel(bot, msg, match) {
       '📝 <b>Введіть назву для каналу</b>\n\n' +
       `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
       '<b>Приклад:</b> Київ Черга 3.1\n' +
-      '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
-      { parse_mode: 'HTML' }
+      '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1'
     );
 
   } catch (error) {
@@ -304,8 +302,7 @@ async function handleForwardedMessage(bot, msg) {
   await bot.api.sendMessage(
     chatId,
     '📺 Тепер для підключення каналу використовуйте команду:\n\n' +
-    '<code>/setchannel @your_channel</code>',
-    { parse_mode: 'HTML' }
+    '<code>/setchannel @your_channel</code>'
   );
 }
 

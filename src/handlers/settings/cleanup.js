@@ -16,7 +16,6 @@ async function handleCleanupCallback(bot, query, user) {
     await safeEditMessageText(bot, CLEANUP_TEXT, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getCleanupKeyboard(fresh).reply_markup,
     });
     return;
@@ -29,7 +28,6 @@ async function handleCleanupCallback(bot, query, user) {
     await safeEditMessageText(bot, CLEANUP_TEXT, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getCleanupKeyboard(fresh).reply_markup,
     });
     return;
@@ -42,7 +40,6 @@ async function handleCleanupCallback(bot, query, user) {
     await safeEditMessageText(bot, CLEANUP_TEXT, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getCleanupKeyboard(fresh).reply_markup,
     });
     return;

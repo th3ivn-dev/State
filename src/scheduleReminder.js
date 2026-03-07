@@ -122,11 +122,11 @@ async function sendNotification(bot, user, text) {
   const target = user.notify_remind_target || 'bot';
 
   if (target === 'bot' || target === 'both') {
-    await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, user.telegram_id, text);
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {
-    await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
+    await safeSendMessage(bot, user.channel_id, text);
   }
 }
 

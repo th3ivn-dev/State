@@ -119,7 +119,7 @@ async function verifyChannelBranding(user) {
           `Налаштування → Канал → Підключити канал`;
 
         try {
-          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          await bot.api.sendMessage(user.telegram_id, message);
         } catch (sendError) {
           console.error(`Не вдалося надіслати повідомлення користувачу ${user.telegram_id}:`, sendError.message);
         }
@@ -204,7 +204,7 @@ async function checkExistingUsers(botInstance) {
           `Щоб продовжити роботу, перейдіть в:\n` +
           `Налаштування → Канал → Підключити канал`;
 
-        await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+        await bot.api.sendMessage(user.telegram_id, message);
         console.log(`📧 Надіслано повідомлення про міграцію користувачу ${user.telegram_id}`);
       } catch (error) {
         console.error(`Помилка надсилання повідомлення користувачу ${user.telegram_id}:`, error.message);

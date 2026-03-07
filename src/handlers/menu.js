@@ -63,7 +63,6 @@ async function handleMenuSchedule(bot, query) {
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '🔄 Оновити', callback_data: 'schedule_refresh' }],
@@ -167,7 +166,6 @@ async function handleMenuSchedule(bot, query) {
       await bot.api.sendMessage(query.message.chat.id,
         formatErrorMessage(),
         {
-          parse_mode: 'HTML',
           reply_markup: errorKeyboard.reply_markup
         }
       );
@@ -177,7 +175,6 @@ async function handleMenuSchedule(bot, query) {
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: errorKeyboard.reply_markup
         }
       );
@@ -270,7 +267,6 @@ async function handleMenuHelp(bot, query) {
     {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: helpKeyboard.reply_markup,
     }
   );
@@ -300,7 +296,6 @@ async function handleMenuSettings(bot, query) {
     {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
     }
   );
@@ -352,7 +347,6 @@ async function handleBackToMain(bot, query) {
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
         }
       );
@@ -369,7 +363,6 @@ async function handleBackToMain(bot, query) {
         query.message.chat.id,
         message,
         {
-          parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
       ).catch(() => null);
@@ -398,7 +391,6 @@ async function handleHelpHowto(bot, query) {
     {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [

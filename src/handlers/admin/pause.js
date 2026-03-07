@@ -26,7 +26,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getPauseMenuKeyboard(isPaused).reply_markup
       }
     );
@@ -82,7 +81,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getPauseMenuKeyboard(newIsPaused).reply_markup
       }
     );
@@ -103,7 +101,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
       }
     );
@@ -138,7 +135,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
         }
       );
@@ -161,7 +157,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
       }
     );
@@ -190,7 +185,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getPauseTypeKeyboard(currentType).reply_markup
       }
     );
@@ -221,7 +215,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getPauseTypeKeyboard(newType).reply_markup
       }
     );
@@ -271,7 +264,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
@@ -297,7 +289,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'pause_message_settings' }]
@@ -324,7 +315,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getDebounceKeyboard(currentDebounce).reply_markup,
       }
     );
@@ -356,7 +346,6 @@ async function handlePauseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getDebounceKeyboard(minutes).reply_markup,
       }
     );

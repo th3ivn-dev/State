@@ -63,7 +63,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [
@@ -82,7 +81,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getAdminTicketsListKeyboard(openTickets, page),
         }
       );
@@ -105,7 +103,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       await safeEditMessageText(bot, result.message, {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
       });
     } catch (_editError) {
@@ -116,7 +113,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         console.error('Помилка при видаленні повідомлення:', e.message);
       }
       await safeSendMessage(bot, chatId, result.message, {
-        parse_mode: 'HTML',
         reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
       });
     }
@@ -141,8 +137,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       bot,
       ticket.telegram_id,
       `✅ <b>Ваше звернення #${ticketId} закрито</b>\n\n` +
-      'Дякуємо за звернення!',
-      { parse_mode: 'HTML' }
+      'Дякуємо за звернення!'
     );
 
     await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Тикет закрито' });
@@ -154,7 +149,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         await safeEditMessageText(bot, result.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       } catch (_editError) {
@@ -165,7 +159,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
           console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
-          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       }
@@ -188,7 +181,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         await safeEditMessageText(bot, result.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       } catch (_editError) {
@@ -199,7 +191,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
           console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
-          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       }
@@ -233,7 +224,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       await safeEditMessageText(bot, replyMessage, {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: replyMarkup,
       });
     } catch (_editError) {
@@ -244,7 +234,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         console.error('Помилка при видаленні повідомлення:', e.message);
       }
       await safeSendMessage(bot, chatId, replyMessage, {
-        parse_mode: 'HTML',
         reply_markup: replyMarkup,
       });
     }
@@ -266,7 +255,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         await safeEditMessageText(bot, result.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       } catch (_editError) {
@@ -277,7 +265,6 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
           console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
-          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       }
@@ -324,7 +311,6 @@ async function handleAdminReply(bot, msg) {
       `💬 <b>Відповідь на ваше звернення #${ticketId}</b>\n\n` +
       `${msg.text}`,
       {
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
