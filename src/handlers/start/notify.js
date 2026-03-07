@@ -88,7 +88,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
             [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
           ]
         }

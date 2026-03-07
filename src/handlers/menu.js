@@ -67,7 +67,7 @@ async function handleMenuSchedule(bot, query) {
           reply_markup: {
             inline_keyboard: [
               [{ text: '🔄 Оновити', callback_data: 'schedule_refresh' }],
-              [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
             ]
           }
         }
@@ -400,7 +400,7 @@ async function handleHelpHowto(bot, query) {
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'menu_help' },
-            { text: '⤵ Меню', callback_data: 'back_to_main' }
+            { text: '⤴ Меню', callback_data: 'back_to_main' }
           ]
         ]
       }

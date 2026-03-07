@@ -150,7 +150,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
+          [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
           [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
         ]
       }
@@ -194,7 +194,7 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
           inline_keyboard: [
             [
               { text: '← Назад', callback_data: 'settings_channel' },
-              { text: '⤵ Меню', callback_data: 'back_to_main' }
+              { text: '⤴ Меню', callback_data: 'back_to_main' }
             ]
           ]
         }
