@@ -194,7 +194,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         return true;
       }
     } catch (error) {
-      logger.error('Error checking bot permissions:', error);
+      logger.error('Error checking bot permissions', { error });
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '😅 Щось пішло не так при перевірці прав',
         show_alert: true

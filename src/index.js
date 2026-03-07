@@ -113,7 +113,7 @@ async function main() {
 }
 
 main().catch(error => {
-  logger.error('❌ Критична помилка запуску:', error);
+  logger.error('❌ Критична помилка запуску', { error });
   process.exit(1);
 });
 
@@ -139,7 +139,7 @@ const shutdown = async (signal) => {
   try {
     // 1. Зупиняємо прийом повідомлень
     await bot.api.deleteWebhook().catch((error) => {
-      logger.error('⚠️  Помилка при видаленні webhook:', error.message);
+      logger.error('⚠️  Помилка при видаленні webhook', { message: error.message });
     });
     logger.info('✅ Webhook видалено');
 
@@ -201,7 +201,7 @@ const shutdown = async (signal) => {
     logger.info('👋 Бот завершив роботу');
     process.exit(0);
   } catch (error) {
-    logger.error('❌ Помилка при завершенні:', error);
+    logger.error('❌ Помилка при завершенні', { error });
     clearTimeout(forceKillTimer);
     process.exit(1);
   }
@@ -217,7 +217,7 @@ let uncaughtResetTimer = null;
 const MAX_UNCAUGHT_PER_MINUTE = 10;
 
 process.on('uncaughtException', (error) => {
-  logger.error('❌ Необроблена помилка:', error);
+  logger.error('❌ Необроблена помилка', { error });
 
   try {
     const metricsCollector = monitoringManager.getMetricsCollector();
@@ -242,7 +242,7 @@ process.on('uncaughtException', (error) => {
 });
 
 process.on('unhandledRejection', (reason, _promise) => {
-  logger.error('❌ Необроблене відхилення промісу:', reason);
+  logger.error('❌ Необроблене відхилення промісу', { reason });
   // Track error in monitoring system
   try {
     const metricsCollector = monitoringManager.getMetricsCollector();

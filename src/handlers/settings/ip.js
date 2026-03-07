@@ -414,7 +414,7 @@ async function handleIpConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error('Помилка в handleIpConversation:', error);
+    logger.error('Помилка в handleIpConversation', { error });
     await clearIpSetupState(telegramId);
 
     // Send error message with navigation buttons

@@ -31,7 +31,7 @@ async function handleAdmin(bot, msg) {
       }
     );
   } catch (error) {
-    logger.error('Помилка в handleAdmin:', error);
+    logger.error('Помилка в handleAdmin', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -53,7 +53,7 @@ async function handleStats(bot, msg) {
     await safeSendMessage(bot, chatId, message);
 
   } catch (error) {
-    logger.error('Помилка в handleStats:', error);
+    logger.error('Помилка в handleStats', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -91,7 +91,7 @@ async function handleUsers(bot, msg) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    logger.error('Помилка в handleUsers:', error);
+    logger.error('Помилка в handleUsers', { error });
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -159,7 +159,7 @@ async function handleBroadcast(bot, msg) {
     );
 
   } catch (error) {
-    logger.error('Помилка в handleBroadcast:', error);
+    logger.error('Помилка в handleBroadcast', { error });
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка при розсилці.\n\nОберіть наступну дію:',
@@ -200,7 +200,7 @@ async function handleSystem(bot, msg) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    logger.error('Помилка в handleSystem:', error);
+    logger.error('Помилка в handleSystem', { error });
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -284,7 +284,7 @@ async function handleSetInterval(bot, msg, match) {
     );
 
   } catch (error) {
-    logger.error('Помилка в handleSetInterval:', error);
+    logger.error('Помилка в handleSetInterval', { error });
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -346,7 +346,7 @@ async function handleSetDebounce(bot, msg, match) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    logger.error('Помилка в handleSetDebounce:', error);
+    logger.error('Помилка в handleSetDebounce', { error });
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -378,7 +378,7 @@ async function handleGetDebounce(bot, msg) {
     );
 
   } catch (error) {
-    logger.error('Помилка в handleGetDebounce:', error);
+    logger.error('Помилка в handleGetDebounce', { error });
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',

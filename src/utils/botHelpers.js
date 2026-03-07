@@ -22,7 +22,7 @@ function getBotUsername(bot) {
       cachedBotUsername = `@${botInfo.username}`;
       return cachedBotUsername;
     } catch (error) {
-      logger.error('Помилка отримання інформації про бота:', error);
+      logger.error('Помилка отримання інформації про бота', { error });
       // Не кешуємо помилку - дозволяємо повторні спроби
       botUsernamePromise = null;
       return 'цей_бот'; // Fallback value in Ukrainian for consistency

@@ -17,7 +17,7 @@ async function logPauseEvent(adminId, eventType, pauseType = null, message = nul
     `, [adminId, eventType, pauseType, message, reason]);
     return true;
   } catch (error) {
-    logger.error('Error logging pause event:', error);
+    logger.error('Error logging pause event', { error });
     return false;
   }
 }
@@ -35,7 +35,7 @@ async function getPauseLog(limit = 20) {
 
     return result.rows;
   } catch (error) {
-    logger.error('Error getting pause log:', error);
+    logger.error('Error getting pause log', { error });
     return [];
   }
 }
@@ -56,7 +56,7 @@ async function getPauseLogStats() {
 
     return result.rows[0] || { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   } catch (error) {
-    logger.error('Error getting pause log stats:', error);
+    logger.error('Error getting pause log stats', { error });
     return { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   }
 }
@@ -75,7 +75,7 @@ async function cleanOldPauseLog() {
     logger.info('🧹 Cleaned old pause log entries', { deletedCount });
     return deletedCount;
   } catch (error) {
-    logger.error('Error cleaning pause log:', error);
+    logger.error('Error cleaning pause log', { error });
     return 0;
   }
 }

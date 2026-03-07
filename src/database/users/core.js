@@ -12,7 +12,7 @@ async function createUser(telegramId, username, region, queue) {
 
     return result.rows[0].id;
   } catch (error) {
-    logger.error('Помилка створення користувача:', error.message);
+    logger.error('Помилка створення користувача', { error.message });
     throw error;
   }
 }
@@ -34,7 +34,7 @@ async function saveUser(telegramId, username, region, queue) {
 
     return result.rows[0].id;
   } catch (error) {
-    logger.error('Помилка збереження користувача:', error.message);
+    logger.error('Помилка збереження користувача', { error.message });
     throw error;
   }
 }
@@ -45,7 +45,7 @@ async function getUserByTelegramId(telegramId) {
     const result = await safeQuery('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
     return result.rows[0];
   } catch (error) {
-    logger.error('Error getting user by telegram_id:', error.message);
+    logger.error('Error getting user by telegram_id', { error.message });
     throw error;
   }
 }
@@ -56,7 +56,7 @@ async function getUserById(id) {
     const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
     return result.rows[0];
   } catch (error) {
-    logger.error('Error getting user by id:', error.message);
+    logger.error('Error getting user by id', { error.message });
     throw error;
   }
 }
@@ -67,7 +67,7 @@ async function getUserByChannelId(channelId) {
     const result = await pool.query('SELECT * FROM users WHERE channel_id = $1', [channelId]);
     return result.rows[0];
   } catch (error) {
-    logger.error('Error getting user by channel_id:', error.message);
+    logger.error('Error getting user by channel_id', { error.message });
     throw error;
   }
 }
@@ -83,7 +83,7 @@ async function setUserActive(telegramId, isActive) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in setUserActive:', error.message);
+    logger.error('Error in setUserActive', { error.message });
     return false;
   }
 }
@@ -111,7 +111,7 @@ async function deleteUser(telegramId) {
     return true;
   } catch (error) {
     await client.query('ROLLBACK');
-    logger.error('Error deleting user:', error.message);
+    logger.error('Error deleting user', { error.message });
     return false;
   } finally {
     client.release();
@@ -252,7 +252,7 @@ async function updateUser(telegramId, updates) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUser:', error.message);
+    logger.error('Error in updateUser', { error.message });
     return false;
   }
 }

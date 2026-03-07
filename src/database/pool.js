@@ -48,7 +48,7 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err) => {
-  logger.error('❌ Unexpected error on idle client', err);
+  logger.error('❌ Unexpected error on idle client', { error: err });
 });
 
 // Resilient query wrapper — retries once on connection errors
@@ -91,7 +91,7 @@ async function closeDatabase() {
     await pool.end();
     logger.info('✅ БД закрита коректно');
   } catch (error) {
-    logger.error('❌ Помилка закриття БД:', error);
+    logger.error('❌ Помилка закриття БД', { error });
   }
 }
 

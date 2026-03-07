@@ -41,7 +41,7 @@ async function handleChannel(bot, msg) {
     await safeSendMessage(bot, chatId, message);
 
   } catch (error) {
-    logger.error('Помилка в handleChannel:', error);
+    logger.error('Помилка в handleChannel', { error });
     await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуйте ще раз!');
   }
 }
@@ -192,7 +192,7 @@ async function handleSetChannel(bot, msg, match) {
       }
 
     } catch (error) {
-      logger.error('Помилка перевірки прав бота:', error);
+      logger.error('Помилка перевірки прав бота', { error });
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
@@ -233,7 +233,7 @@ async function handleSetChannel(bot, msg, match) {
     );
 
   } catch (error) {
-    logger.error('Помилка в handleSetChannel:', error);
+    logger.error('Помилка в handleSetChannel', { error });
 
     const user = await usersDb.getUserByTelegramId(String(msg.from.id));
 

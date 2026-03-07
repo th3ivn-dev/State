@@ -111,7 +111,7 @@ async function handleFeedbackStart(bot, query) {
       }
     );
   } catch (error) {
-    logger.error('Помилка handleFeedbackStart:', error);
+    logger.error('Помилка handleFeedbackStart', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -177,7 +177,7 @@ async function handleFeedbackType(bot, query) {
       timeout,
     });
   } catch (error) {
-    logger.error('Помилка handleFeedbackType:', error);
+    logger.error('Помилка handleFeedbackType', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -267,7 +267,7 @@ async function handleFeedbackMessage(bot, msg) {
 
     return true; // Повідомлення оброблене
   } catch (error) {
-    logger.error('Помилка handleFeedbackMessage:', error);
+    logger.error('Помилка handleFeedbackMessage', { error });
     notifyAdminsAboutError(bot, error, 'handleFeedbackMessage');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
@@ -333,7 +333,7 @@ async function handleFeedbackConfirm(bot, query) {
     // Очищаємо стан
     await clearFeedbackState(telegramId);
   } catch (error) {
-    logger.error('Помилка handleFeedbackConfirm:', error);
+    logger.error('Помилка handleFeedbackConfirm', { error });
     notifyAdminsAboutError(bot, error, 'handleFeedbackConfirm');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка під час відправки. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
@@ -371,7 +371,7 @@ async function handleFeedbackCancel(bot, query) {
       }
     });
   } catch (error) {
-    logger.error('Помилка handleFeedbackCancel:', error);
+    logger.error('Помилка handleFeedbackCancel', { error });
   }
 }
 
@@ -428,7 +428,7 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
       }
     }
   } catch (error) {
-    logger.error('Помилка notifyAdminsAboutNewTicket:', error);
+    logger.error('Помилка notifyAdminsAboutNewTicket', { error });
   }
 }
 

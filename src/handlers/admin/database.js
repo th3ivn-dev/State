@@ -60,7 +60,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       );
       await safeAnswerCallbackQuery(bot, query.id, { text: '✅ База очищена' });
     } catch (error) {
-      logger.error('Error clearing database:', error);
+      logger.error('Error clearing database', { error });
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка очищення бази',
         show_alert: true
@@ -110,7 +110,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
           stopPowerMonitoring();
           logger.info('🔄 Адмін-перезапуск ініційований користувачем', userId);
         } catch (error) {
-          logger.error('Помилка при graceful shutdown:', error);
+          logger.error('Помилка при graceful shutdown', { error });
         } finally {
           // Always exit, even if there were errors during shutdown
           process.exit(1);

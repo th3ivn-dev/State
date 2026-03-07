@@ -242,7 +242,7 @@ async function initializeDatabase() {
 
     logger.info('✅ База даних ініціалізована');
   } catch (error) {
-    logger.error('❌ Помилка ініціалізації бази даних:', error);
+    logger.error('❌ Помилка ініціалізації бази даних', { error });
     throw error;
   } finally {
     client.release();

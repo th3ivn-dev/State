@@ -304,7 +304,7 @@ async function handleAdminRouterIpConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error('Помилка в handleAdminRouterIpConversation:', error);
+    logger.error('Помилка в handleAdminRouterIpConversation', { error });
     // Don't clear state on error - let user retry
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні IP адреси. Спробуйте ще раз:');
     return true;

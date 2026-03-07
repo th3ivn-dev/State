@@ -92,7 +92,7 @@ async function handleChannelCallback(bot, query) {
     }
 
   } catch (error) {
-    logger.error('Помилка в handleChannelCallback:', error);
+    logger.error('Помилка в handleChannelCallback', { error });
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }

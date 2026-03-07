@@ -51,7 +51,7 @@ async function checkAllSchedules() {
       }
     });
   } catch (error) {
-    logger.error('Помилка при перевірці графіків:', error);
+    logger.error('Помилка при перевірці графіків', { error });
   } finally {
     isCheckingSchedules = false;
   }

@@ -67,7 +67,7 @@ async function handleMonitoring(bot, msg) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    logger.error('Помилка в handleMonitoring:', error);
+    logger.error('Помилка в handleMonitoring', { error });
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
   }
 }
@@ -128,7 +128,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     );
 
   } catch (error) {
-    logger.error('Помилка в handleSetAlertChannel:', error);
+    logger.error('Помилка в handleSetAlertChannel', { error });
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
   }
 }

@@ -87,7 +87,7 @@ async function handleMenuSchedule(bot, query) {
     try {
       lastCheck = await getScheduleCheckTime(user.region, user.queue);
     } catch (dbError) {
-      logger.error('Failed to get schedule check time:', dbError.message);
+      logger.error('Failed to get schedule check time', { dbError.message });
       lastCheck = Math.floor(Date.now() / 1000);
     }
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
@@ -125,7 +125,7 @@ async function handleMenuSchedule(bot, query) {
           return; // Nothing changed, keep current message as-is
         }
         // Fallback: delete + send new if edit fails for other reasons
-        logger.info('editMessageMedia failed, falling back to delete+send:', editError.message);
+        logger.info('editMessageMedia failed, falling back to delete+send', { editError.message });
         try { await bot.api.deleteMessage(query.message.chat.id, query.message.message_id); } catch (_e) {}
         messageDeleted = true;
         try {
@@ -137,7 +137,7 @@ async function handleMenuSchedule(bot, query) {
           return;
         } catch (imgError) {
           // Fall through to text-only
-          logger.info('sendPhoto failed after delete, falling back to text:', imgError.message);
+          logger.info('sendPhoto failed after delete, falling back to text', { imgError.message });
         }
       }
     }
@@ -160,7 +160,7 @@ async function handleMenuSchedule(bot, query) {
       );
     }
   } catch (error) {
-    logger.error('Помилка отримання графіка:', error);
+    logger.error('Помилка отримання графіка', { error });
 
     const errorKeyboard = await getErrorKeyboard();
     if (messageDeleted) {
@@ -216,7 +216,7 @@ async function handleMenuTimer(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка отримання таймера:', error);
+    logger.error('Помилка отримання таймера', { error });
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -247,7 +247,7 @@ async function handleMenuStats(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка отримання статистики:', error);
+    logger.error('Помилка отримання статистики', { error });
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -437,7 +437,7 @@ async function handleTimerCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка обробки timer callback:', error);
+    logger.error('Помилка обробки timer callback', { error });
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -480,7 +480,7 @@ async function handleStatsCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка обробки stats callback:', error);
+    logger.error('Помилка обробки stats callback', { error });
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -515,7 +515,7 @@ async function handleScheduleRefresh(bot, query) {
     try {
       lastCheck = await getScheduleCheckTime(user.region, user.queue);
     } catch (dbError) {
-      logger.error('Failed to get schedule check time:', dbError.message);
+      logger.error('Failed to get schedule check time', { dbError.message });
       lastCheck = Math.floor(Date.now() / 1000);
     }
 
@@ -562,7 +562,7 @@ async function handleScheduleRefresh(bot, query) {
           return; // Nothing changed, keep current message as-is
         }
         // Якщо edit не вдалося з іншої причини — fallback на delete+send
-        logger.info('editMessageMedia failed, falling back to delete+send:', editError.message);
+        logger.info('editMessageMedia failed, falling back to delete+send', { editError.message });
       }
     }
 
@@ -591,7 +591,7 @@ async function handleScheduleRefresh(bot, query) {
       reply_markup: scheduleKeyboard
     });
   } catch (error) {
-    logger.error('Помилка handleScheduleRefresh:', error);
+    logger.error('Помилка handleScheduleRefresh', { error });
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true

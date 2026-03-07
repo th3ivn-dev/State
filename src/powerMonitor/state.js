@@ -130,7 +130,7 @@ async function saveAllUserStates() {
     const isTimeout = error.message.includes('timed out');
     logger.error(isTimeout
       ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)`
-      : `Помилка збереження станів: ${error.message}`);
+      : 'Помилка збереження станів', isTimeout ? undefined : { message: error.message });
     return 0;
   }
 }
@@ -162,7 +162,7 @@ async function restoreUserStates() {
     logger.info(`🔄 Відновлено ${result.rows.length} станів користувачів`);
     return result.rows.length;
   } catch (error) {
-    logger.error('Помилка відновлення станів:', error.message);
+    logger.error('Помилка відновлення станів', { error.message });
     return 0;
   }
 }

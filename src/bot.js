@@ -220,7 +220,7 @@ bot.on('message', async (ctx) => {
     }
 
   } catch (error) {
-    logger.error('Помилка обробки повідомлення:', error);
+    logger.error('Помилка обробки повідомлення', { error });
     notifyAdminsAboutError(bot, error, 'message handler');
   }
 });
@@ -241,7 +241,7 @@ bot.on('callback_query:data', async (ctx) => {
       await bot.api.answerCallbackQuery(query.id);
     }
   } catch (error) {
-    logger.error('Помилка обробки callback query:', error);
+    logger.error('Помилка обробки callback query', { error });
     notifyAdminsAboutError(bot, error, `callback_query: ${data}`);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '❌ Виникла помилка',
@@ -252,7 +252,7 @@ bot.on('callback_query:data', async (ctx) => {
 
 // Error handling
 bot.catch((err) => {
-  logger.error('Помилка бота:', err.message || err);
+  logger.error('Помилка бота', { error: err.message || err });
   notifyAdminsAboutError(bot, err.error || err, 'bot error');
 });
 

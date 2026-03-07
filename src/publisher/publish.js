@@ -186,7 +186,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     return sentMessage;
 
   } catch (error) {
-    logger.error('Помилка публікації графіка:', error);
+    logger.error('Помилка публікації графіка', { error });
 
     // Track channel publish error
     if (metricsCollector) {

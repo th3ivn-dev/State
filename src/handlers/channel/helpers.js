@@ -157,7 +157,7 @@ async function validateChannelConnection(bot, channelId, telegramId) {
       };
     }
   } catch (error) {
-    logger.error('Error checking bot permissions:', error);
+    logger.error('Error checking bot permissions', { error });
     return {
       valid: false,
       error: VALIDATION_ERROR_TYPES.API_ERROR,

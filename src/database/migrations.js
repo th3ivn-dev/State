@@ -125,7 +125,7 @@ async function runMigrations() {
     } catch (error) {
       // Column may already be TIMESTAMPTZ — that is fine
       if (!error.message.toLowerCase().includes('already')) {
-        logger.error('⚠️ Помилка міграції power_changed_at:', error.message);
+        logger.error('⚠️ Помилка міграції power_changed_at', { error.message });
       }
     }
 
@@ -153,12 +153,12 @@ async function runMigrations() {
         ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
       `, [String(SCHEMA_VERSION)]);
     } catch (vErr) {
-      logger.error('⚠️ Не вдалося зберегти schema_version:', vErr.message);
+      logger.error('⚠️ Не вдалося зберегти schema_version', { vErr.message });
     }
 
     logger.info('✅ Міграція завершена (v): перевірено колонок', { SCHEMA_VERSION, addedCount });
   } catch (error) {
-    logger.error('❌ Помилка міграції:', error);
+    logger.error('❌ Помилка міграції', { error });
   } finally {
     client.release();
   }

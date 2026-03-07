@@ -189,7 +189,7 @@ async function getAllConfiguredAdminRouters() {
     );
     return result.rows;
   } catch (error) {
-    logger.error('Error getting all configured admin routers:', error);
+    logger.error('Error getting all configured admin routers', { error });
     return [];
   }
 }

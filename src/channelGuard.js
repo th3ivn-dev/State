@@ -45,7 +45,7 @@ async function verifyAllChannels() {
 
     logger.info('✅ Перевірка каналів завершена');
   } catch (error) {
-    logger.error('Помилка при перевірці каналів:', error);
+    logger.error('Помилка при перевірці каналів', { error });
   }
 }
 
@@ -214,7 +214,7 @@ async function checkExistingUsers(botInstance) {
 
     logger.info('✅ Міграція існуючих користувачів завершена');
   } catch (error) {
-    logger.error('Помилка при перевірці існуючих користувачів:', error);
+    logger.error('Помилка при перевірці існуючих користувачів', { error });
   }
 }
 

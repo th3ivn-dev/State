@@ -51,7 +51,7 @@ async function handleAdminCallback(bot, query) {
       await handleCommandsCallback(bot, query, chatId, userId, data);
     }
   } catch (error) {
-    logger.error('Помилка в handleAdminCallback:', error);
+    logger.error('Помилка в handleAdminCallback', { error });
     notifyAdminsAboutError(bot, error, 'handleAdminCallback');
     await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Виникла помилка' });
   }

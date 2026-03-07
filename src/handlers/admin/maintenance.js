@@ -141,7 +141,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
           `📤 Сповіщення надіслано: ${sent} з ${total} користувачів`
         );
       } catch (err) {
-        logger.error('Помилка масової розсилки maintenance:', err);
+        logger.error('Помилка масової розсилки maintenance', { err });
       }
     })();
 
@@ -219,7 +219,7 @@ async function handleMaintenanceConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error('Помилка в handleMaintenanceConversation:', error);
+    logger.error('Помилка в handleMaintenanceConversation', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні. Спробуйте ще раз:');
     return true;
   }

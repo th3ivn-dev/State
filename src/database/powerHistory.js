@@ -16,7 +16,7 @@ async function addPowerEvent(userId, eventType, timestamp, durationSeconds = nul
     `, [userId, eventType, timestamp, durationSeconds]);
     return true;
   } catch (error) {
-    logger.error('Error adding power event:', error);
+    logger.error('Error adding power event', { error });
     return false;
   }
 }
@@ -37,7 +37,7 @@ async function getPowerHistory(userId, limit = 100) {
 
     return result.rows;
   } catch (error) {
-    logger.error('Error getting power history:', error);
+    logger.error('Error getting power history', { error });
     return [];
   }
 }
@@ -58,7 +58,7 @@ async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
 
     return result.rows;
   } catch (error) {
-    logger.error('Error getting power history by period:', error);
+    logger.error('Error getting power history by period', { error });
     return [];
   }
 }
@@ -80,7 +80,7 @@ async function cleanupOldHistory(daysToKeep = 30) {
     logger.info('Видалено старих записів з power_history', { deletedCount });
     return deletedCount;
   } catch (error) {
-    logger.error('Error cleaning up old history:', error);
+    logger.error('Error cleaning up old history', { error });
     return 0;
   }
 }

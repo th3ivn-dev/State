@@ -16,7 +16,7 @@ async function getNextScheduledTime(user) {
 
     return nextEvent;
   } catch (error) {
-    logger.error('Error getting next scheduled time:', error);
+    logger.error('Error getting next scheduled time', { error });
     return null;
   }
 }

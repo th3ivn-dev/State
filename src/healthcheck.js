@@ -60,13 +60,13 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
 
           // Fire-and-forget with error isolation — a bad update must never crash the server
           Promise.resolve(bot.handleUpdate(update)).catch((err) => {
-            logger.error('Webhook handleUpdate error (isolated):', err.message);
+            logger.error('Webhook handleUpdate error (isolated)', { message: err.message });
           });
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (error) {
-          logger.error('Webhook processing error:', error.message);
+          logger.error('Webhook processing error', { message: error.message });
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
         }
@@ -95,7 +95,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         }
 
         const dbCheck = await pool.query('SELECT 1').then(() => true).catch((err) => {
-          logger.error('Health check DB error:', err.message);
+          logger.error('Health check DB error', { message: err.message });
           return false;
         });
         const userCount = await getUserCount();
@@ -142,7 +142,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
       }).then(() => {
         logger.info('🔗 Webhook встановлено', { fullWebhookUrl });
       }).catch((error) => {
-        logger.error('❌ Помилка встановлення webhook:', error.message);
+        logger.error('❌ Помилка встановлення webhook', { message: error.message });
         process.exit(1); // Let Railway restart the service
       });
     }
@@ -154,7 +154,7 @@ function stopHealthCheck() {
     // If using webhook, delete it before stopping
     if (botRef && config.USE_WEBHOOK) {
       botRef.api.deleteWebhook().catch((error) => {
-        logger.error('⚠️  Помилка при видаленні webhook:', error.message);
+        logger.error('⚠️  Помилка при видаленні webhook', { message: error.message });
       });
     }
     server.close();

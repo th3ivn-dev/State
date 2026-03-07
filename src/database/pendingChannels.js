@@ -60,7 +60,7 @@ async function getAllPendingChannels() {
     const result = await pool.query(`SELECT * FROM pending_channels`);
     return result.rows;
   } catch (error) {
-    logger.error('Error getting all pending channels:', error);
+    logger.error('Error getting all pending channels', { error });
     return [];
   }
 }

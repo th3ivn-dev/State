@@ -41,7 +41,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
           '<tg-emoji emoji-id="5458603043203327669">⚠</tg-emoji> <b>Канал зупинено на технічну перерву!</b>'
         );
       } catch (error) {
-        logger.error('Помилка відправки повідомлення про паузу в канал:', error);
+        logger.error('Помилка відправки повідомлення про паузу в канал', { error });
       }
     }
 
@@ -109,7 +109,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
           '<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> <b>Роботу каналу відновлено!</b>'
         );
       } catch (error) {
-        logger.error('Помилка відправки повідомлення про відновлення в канал:', error);
+        logger.error('Помилка відправки повідомлення про відновлення в канал', { error });
       }
     }
 

@@ -127,7 +127,7 @@ async function handleAdminSupportUrlConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error('Помилка в handleAdminSupportUrlConversation:', error);
+    logger.error('Помилка в handleAdminSupportUrlConversation', { error });
     // Don't clear state on error - let user retry
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні посилання. Спробуйте ще раз:');
     return true;

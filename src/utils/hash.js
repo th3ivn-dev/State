@@ -30,7 +30,7 @@ function calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp) {
 
     return crypto.createHash('sha256').update(JSON.stringify(hashData)).digest('hex');
   } catch (error) {
-    logger.error('Помилка обчислення хешу:', error.message);
+    logger.error('Помилка обчислення хешу', { message: error.message });
     return null;
   }
 }

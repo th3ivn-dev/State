@@ -100,7 +100,7 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
       }
     }
   } catch (error) {
-    logger.error('Помилка сповіщення адмінів про нового користувача:', error);
+    logger.error('Помилка сповіщення адмінів про нового користувача', { error });
   }
 }
 

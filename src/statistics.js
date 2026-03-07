@@ -20,7 +20,7 @@ async function addOutageRecord(userId, startTime, endTime) {
 
     return true;
   } catch (error) {
-    logger.error('Error adding outage record:', error);
+    logger.error('Error adding outage record', { error });
     return false;
   }
 }
@@ -73,7 +73,7 @@ async function getWeeklyStats(userId) {
       shortest,
     };
   } catch (error) {
-    logger.error('Error getting weekly stats:', error);
+    logger.error('Error getting weekly stats', { error });
     return {
       count: 0,
       totalMinutes: 0,

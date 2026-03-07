@@ -18,7 +18,7 @@ async function cleanupOldStates() {
 
     return true;
   } catch (error) {
-    logger.error('Error cleaning up old states:', error);
+    logger.error('Error cleaning up old states', { error });
     return false;
   }
 }

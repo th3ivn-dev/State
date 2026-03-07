@@ -15,7 +15,7 @@ async function main() {
     await pool.end();
     process.exit(0);
   } catch (error) {
-    logger.error('❌ Migration failed:', error);
+    logger.error('❌ Migration failed', { error });
     await pool.end();
     process.exit(1);
   }

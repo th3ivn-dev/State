@@ -136,7 +136,7 @@ async function runMonitoringCheck() {
       await monitorAdminRouter(adminRouter);
     }
   } catch (error) {
-    logger.error('Error in admin router monitoring check:', error);
+    logger.error('Error in admin router monitoring check', { error });
   }
 }
 

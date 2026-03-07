@@ -157,7 +157,7 @@ class SchedulerManager {
         try {
           await checkFunction();
         } catch (error) {
-          logger.error('❌ Error in schedule checker:', error);
+          logger.error('❌ Error in schedule checker', { error });
           // Track error
           if (metricsCollector) {
             metricsCollector.trackError(error, { context: 'schedule_checker' });
@@ -171,7 +171,7 @@ class SchedulerManager {
         try {
           await checkFunction();
         } catch (error) {
-          logger.error('❌ Error in schedule checker:', error);
+          logger.error('❌ Error in schedule checker', { error });
           // Track error
           if (metricsCollector) {
             metricsCollector.trackError(error, { context: 'schedule_checker' });

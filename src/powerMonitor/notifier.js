@@ -98,7 +98,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       const scheduleData = parseScheduleForQueue(data, user.queue);
       isScheduledOutage = isCurrentlyOff(scheduleData);
     } catch (error) {
-      logger.error('Error checking schedule:', error);
+      logger.error('Error checking schedule', { error });
     }
 
     let scheduleText = '';
@@ -227,7 +227,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
     userState.switchCount = 0;
 
   } catch (error) {
-    logger.error('Error handling power state change:', error);
+    logger.error('Error handling power state change', { error });
   }
 }
 

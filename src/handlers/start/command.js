@@ -81,7 +81,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
         }, false);
       }
     } catch (retryError) {
-      logger.error('Помилка повторної відправки wizard:', retryError);
+      logger.error('Помилка повторної відправки wizard', { error: retryError });
       // Останній fallback — очищаємо wizard і відправляємо кнопку меню
       await clearState('lastMenuMessages', telegramId);
       await clearWizardState(telegramId);
@@ -202,7 +202,7 @@ async function handleStart(bot, msg) {
       await startWizard(bot, chatId, telegramId, username, 'new');
     }
   } catch (error) {
-    logger.error('Помилка в handleStart:', error);
+    logger.error('Помилка в handleStart', { error });
     notifyAdminsAboutError(bot, error, 'handleStart');
     const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {

@@ -138,7 +138,7 @@ async function notifyAdminsAboutError(bot, error, context) {
 
   } catch (error) {
     // Ніколи не кидати виняток з цієї функції
-    logger.error('Помилка в notifyAdminsAboutError:', error);
+    logger.error('Помилка в notifyAdminsAboutError', { error });
   }
 }
 

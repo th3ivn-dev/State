@@ -111,7 +111,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
       } catch (e) {
-        logger.error('Помилка при видаленні повідомлення:', e.message);
+        logger.error('Помилка при видаленні повідомлення', { e.message });
       }
       await safeSendMessage(bot, chatId, result.message, {
         reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
@@ -157,7 +157,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error('Помилка при видаленні повідомлення:', e.message);
+          logger.error('Помилка при видаленні повідомлення', { e.message });
         }
         await safeSendMessage(bot, chatId, result.message, {
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
@@ -189,7 +189,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error('Помилка при видаленні повідомлення:', e.message);
+          logger.error('Помилка при видаленні повідомлення', { e.message });
         }
         await safeSendMessage(bot, chatId, result.message, {
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
@@ -232,7 +232,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
       } catch (e) {
-        logger.error('Помилка при видаленні повідомлення:', e.message);
+        logger.error('Помилка при видаленні повідомлення', { e.message });
       }
       await safeSendMessage(bot, chatId, replyMessage, {
         reply_markup: replyMarkup,
@@ -263,7 +263,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error('Помилка при видаленні повідомлення:', e.message);
+          logger.error('Помилка при видаленні повідомлення', { e.message });
         }
         await safeSendMessage(bot, chatId, result.message, {
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
@@ -338,7 +338,7 @@ async function handleAdminReply(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error('Помилка handleAdminReply:', error);
+    logger.error('Помилка handleAdminReply', { error });
     adminReplyStates.delete(telegramId);
     await safeSendMessage(bot, chatId, '❌ Помилка при надсиланні відповіді.');
     return true;

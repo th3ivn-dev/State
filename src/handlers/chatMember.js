@@ -36,7 +36,7 @@ function handleChatMember(bot, channelInstructionMessages) {
             if (isTelegramUserInactiveError(error)) {
               logger.info('ℹ️ Користувач недоступний — сповіщення про паузу пропущено', { userId });
             } else {
-              logger.error('Error sending pause message in my_chat_member:', error);
+              logger.error('Error sending pause message in my_chat_member', { error });
             }
           }
           return;
@@ -62,7 +62,7 @@ function handleChatMember(bot, channelInstructionMessages) {
             if (isTelegramUserInactiveError(error)) {
               logger.info('ℹ️ Користувач недоступний — сповіщення про зайнятий канал пропущено', { userId });
             } else {
-              logger.error('Error sending occupied channel notification:', error);
+              logger.error('Error sending occupied channel notification', { error });
             }
           }
           return;
@@ -81,7 +81,7 @@ function handleChatMember(bot, channelInstructionMessages) {
               try {
                 await bot.api.deleteMessage(userId, wizardState.lastMessageId);
               } catch (e) {
-                logger.info('Could not delete wizard instruction message:', e.message);
+                logger.info('Could not delete wizard instruction message', { e.message });
               }
             }
 
@@ -130,7 +130,7 @@ function handleChatMember(bot, channelInstructionMessages) {
             channelInstructionMessages.delete(userId);
             logger.info('Deleted instruction message for user', { lastInstructionMessageId, userId });
           } catch (e) {
-            logger.info('Could not delete instruction message:', e.message);
+            logger.info('Could not delete instruction message', { e.message });
           }
         }
 
@@ -159,7 +159,7 @@ function handleChatMember(bot, channelInstructionMessages) {
             if (isTelegramUserInactiveError(error)) {
               logger.info('ℹ️ Користувач недоступний — запит на заміну каналу пропущено', { userId });
             } else {
-              logger.error('Error sending replace channel prompt:', error);
+              logger.error('Error sending replace channel prompt', { error });
             }
           }
         } else {
@@ -181,7 +181,7 @@ function handleChatMember(bot, channelInstructionMessages) {
             if (isTelegramUserInactiveError(error)) {
               logger.info('ℹ️ Користувач недоступний — запит на підключення каналу пропущено', { userId });
             } else {
-              logger.error('Error sending connect channel prompt:', error);
+              logger.error('Error sending connect channel prompt', { error });
             }
           }
         }
@@ -231,7 +231,7 @@ function handleChatMember(bot, channelInstructionMessages) {
                   }
                 );
               } catch (e) {
-                logger.info('Could not update wizard message after bot removal:', e.message);
+                logger.info('Could not update wizard message after bot removal', { e.message });
               }
             }
 
@@ -256,7 +256,7 @@ function handleChatMember(bot, channelInstructionMessages) {
             if (isTelegramUserInactiveError(error)) {
               logger.info('ℹ️ Користувач недоступний — сповіщення про видалення каналу пропущено', { userId });
             } else {
-              logger.error('Error sending channel removal notification:', error);
+              logger.error('Error sending channel removal notification', { error });
             }
           }
 
@@ -266,7 +266,7 @@ function handleChatMember(bot, channelInstructionMessages) {
       }
 
     } catch (error) {
-      logger.error('Error in my_chat_member handler:', error);
+      logger.error('Error in my_chat_member handler', { error });
     }
   };
 }

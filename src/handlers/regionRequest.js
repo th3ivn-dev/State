@@ -122,7 +122,7 @@ async function handleRegionRequestStart(bot, query) {
       timeout,
     });
   } catch (error) {
-    logger.error('Помилка handleRegionRequestStart:', error);
+    logger.error('Помилка handleRegionRequestStart', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -209,7 +209,7 @@ async function handleRegionRequestMessage(bot, msg) {
 
     return true; // Повідомлення оброблене
   } catch (error) {
-    logger.error('Помилка handleRegionRequestMessage:', error);
+    logger.error('Помилка handleRegionRequestMessage', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
     await clearRegionRequestState(telegramId);
     return true;
@@ -280,7 +280,7 @@ async function handleRegionRequestConfirm(bot, query) {
     // Очищаємо стан
     await clearRegionRequestState(telegramId);
   } catch (error) {
-    logger.error('Помилка handleRegionRequestConfirm:', error);
+    logger.error('Помилка handleRegionRequestConfirm', { error });
     await safeSendMessage(bot, chatId, '❌ Виникла помилка під час відправки. Спробуйте пізніше.');
     await clearRegionRequestState(telegramId);
   }
@@ -323,7 +323,7 @@ async function handleRegionRequestCancel(bot, query) {
       }
     });
   } catch (error) {
-    logger.error('Помилка handleRegionRequestCancel:', error);
+    logger.error('Помилка handleRegionRequestCancel', { error });
   }
 }
 
@@ -360,7 +360,7 @@ async function notifyAdminsAboutRegionRequest(bot, ticket, state, username) {
       }
     }
   } catch (error) {
-    logger.error('Помилка notifyAdminsAboutRegionRequest:', error);
+    logger.error('Помилка notifyAdminsAboutRegionRequest', { error });
   }
 }
 

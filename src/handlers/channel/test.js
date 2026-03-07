@@ -47,7 +47,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         show_alert: true
       });
     } catch (error) {
-      logger.error('Error publishing test schedule:', error);
+      logger.error('Error publishing test schedule', { error });
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації графіка',
         show_alert: true
@@ -84,7 +84,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         show_alert: true
       });
     } catch (error) {
-      logger.error('Error publishing test power on:', error);
+      logger.error('Error publishing test power on', { error });
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації',
         show_alert: true
@@ -121,7 +121,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         show_alert: true
       });
     } catch (error) {
-      logger.error('Error publishing test power off:', error);
+      logger.error('Error publishing test power off', { error });
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації',
         show_alert: true
