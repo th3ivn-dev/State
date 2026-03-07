@@ -2,10 +2,13 @@ const { Bot } = require('grammy');
 const { hydrate } = require('@grammyjs/hydrate');
 const { autoRetry } = require('@grammyjs/auto-retry');
 const config = require('./config');
-const { pendingChannels, setPendingChannel, removePendingChannel, restorePendingChannels } = require('./state/pendingChannels');
+const { pendingChannels, removePendingChannel, restorePendingChannels } = require('./state/pendingChannels');
+
+// Import middleware
+const { maintenanceMiddleware, autoDeleteCommandsMiddleware } = require('./middleware');
 
 // Import handlers
-const { handleStart, handleWizardCallback, isInWizard, getWizardState, setWizardState } = require('./handlers/start');
+const { handleStart, handleWizardCallback } = require('./handlers/start');
 const { handleSchedule, handleNext, handleTimer } = require('./handlers/schedule');
 const { handleSettings, handleSettingsCallback, handleIpConversation } = require('./handlers/settings');
 const {
@@ -24,7 +27,6 @@ const {
   handleAdminSupportUrlConversation,
   handleMaintenanceConversation
 } = require('./handlers/admin');
-const { isMaintenanceMode } = require('./handlers/admin/maintenance');
 const {
   handleChannel,
   handleConversation,
@@ -47,43 +49,16 @@ const {
   handleScheduleRefresh,
   handleMyQueues,
 } = require('./handlers/menu');
-const { escapeHtml, isAdmin } = require('./utils');
-const { safeAnswerCallbackQuery, safeDeleteMessage, isTelegramUserInactiveError } = require('./utils/errorHandler');
-const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
+const { handleChatMember } = require('./handlers/chatMember');
+const { safeAnswerCallbackQuery } = require('./utils/errorHandler');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
-const usersDb = require('./database/users');
-const { checkPauseForChannelActions } = require('./utils/guards');
+const { startBotCleanup, stopBotCleanup } = require('./utils/cleanup');
 
 // Store channel instruction message IDs (для видалення старих інструкцій)
 const channelInstructionMessages = new Map();
 
 // Автоочистка застарілих записів з pendingChannels та channelInstructionMessages (кожну годину)
-const botCleanupInterval = setInterval(() => {
-  const oneHourAgo = Date.now() - PENDING_CHANNEL_CLEANUP_INTERVAL_MS;
-
-  // Cleanup pendingChannels with size limit
-  for (const [key, value] of pendingChannels.entries()) {
-    if (value && value.timestamp && value.timestamp < oneHourAgo) {
-      pendingChannels.delete(key);
-    }
-  }
-
-  // Enforce max size limit for pendingChannels (LRU-style)
-  if (pendingChannels.size >= MAX_PENDING_CHANNELS_MAP_SIZE) {
-    const entriesToDelete = pendingChannels.size - MAX_PENDING_CHANNELS_MAP_SIZE;
-    const keys = Array.from(pendingChannels.keys()).slice(0, entriesToDelete);
-    keys.forEach(key => pendingChannels.delete(key));
-    console.log(`🧹 Очищено ${entriesToDelete} старих pending channels (перевищено ліміт ${MAX_PENDING_CHANNELS_MAP_SIZE})`);
-  }
-
-  // Cleanup channelInstructionMessages with size limit
-  if (channelInstructionMessages.size >= MAX_INSTRUCTION_MESSAGES_MAP_SIZE) {
-    const entriesToDelete = channelInstructionMessages.size - MAX_INSTRUCTION_MESSAGES_MAP_SIZE;
-    const keys = Array.from(channelInstructionMessages.keys()).slice(0, entriesToDelete);
-    keys.forEach(key => channelInstructionMessages.delete(key));
-    console.log(`🧹 Очищено ${entriesToDelete} старих instruction messages (перевищено ліміт ${MAX_INSTRUCTION_MESSAGES_MAP_SIZE})`);
-  }
-}, PENDING_CHANNEL_CLEANUP_INTERVAL_MS); // Кожну годину
+const botCleanupInterval = startBotCleanup(channelInstructionMessages);
 
 // Create bot instance
 const bot = new Bot(config.botToken);
@@ -107,38 +82,10 @@ Object.defineProperty(bot.options, 'id', {
 });
 
 // Maintenance mode middleware — blocks non-admin users when maintenance is active
-bot.use(async (ctx, next) => {
-  const maintenance = await isMaintenanceMode();
-  if (maintenance.enabled) {
-    const userId = String(ctx.from?.id);
-    if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-      if (ctx.callbackQuery) {
-        await ctx.answerCallbackQuery({ text: maintenance.message, show_alert: true }).catch(() => {});
-      } else {
-        await ctx.reply(maintenance.message, { parse_mode: 'HTML' }).catch(() => {});
-      }
-      return;
-    }
-  }
-  await next();
-});
+bot.use(maintenanceMiddleware());
 
 // Auto-delete user commands middleware
-bot.use(async (ctx, next) => {
-  await next();
-  // After processing: if it's a command message and user has auto_delete_commands enabled, delete it
-  if (ctx.message?.text?.startsWith('/') && ctx.from) {
-    try {
-      const telegramId = String(ctx.from.id);
-      const user = await usersDb.getUserByTelegramId(telegramId);
-      if (user?.auto_delete_commands) {
-        await safeDeleteMessage(bot, ctx.message.chat.id, ctx.message.message_id);
-      }
-    } catch (_e) {
-      // Non-critical, ignore errors
-    }
-  }
-});
+bot.use(autoDeleteCommandsMiddleware(bot));
 
 // Command handlers
 bot.command('start', (ctx) => handleStart(bot, ctx.message));
@@ -423,275 +370,7 @@ bot.catch((err) => {
 });
 
 // Handle my_chat_member events for auto-connecting channels
-bot.on('my_chat_member', async (ctx) => {
-  try {
-    const update = ctx.myChatMember;
-    const chat = update.chat;
-    const newStatus = update.new_chat_member.status;
-    const oldStatus = update.old_chat_member.status;
-    const userId = String(update.from.id); // User who added the bot (convert to String for consistency)
-
-    // Перевіряємо що це канал
-    if (chat.type !== 'channel') return;
-
-    const channelId = String(chat.id);
-    const channelTitle = chat.title || 'Без назви';
-
-    // Бота додали як адміністратора
-    if (newStatus === 'administrator' && oldStatus !== 'administrator') {
-      // Перевірка режиму паузи
-      const pauseCheck = await checkPauseForChannelActions();
-      if (pauseCheck.blocked) {
-        // Бот на паузі - не дозволяємо додавання каналів
-        try {
-          await bot.api.sendMessage(
-            userId,
-            pauseCheck.message,
-            { parse_mode: 'HTML' }
-          );
-        } catch (error) {
-          if (isTelegramUserInactiveError(error)) {
-            console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про паузу пропущено`);
-          } else {
-            console.error('Error sending pause message in my_chat_member:', error);
-          }
-        }
-        return;
-      }
-
-      const channelUsername = chat.username ? `@${chat.username}` : chat.title;
-
-      // Перевіряємо чи канал вже зайнятий іншим користувачем
-      const existingUser = await usersDb.getUserByChannelId(channelId);
-      if (existingUser && existingUser.telegram_id !== userId) {
-        // Канал вже зайнятий - повідомляємо користувача
-        console.log(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
-
-        try {
-          await bot.api.sendMessage(
-            userId,
-            '⚠️ <b>Канал вже підключений</b>\n\n' +
-            `Канал "${escapeHtml(channelTitle)}" вже підключено до іншого користувача.\n\n` +
-            'Кожен канал може бути підключений тільки до одного облікового запису.\n\n' +
-            'Якщо це ваш канал — зверніться до підтримки.',
-            { parse_mode: 'HTML' }
-          );
-        } catch (error) {
-          if (isTelegramUserInactiveError(error)) {
-            console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про зайнятий канал пропущено`);
-          } else {
-            console.error('Error sending occupied channel notification:', error);
-          }
-        }
-        return;
-      }
-
-      // Перевіряємо чи користувач в wizard на етапі channel_setup
-
-      if (isInWizard(userId)) {
-        const wizardState = getWizardState(userId);
-
-        if (wizardState && wizardState.step === 'channel_setup') {
-          // Користувач в wizard - замінюємо інструкцію на підтвердження
-
-          // Видаляємо попереднє повідомлення якщо є
-          if (wizardState.lastMessageId) {
-            try {
-              await bot.api.deleteMessage(userId, wizardState.lastMessageId);
-            } catch (e) {
-              console.log('Could not delete wizard instruction message:', e.message);
-            }
-          }
-
-          // Зберігаємо pending channel
-          setPendingChannel(channelId, {
-            channelId,
-            channelUsername: chat.username ? `@${chat.username}` : null,
-            channelTitle: channelTitle,
-            telegramId: userId,
-            timestamp: Date.now()
-          });
-
-          // Надсилаємо підтвердження
-          const confirmMessage = await bot.api.sendMessage(
-            userId,
-            `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
-            `Використовувати його для сповіщень?`,
-            {
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: '✅ Так, підключити', callback_data: `wizard_channel_confirm_${channelId}` }],
-                  [{ text: '❌ Ні', callback_data: 'wizard_channel_cancel' }]
-                ]
-              }
-            }
-          );
-
-          // Оновлюємо wizard state з новим message ID
-          setWizardState(userId, {
-            ...wizardState,
-            lastMessageId: confirmMessage.message_id,
-            pendingChannelId: channelId
-          });
-
-          console.log(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
-          return; // Не продовжуємо стандартну логіку
-        }
-      }
-
-      // Спробувати видалити старе повідомлення з інструкцією
-      // (якщо є збережений message_id)
-      const lastInstructionMessageId = channelInstructionMessages.get(userId);
-      if (lastInstructionMessageId) {
-        try {
-          await bot.api.deleteMessage(userId, lastInstructionMessageId);
-          channelInstructionMessages.delete(userId);
-          console.log(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
-        } catch (e) {
-          console.log('Could not delete instruction message:', e.message);
-        }
-      }
-
-      // Отримати користувача з БД
-      const user = await usersDb.getUserByTelegramId(userId);
-
-      if (user && user.channel_id) {
-        // У користувача вже є канал - запитати про заміну
-        const currentChannelTitle = user.channel_title || 'Поточний канал';
-
-        try {
-          await bot.api.sendMessage(userId,
-            `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
-            `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentChannelTitle)}</b>".\n` +
-            `Замінити на новий?`,
-            {
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: '✅ Так, замінити', callback_data: `replace_channel_${channelId}` }],
-                  [{ text: '❌ Залишити поточний', callback_data: 'keep_current_channel' }]
-                ]
-              }
-            }
-          );
-        } catch (error) {
-          if (isTelegramUserInactiveError(error)) {
-            console.log(`ℹ️ Користувач ${userId} недоступний — запит на заміну каналу пропущено`);
-          } else {
-            console.error('Error sending replace channel prompt:', error);
-          }
-        }
-      } else {
-        // У користувача немає каналу - запропонувати підключити
-        try {
-          await bot.api.sendMessage(userId,
-            `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
-            `Використовувати його для сповіщень?`,
-            {
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: '✅ Так, підключити', callback_data: `connect_channel_${channelId}` }],
-                  [{ text: '❌ Ні', callback_data: 'cancel_channel_connect' }]
-                ]
-              }
-            }
-          );
-        } catch (error) {
-          if (isTelegramUserInactiveError(error)) {
-            console.log(`ℹ️ Користувач ${userId} недоступний — запит на підключення каналу пропущено`);
-          } else {
-            console.error('Error sending connect channel prompt:', error);
-          }
-        }
-      }
-
-      // Зберегти інформацію про канал тимчасово для callback
-      setPendingChannel(channelId, {
-        channelId,
-        channelUsername,
-        channelTitle: chat.title,
-        telegramId: userId,
-        timestamp: Date.now()
-      });
-
-      console.log(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
-    }
-
-    // Бота видалили з каналу
-    if ((newStatus === 'left' || newStatus === 'kicked') &&
-        (oldStatus === 'administrator' || oldStatus === 'member')) {
-
-      console.log(`Bot removed from channel: ${channelTitle} (${channelId})`);
-
-      // Видаляємо з pending channels
-      removePendingChannel(channelId);
-
-      // Перевіряємо чи користувач в wizard з цим каналом
-
-      if (isInWizard(userId)) {
-        const wizardState = getWizardState(userId);
-
-        if (wizardState && wizardState.pendingChannelId === channelId) {
-          // Оновлюємо повідомлення
-          if (wizardState.lastMessageId) {
-            try {
-              await bot.api.editMessageText(
-                userId,
-                wizardState.lastMessageId,
-                `❌ <b>Бота видалено з каналу</b>\n\n` +
-                `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
-                `Щоб підключити канал, додайте бота як адміністратора.`,
-                {
-                  parse_mode: 'HTML',
-                  reply_markup: {
-                    inline_keyboard: [
-                      [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
-                    ]
-                  }
-                }
-              );
-            } catch (e) {
-              console.log('Could not update wizard message after bot removal:', e.message);
-            }
-          }
-
-          // Очищаємо pending channel з wizard state
-          setWizardState(userId, {
-            ...wizardState,
-            pendingChannelId: null
-          });
-        }
-      }
-
-      const user = await usersDb.getUserByTelegramId(userId);
-
-      // Також перевіряємо чи це був підключений канал користувача
-      if (user && String(user.channel_id) === channelId) {
-        try {
-          await bot.api.sendMessage(userId,
-            `⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
-            `Сповіщення в цей канал більше не надсилатимуться.`,
-            { parse_mode: 'HTML' }
-          );
-        } catch (error) {
-          if (isTelegramUserInactiveError(error)) {
-            console.log(`ℹ️ Користувач ${userId} недоступний — сповіщення про видалення каналу пропущено`);
-          } else {
-            console.error('Error sending channel removal notification:', error);
-          }
-        }
-
-        // Очистити channel_id в БД
-        await usersDb.updateUser(userId, { channel_id: null, channel_title: null });
-      }
-    }
-
-  } catch (error) {
-    console.error('Error in my_chat_member handler:', error);
-  }
-});
+bot.on('my_chat_member', handleChatMember(bot, channelInstructionMessages));
 
 module.exports = bot;
 module.exports.pendingChannels = pendingChannels;
@@ -699,5 +378,5 @@ module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;
 module.exports.removePendingChannel = removePendingChannel;
 module.exports.stopBotCleanup = function() {
-  clearInterval(botCleanupInterval);
+  stopBotCleanup(botCleanupInterval);
 };
