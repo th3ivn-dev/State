@@ -177,7 +177,6 @@ async function initializeDatabase() {
 
       CREATE INDEX IF NOT EXISTS idx_power_history_user_id ON power_history(user_id);
       CREATE INDEX IF NOT EXISTS idx_power_history_timestamp ON power_history(timestamp);
-      CREATE INDEX IF NOT EXISTS idx_power_history_user_id_timestamp ON power_history(user_id, timestamp DESC);
 
       CREATE TABLE IF NOT EXISTS settings (
         id SERIAL PRIMARY KEY,
@@ -201,7 +200,6 @@ async function initializeDatabase() {
 
       CREATE INDEX IF NOT EXISTS idx_schedule_user_id ON schedule_history(user_id);
       CREATE INDEX IF NOT EXISTS idx_schedule_created_at ON schedule_history(created_at);
-      CREATE INDEX IF NOT EXISTS idx_schedule_history_user_id_created_at ON schedule_history(user_id, created_at DESC);
 
       CREATE TABLE IF NOT EXISTS user_power_states (
         telegram_id TEXT PRIMARY KEY,
@@ -275,7 +273,6 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
       CREATE INDEX IF NOT EXISTS idx_tickets_type ON tickets(type);
       CREATE INDEX IF NOT EXISTS idx_tickets_created_at ON tickets(created_at);
-      CREATE INDEX IF NOT EXISTS idx_tickets_telegram_id_status ON tickets(telegram_id, status);
       
       CREATE TABLE IF NOT EXISTS ticket_messages (
         id SERIAL PRIMARY KEY,
