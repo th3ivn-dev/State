@@ -1,27 +1,24 @@
-const { pool } = require('./db');
+const { safeQuery } = require('./db');
+const { createLogger } = require('../utils/logger');
 
-/**
- * Get admin router configuration
- */
+const logger = createLogger('AdminRoutersDb');
+
 async function getAdminRouter(adminTelegramId) {
   try {
-    const result = await pool.query(
+    const result = await safeQuery(
       'SELECT * FROM admin_routers WHERE admin_telegram_id = $1',
       [adminTelegramId]
     );
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    console.error(`Error getting admin router for ${adminTelegramId}:`, error);
+    logger.error(`Error getting admin router for ${adminTelegramId}:`, { error: error.message });
     return null;
   }
 }
 
-/**
- * Set or update admin router IP and port
- */
 async function setAdminRouterIP(adminTelegramId, ip, port = 80) {
   try {
-    await pool.query(
+    await safeQuery(
       `INSERT INTO admin_routers (admin_telegram_id, router_ip, router_port, updated_at)
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT(admin_telegram_id) DO UPDATE SET
@@ -32,17 +29,14 @@ async function setAdminRouterIP(adminTelegramId, ip, port = 80) {
     );
     return true;
   } catch (error) {
-    console.error(`Error setting admin router IP for ${adminTelegramId}:`, error);
+    logger.error(`Error setting admin router IP for ${adminTelegramId}:`, { error: error.message });
     return false;
   }
 }
 
-/**
- * Update admin router state
- */
 async function updateAdminRouterState(adminTelegramId, state) {
   try {
-    await pool.query(
+    await safeQuery(
       `UPDATE admin_routers SET
          last_state = $2,
          last_change_at = NOW(),
@@ -53,17 +47,14 @@ async function updateAdminRouterState(adminTelegramId, state) {
     );
     return true;
   } catch (error) {
-    console.error(`Error updating admin router state for ${adminTelegramId}:`, error);
+    logger.error(`Error updating admin router state for ${adminTelegramId}:`, { error: error.message });
     return false;
   }
 }
 
-/**
- * Update last check time without changing state
- */
 async function updateAdminRouterCheckTime(adminTelegramId) {
   try {
-    await pool.query(
+    await safeQuery(
       `UPDATE admin_routers SET
          last_check_at = NOW(),
          updated_at = NOW()
@@ -72,17 +63,14 @@ async function updateAdminRouterCheckTime(adminTelegramId) {
     );
     return true;
   } catch (error) {
-    console.error(`Error updating admin router check time for ${adminTelegramId}:`, error);
+    logger.error(`Error updating admin router check time for ${adminTelegramId}:`, { error: error.message });
     return false;
   }
 }
 
-/**
- * Toggle admin router notifications
- */
 async function toggleAdminRouterNotifications(adminTelegramId) {
   try {
-    const result = await pool.query(
+    const result = await safeQuery(
       `UPDATE admin_routers SET
          notifications_on = NOT notifications_on,
          updated_at = NOW()
@@ -92,34 +80,28 @@ async function toggleAdminRouterNotifications(adminTelegramId) {
     );
     return result.rows.length > 0 ? result.rows[0].notifications_on : null;
   } catch (error) {
-    console.error(`Error toggling admin router notifications for ${adminTelegramId}:`, error);
+    logger.error(`Error toggling admin router notifications for ${adminTelegramId}:`, { error: error.message });
     return null;
   }
 }
 
-/**
- * Add admin router history event
- */
 async function addAdminRouterEvent(adminTelegramId, eventType, durationMinutes = null) {
   try {
-    await pool.query(
+    await safeQuery(
       `INSERT INTO admin_router_history (admin_telegram_id, event_type, duration_minutes)
        VALUES ($1, $2, $3)`,
       [adminTelegramId, eventType, durationMinutes]
     );
     return true;
   } catch (error) {
-    console.error(`Error adding admin router event for ${adminTelegramId}:`, error);
+    logger.error(`Error adding admin router event for ${adminTelegramId}:`, { error: error.message });
     return false;
   }
 }
 
-/**
- * Get admin router history
- */
 async function getAdminRouterHistory(adminTelegramId, limit = 5) {
   try {
-    const result = await pool.query(
+    const result = await safeQuery(
       `SELECT * FROM admin_router_history
        WHERE admin_telegram_id = $1
        ORDER BY event_at DESC
@@ -128,17 +110,14 @@ async function getAdminRouterHistory(adminTelegramId, limit = 5) {
     );
     return result.rows;
   } catch (error) {
-    console.error(`Error getting admin router history for ${adminTelegramId}:`, error);
+    logger.error(`Error getting admin router history for ${adminTelegramId}:`, { error: error.message });
     return [];
   }
 }
 
-/**
- * Get admin router statistics for a time period
- */
 async function getAdminRouterStats(adminTelegramId, hours = 24) {
   try {
-    const result = await pool.query(
+    const result = await safeQuery(
       `SELECT
          COUNT(*) FILTER (WHERE event_type = 'offline') as offline_count,
          SUM(duration_minutes) FILTER (WHERE event_type = 'offline') as total_offline_minutes,
@@ -167,7 +146,7 @@ async function getAdminRouterStats(adminTelegramId, hours = 24) {
       avg_offline_minutes: 0,
     };
   } catch (error) {
-    console.error(`Error getting admin router stats for ${adminTelegramId}:`, error);
+    logger.error(`Error getting admin router stats for ${adminTelegramId}:`, { error: error.message });
     return {
       offline_count: 0,
       total_offline_minutes: 0,
@@ -177,18 +156,15 @@ async function getAdminRouterStats(adminTelegramId, hours = 24) {
   }
 }
 
-/**
- * Get all configured admin routers (for monitoring loop)
- */
 async function getAllConfiguredAdminRouters() {
   try {
-    const result = await pool.query(
+    const result = await safeQuery(
       `SELECT * FROM admin_routers
        WHERE router_ip IS NOT NULL`
     );
     return result.rows;
   } catch (error) {
-    console.error('Error getting all configured admin routers:', error);
+    logger.error('Error getting all configured admin routers:', { error: error.message });
     return [];
   }
 }
