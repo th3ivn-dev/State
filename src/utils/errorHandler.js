@@ -111,6 +111,12 @@ async function safeEditMessageText(bot, text, options = {}) {
       return null;
     }
 
+    // Ігноруємо помилку "message to edit not found" — повідомлення вже видалено користувачем або ботом
+    if (errorDescription.includes('message to edit not found') ||
+        errorMessage.includes('message to edit not found')) {
+      return null;
+    }
+
     // Обробляємо помилку "there is no text in the message to edit" — це очікувана ситуація
     // Виникає коли намагаємось редагувати повідомлення з фото (яке має caption замість тексту)
     // Викидаємо без логування, оскільки викликач (напр. bot.js:back_to_main) обробляє
