@@ -152,6 +152,9 @@ async function handleScheduleChange(user, data, newHash) {
       const { appendTimestamp } = require('./utils/timestamp');
       const { getScheduleViewKeyboard } = require('./keyboards/inline');
 
+      // Start image fetch in parallel with formatting work
+      const imagePromise = fetchScheduleImage(user.region, user.queue).catch(() => null);
+
       // Use snapshot fields directly from user object (no extra DB query)
       const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
       const updateType = {
@@ -164,9 +167,13 @@ async function handleScheduleChange(user, data, newHash) {
       const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, Math.floor(Date.now() / 1000));
       const scheduleKeyboard = getScheduleViewKeyboard();
 
+      // Await image result (may already be resolved by now)
+      const imageBuffer = await imagePromise;
       try {
-        const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-        const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+        const photoInput = imageBuffer
+          ? (Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer)
+          : null;
+        if (!photoInput) throw new Error('No image');
         await bot.api.sendPhoto(user.telegram_id, photoInput, {
           caption: fullCaption,
           caption_entities: timestampEntities,
