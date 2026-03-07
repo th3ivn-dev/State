@@ -1,6 +1,11 @@
 const usersDb = require('../../database/users');
 const { safeEditMessageText } = require('../../utils/errorHandler');
-const { getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getDeactivateConfirmKeyboard, getMainMenu } = require('../../keyboards/inline');
+const { getDeleteDataConfirmKeyboard, getDeleteDataFinalKeyboard, getDeactivateConfirmKeyboard } = require('../../keyboards/inline');
+const { clearWizardState } = require('../start/helpers');
+const { clearConversationState } = require('../channel');
+const { clearFeedbackState } = require('../feedback');
+const { clearRegionRequestState } = require('../regionRequest');
+const { clearIpSetupState } = require('./helpers');
 
 async function handleDataCallback(bot, query, _user) {
   const chatId = query.message.chat.id;
@@ -45,6 +50,13 @@ async function handleDataCallback(bot, query, _user) {
 
   // Confirm delete data - Final
   if (data === 'confirm_delete_data') {
+    // Clear all pending states before deleting user
+    await clearWizardState(telegramId);
+    await clearIpSetupState(telegramId);
+    await clearConversationState(telegramId);
+    await clearRegionRequestState(telegramId);
+    await clearFeedbackState(telegramId);
+
     // Delete user from database
     await usersDb.deleteUser(telegramId);
 
@@ -56,6 +68,11 @@ async function handleDataCallback(bot, query, _user) {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔄 Почати заново', callback_data: 'create_new_profile' }],
+          ],
+        },
       }
     );
     return;
@@ -85,16 +102,11 @@ async function handleDataCallback(bot, query, _user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-      }
-    );
-
-    // Send main menu after successful deactivation
-    await bot.api.sendMessage(
-      chatId,
-      '🏠 <b>Головне меню</b>',
-      {
-        parse_mode: 'HTML',
-        ...getMainMenu('paused', false),
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+          ],
+        },
       }
     );
     return;
