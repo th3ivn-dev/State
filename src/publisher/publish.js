@@ -2,11 +2,10 @@ const { fetchScheduleData, fetchScheduleImage } = require('../api');
 const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { formatScheduleMessage, formatTemplate } = require('../formatter');
 const { getPreviousSchedule, addScheduleToHistory, compareSchedules } = require('../database/scheduleHistory');
-const usersDb = require('../database/users');
 const { REGIONS } = require('../constants/regions');
-const { InputFile } = require('grammy');
 const { calculateScheduleHash, getUpdateTypeV2 } = require('./scheduleHash');
 const { validateChannel } = require('./channelValidator');
+const { notificationsQueue } = require('../queue/notificationsQueue');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -147,44 +146,54 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
       inline_keyboard: buttons
     };
 
-    let sentMessage;
+    const meta = {
+      telegramId: user.telegram_id,
+      userId: user.id,
+      updateLastScheduleMessageId: true,
+      updateUserPostId: true,
+    };
 
     try {
       // Завантажуємо зображення як Buffer
       const imageBuffer = await fetchScheduleImage(region, queue);
+      const photoBase64 = Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : null;
 
       // Check if picture_only mode is enabled
       if (user.picture_only) {
         // Відправляємо тільки фото без підпису
-        const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-        sentMessage = await bot.api.sendPhoto(user.channel_id, photoInput, {
-          reply_markup: inlineKeyboard
+        await notificationsQueue.add('photo', {
+          type: 'photo',
+          chatId: user.channel_id,
+          photo: photoBase64,
+          photoFilename: 'schedule.png',
+          options: { reply_markup: inlineKeyboard },
+          meta,
         });
       } else {
         // Відправляємо фото з підписом та кнопками
-        const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-        sentMessage = await bot.api.sendPhoto(user.channel_id, photoInput, {
-          caption: messageText,
-          parse_mode: 'HTML',
-          reply_markup: inlineKeyboard
+        await notificationsQueue.add('photo', {
+          type: 'photo',
+          chatId: user.channel_id,
+          photo: photoBase64,
+          photoFilename: 'schedule.png',
+          options: { caption: messageText, parse_mode: 'HTML', reply_markup: inlineKeyboard },
+          meta,
         });
       }
     } catch (_imageError) {
       console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
 
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
-      sentMessage = await bot.api.sendMessage(user.channel_id, messageText, {
-        parse_mode: 'HTML',
-        reply_markup: inlineKeyboard
+      await notificationsQueue.add('user', {
+        type: 'user',
+        chatId: user.channel_id,
+        text: messageText,
+        options: { parse_mode: 'HTML', reply_markup: inlineKeyboard },
+        meta,
       });
     }
 
-    // Save the message_id for potential deletion later
-    if (sentMessage && sentMessage.message_id) {
-      await usersDb.updateLastScheduleMessageId(user.telegram_id, sentMessage.message_id);
-    }
-
-    return sentMessage;
+    return null;
 
   } catch (error) {
     console.error('Помилка публікації графіка:', error);

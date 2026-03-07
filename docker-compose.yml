@@ -16,6 +16,17 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   bot:
     build: .
     environment:
@@ -24,6 +35,7 @@ services:
       - CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-3}
       - TZ=${TZ:-Europe/Kyiv}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-voltyk}:${POSTGRES_PASSWORD:-voltyk_password}@postgres:5432/${POSTGRES_DB:-voltyk_bot}
+      - REDIS_URL=redis://redis:6379
       - WEBHOOK_URL=${WEBHOOK_URL:-}
       - USE_WEBHOOK=${USE_WEBHOOK:-false}
       - PORT=${PORT:-3000}
@@ -32,7 +44,10 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
+  redis_data:

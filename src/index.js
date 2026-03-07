@@ -15,6 +15,7 @@ const { monitoringManager } = require('./monitoring/monitoringManager');
 const { startHealthCheck, stopHealthCheck } = require('./healthcheck');
 const messageQueue = require('./utils/messageQueue');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
+const { initWorker, closeQueue } = require('./queue/notificationsQueue');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
@@ -48,6 +49,7 @@ async function main() {
   startPoolMetricsLogging();
 
   messageQueue.init(bot);
+  initWorker(bot);
 
   // State restoration — initStateManager handles wizard/conversation/ipSetup
   await Promise.all([
@@ -145,6 +147,10 @@ const shutdown = async (signal) => {
     // 2. Drain message queue (wait for pending messages)
     await messageQueue.drain();
     console.log('✅ Message queue drained');
+
+    // 2.1 Закриваємо notifications queue (BullMQ)
+    await closeQueue();
+    console.log('✅ Notifications queue закрито');
 
     // 3. Зупиняємо scheduler manager
     schedulerManager.stop();

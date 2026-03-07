@@ -5,10 +5,10 @@ const usersDb = require('./database/users');
 const { REGION_CODES } = require('./constants/regions');
 const schedulerManager = require('./scheduler/schedulerManager');
 const settingsCache = require('./utils/settingsCache');
-const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { updateScheduleCheckTime } = require('./database/scheduleChecks');
 const { createLogger } = require('./utils/logger');
+const { notificationsQueue } = require('./queue/notificationsQueue');
 
 const logger = createLogger('Scheduler');
 let bot = null;
@@ -166,27 +166,28 @@ async function handleScheduleChange(user, data, newHash) {
 
       try {
         const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-        const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
-        await bot.api.sendPhoto(user.telegram_id, photoInput, {
-          caption: fullCaption,
-          caption_entities: timestampEntities,
-          reply_markup: scheduleKeyboard
+        const photoBase64 = Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : null;
+        await notificationsQueue.add('photo', {
+          type: 'photo',
+          chatId: user.telegram_id,
+          photo: photoBase64,
+          photoFilename: 'schedule.png',
+          options: { caption: fullCaption, caption_entities: timestampEntities, reply_markup: scheduleKeyboard },
+          meta: { telegramId: user.telegram_id },
         });
       } catch (_imgError) {
-        await bot.api.sendMessage(user.telegram_id, fullCaption, {
-          entities: timestampEntities,
-          reply_markup: scheduleKeyboard
+        await notificationsQueue.add('user', {
+          type: 'user',
+          chatId: user.telegram_id,
+          text: fullCaption,
+          options: { entities: timestampEntities, reply_markup: scheduleKeyboard },
+          meta: { telegramId: user.telegram_id },
         });
       }
 
-      console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
+      console.log(`📱 Графік додано в чергу для ${user.telegram_id}`);
     } catch (error) {
-      if (isTelegramUserInactiveError(error)) {
-        console.log(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
-        await usersDb.setUserActive(user.telegram_id, false);
-      } else {
-        console.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
-      }
+      console.error(`Помилка підготовки графіка для ${user.telegram_id}:`, error.message);
     }
   }
 
@@ -195,10 +196,7 @@ async function handleScheduleChange(user, data, newHash) {
   if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
     try {
       const { publishScheduleWithPhoto } = require('./publisher');
-      const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
-      if (sentMsg && sentMsg.message_id) {
-        await usersDb.updateUserPostId(user.id, sentMsg.message_id);
-      }
+      await publishScheduleWithPhoto(bot, user, user.region, user.queue);
       console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
     } catch (channelError) {
       if (isTelegramUserInactiveError(channelError)) {
