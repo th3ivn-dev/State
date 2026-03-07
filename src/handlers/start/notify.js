@@ -1,5 +1,5 @@
 const usersDb = require('../../database/users');
-const { getMainMenu, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
+const { getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require('../../utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
@@ -10,7 +10,6 @@ const { pendingChannels, removePendingChannel } = require('../../state/pendingCh
 const {
   PENDING_CHANNEL_EXPIRATION_MS,
   CHANNEL_NAME_PREFIX,
-  NEWS_CHANNEL_MESSAGE,
   setWizardState,
   clearWizardState,
   createPauseKeyboard,
@@ -80,40 +79,19 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       `⚡ Черга: ${state.queue}\n` +
       `🔔 Сповіщення: увімкнено ✅\n\n` +
       `Я одразу повідомлю вас про наступне\n` +
-      `відключення або появу світла.\n\n` +
-      `Переходьте до головного меню 👇`,
+      `відключення або появу світла.`,
       {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+            [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
+          ]
+        }
       }
     );
-
-    // Затримка перед показом головного меню
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // Пропозиція підписатись на канал новин
-    await bot.api.sendMessage(chatId, NEWS_CHANNEL_MESSAGE.text, NEWS_CHANNEL_MESSAGE.options);
-
-    // Відправляємо головне меню
-    const botStatus = 'no_channel'; // New user won't have channel yet
-    let menuMessage = '<b>🚧 Бот у розробці</b>\n';
-    menuMessage += '<i>Деякі функції можуть працювати нестабільно</i>\n\n';
-    menuMessage += '🏠 <b>Головне меню</b>\n\n';
-    menuMessage += `📍 Регіон: ${region} • ${state.queue}\n`;
-    menuMessage += `📺 Канал: не підключено\n`;
-    menuMessage += `🔔 Сповіщення: увімкнено ✅\n`;
-    menuMessage += '\n💬 Допоможіть нам стати краще — скористайтеся ❓ Допомога\n';
-
-    const sentMessage = await bot.api.sendMessage(
-      chatId,
-      menuMessage,
-      {
-        parse_mode: 'HTML',
-        ...getMainMenu(botStatus, false)
-      }
-    );
-    await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
 
     return true;
   }
