@@ -1,17 +1,17 @@
-const { fetchScheduleData, fetchScheduleImage } = require('./api');
-const { parseScheduleForQueue, findNextEvent } = require('./parser');
-const { formatScheduleMessage, formatTemplate } = require('./formatter');
-const { getPreviousSchedule, addScheduleToHistory, compareSchedules } = require('./database/scheduleHistory');
-const usersDb = require('./database/users');
-const { REGIONS } = require('./constants/regions');
-const crypto = require('crypto');
+const { fetchScheduleData, fetchScheduleImage } = require('../api');
+const { parseScheduleForQueue, findNextEvent } = require('../parser');
+const { formatScheduleMessage, formatTemplate } = require('../formatter');
+const { getPreviousSchedule, addScheduleToHistory, compareSchedules } = require('../database/scheduleHistory');
+const usersDb = require('../database/users');
+const { REGIONS } = require('../constants/regions');
 const { InputFile } = require('grammy');
-const { isTelegramUserInactiveError } = require('./utils/errorHandler');
+const { calculateScheduleHash, getUpdateTypeV2 } = require('./scheduleHash');
+const { validateChannel } = require('./channelValidator');
 
 // Get monitoring manager
 let metricsCollector = null;
 try {
-  metricsCollector = require('./monitoring/metricsCollector');
+  metricsCollector = require('../monitoring/metricsCollector');
 } catch (_e) {
   // Monitoring not available yet, will work without it
 }
@@ -19,83 +19,6 @@ try {
 // Day name constants
 const DAY_NAMES = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
 const SHORT_DAY_NAMES = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
-// Helper function to get bot ID (cached in bot.options.id)
-async function ensureBotId(bot) {
-  if (!bot.options.id) {
-    const botInfo = await bot.api.getMe();
-    bot.options.id = botInfo.id;
-  }
-  return bot.options.id;
-}
-
-// Визначити тип оновлення графіка з snapshot logic
-function getUpdateTypeV2(previousSchedule, currentSchedule, userSnapshots) {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const tomorrowStart = new Date(todayStart);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  const tomorrowEnd = new Date(tomorrowStart);
-  tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
-
-  // Get tomorrow date string (YYYY-MM-DD)
-  const tomorrowDateStr = tomorrowStart.toISOString().split('T')[0];
-
-  // Split events into today and tomorrow
-  const currentTodayEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
-    const eventStart = new Date(event.start);
-    return eventStart >= todayStart && eventStart < tomorrowStart;
-  }) : [];
-
-  const currentTomorrowEvents = currentSchedule.events ? currentSchedule.events.filter(event => {
-    const eventStart = new Date(event.start);
-    return eventStart >= tomorrowStart && eventStart < tomorrowEnd;
-  }) : [];
-
-  // Calculate hashes for today and tomorrow using helper
-  const todayHash = calculateScheduleHash(currentTodayEvents);
-  const tomorrowHash = calculateScheduleHash(currentTomorrowEvents);
-
-  // Check if snapshots changed
-  const todayChanged = userSnapshots?.today_snapshot_hash !== todayHash;
-  const tomorrowChanged = userSnapshots?.tomorrow_snapshot_hash !== tomorrowHash;
-
-  // Check if tomorrow was already published for this date
-  const tomorrowAlreadyPublished = userSnapshots?.tomorrow_published_date === tomorrowDateStr;
-
-  // Determine if tomorrow just appeared (new data and wasn't published for this date)
-  const tomorrowAppeared = currentTomorrowEvents.length > 0 &&
-                          tomorrowChanged &&
-                          !tomorrowAlreadyPublished;
-
-  return {
-    todayChanged,
-    tomorrowChanged,
-    tomorrowAppeared,
-    todayHash,
-    tomorrowHash,
-    tomorrowDateStr,
-    hasTomorrow: currentTomorrowEvents.length > 0,
-  };
-}
-
-// Helper function to calculate schedule hash
-// NOTE: This hash is used for FINE deduplication in publisher.js
-// It hashes the parsed events (MD5) to determine if the actual schedule changed.
-// This is separate from utils.calculateHash which uses SHA-256 on raw API data.
-// The dual-hash strategy is intentional:
-// - utils.calculateHash (SHA-256, raw API) → coarse change detection in scheduler.js
-// - this function (MD5, parsed events) → fine deduplication to prevent redundant publications
-function calculateScheduleHash(events) {
-  // Normalize events to prevent hash instability from Date serialization
-  const normalized = events.map(e => ({
-    start: new Date(e.start).getTime(),
-    end: new Date(e.end).getTime(),
-    isPossible: e.isPossible,
-    type: e.type,
-  }));
-  return crypto.createHash('md5').update(JSON.stringify(normalized)).digest('hex');
-}
 
 // Публікувати графік з фото та кнопками
 async function publishScheduleWithPhoto(bot, user, region, queue, { force = false } = {}) {
@@ -107,77 +30,8 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     }
 
     // Validate channel before publishing
-    try {
-      // Check if channel exists and bot has access
-      await bot.api.getChat(user.channel_id);
-
-      // Check if bot has necessary permissions
-      const botId = await ensureBotId(bot);
-      const botMember = await bot.api.getChatMember(user.channel_id, botId);
-
-      if (botMember.status !== 'administrator' || !botMember.can_post_messages) {
-        console.log(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
-        await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
-
-        // Notify user about the issue
-        try {
-          await bot.api.sendMessage(
-            user.telegram_id,
-            `⚠️ <b>Канал недоступний</b>\n\n` +
-            `Бот не має доступу до вашого каналу або прав на публікацію.\n\n` +
-            `🔴 <b>Моніторинг зупинено.</b>\n\n` +
-            `Переконайтесь, що бот є адміністратором з правами на публікацію.\n` +
-            `Перейдіть у Налаштування → Канал → Підключити канал`,
-            {
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: '⚙️ Налаштування', callback_data: 'menu_settings' }]
-                ]
-              }
-            }
-          );
-        } catch (notifyError) {
-          if (isTelegramUserInactiveError(notifyError)) {
-            console.log(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
-          } else {
-            console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
-          }
-        }
-
-        return;
-      }
-    } catch (validationError) {
-      // Channel not found or not accessible
-      console.log(`ℹ️ Канал ${user.channel_id} недоступний: ${validationError.message}`);
-      await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
-
-      // Notify user about the issue
-      try {
-        await bot.api.sendMessage(
-          user.telegram_id,
-          `⚠️ <b>Канал недоступний</b>\n\n` +
-          `Не вдалося отримати доступ до вашого каналу.\n` +
-          `Можливо, бот був видалений або канал видалено.\n\n` +
-          `🔴 <b>Моніторинг зупинено.</b>\n\n` +
-          `Перейдіть у Налаштування → Канал → Підключити канал`,
-          {
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: '⚙️ Налаштування', callback_data: 'menu_settings' }]
-              ]
-            }
-          }
-        );
-      } catch (notifyError) {
-        if (isTelegramUserInactiveError(notifyError)) {
-          console.log(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
-        } else {
-          console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
-        }
-      }
-
+    const isValid = await validateChannel(bot, user);
+    if (!isValid) {
       return;
     }
 
@@ -209,7 +63,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     const nextEvent = findNextEvent(scheduleData);
 
     // Use snapshot fields already present on the user object (avoids extra DB query)
-    const { updateSnapshotHashes } = require('./database/users');
+    const { updateSnapshotHashes } = require('../database/users');
 
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
 
@@ -352,5 +206,4 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
 
 module.exports = {
   publishScheduleWithPhoto,
-  getUpdateTypeV2,
 };

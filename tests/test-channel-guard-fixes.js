@@ -109,11 +109,13 @@ try {
 console.log('Test 6: Перевірка валідації каналу в publisher');
 try {
   const fs = require('fs');
-  const publisherContent = fs.readFileSync(path.join(__dirname, '../src/publisher.js'), 'utf8');
+  const publishContent = fs.readFileSync(path.join(__dirname, '../src/publisher/publish.js'), 'utf8');
+  const validatorContent = fs.readFileSync(path.join(__dirname, '../src/publisher/channelValidator.js'), 'utf8');
 
-  const hasChannelValidation = publisherContent.includes('// Validate channel before publishing') &&
-                               publisherContent.includes('getChat(user.channel_id)') &&
-                               publisherContent.includes('updateChannelStatus');
+  const hasChannelValidation = publishContent.includes('// Validate channel before publishing') &&
+                               publishContent.includes('validateChannel(bot, user)') &&
+                               validatorContent.includes('getChat(user.channel_id)') &&
+                               validatorContent.includes('updateChannelStatus');
 
   if (hasChannelValidation) {
     console.log('✓ Валідація каналу додана\n');
