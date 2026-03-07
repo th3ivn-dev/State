@@ -515,8 +515,8 @@ bot.on('my_chat_member', async (ctx) => {
           // Надсилаємо підтвердження
           const confirmMessage = await bot.api.sendMessage(
             userId,
-            `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
-            `Підключити цей канал для сповіщень про світло?`,
+            `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
+            `Використовувати його для сповіщень?`,
             {
               parse_mode: 'HTML',
               reply_markup: {
@@ -586,8 +586,8 @@ bot.on('my_chat_member', async (ctx) => {
         // У користувача немає каналу - запропонувати підключити
         try {
           await bot.api.sendMessage(userId,
-            `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
-            `Підключити цей канал для сповіщень про світло?`,
+            `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
+            `Використовувати його для сповіщень?`,
             {
               parse_mode: 'HTML',
               reply_markup: {
