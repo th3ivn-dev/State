@@ -12,7 +12,7 @@ async function updateUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserChannel', { error.message });
+    logger.error('Error in updateUserChannel', { error: error.message });
     return false;
   }
 }
@@ -35,7 +35,7 @@ async function resetUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in resetUserChannel', { error.message });
+    logger.error('Error in resetUserChannel', { error: error.message });
     return false;
   }
 }
@@ -67,7 +67,7 @@ async function updateChannelBranding(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateChannelBranding', { error.message });
+    logger.error('Error in updateChannelBranding', { error: error.message });
     return false;
   }
 }
@@ -123,7 +123,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateChannelBrandingPartial', { error.message });
+    logger.error('Error in updateChannelBrandingPartial', { error: error.message });
     return false;
   }
 }
@@ -139,7 +139,7 @@ async function updateChannelStatus(telegramId, status) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateChannelStatus', { error.message });
+    logger.error('Error in updateChannelStatus', { error: error.message });
     return false;
   }
 }
@@ -155,7 +155,7 @@ async function updateUserChannelPaused(telegramId, paused) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserChannelPaused', { error.message });
+    logger.error('Error in updateUserChannelPaused', { error: error.message });
     return false;
   }
 }

@@ -239,7 +239,7 @@ async function checkReminders(bot) {
       }
     }
   } catch (error) {
-    logger.error('❌ scheduleReminder error', { error.message });
+    logger.error('❌ scheduleReminder error', { error: error.message });
   }
 }
 

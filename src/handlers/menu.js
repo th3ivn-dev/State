@@ -87,7 +87,7 @@ async function handleMenuSchedule(bot, query) {
     try {
       lastCheck = await getScheduleCheckTime(user.region, user.queue);
     } catch (dbError) {
-      logger.error('Failed to get schedule check time', { dbError.message });
+      logger.error('Failed to get schedule check time', { error: dbError.message });
       lastCheck = Math.floor(Date.now() / 1000);
     }
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
@@ -126,7 +126,7 @@ async function handleMenuSchedule(bot, query) {
           return; // Nothing changed, keep current message as-is
         }
         // Fallback: delete + send new if edit fails for other reasons
-        logger.info('editMessageMedia failed, falling back to delete+send', { editError.message });
+        logger.info('editMessageMedia failed, falling back to delete+send', { error: editError.message });
         try { await bot.api.deleteMessage(query.message.chat.id, query.message.message_id); } catch (_e) {}
         messageDeleted = true;
         try {
@@ -139,7 +139,7 @@ async function handleMenuSchedule(bot, query) {
           return;
         } catch (imgError) {
           // Fall through to text-only
-          logger.info('sendPhoto failed after delete, falling back to text', { imgError.message });
+          logger.info('sendPhoto failed after delete, falling back to text', { error: imgError.message });
         }
       }
     }
@@ -519,7 +519,7 @@ async function handleScheduleRefresh(bot, query) {
     try {
       lastCheck = await getScheduleCheckTime(user.region, user.queue);
     } catch (dbError) {
-      logger.error('Failed to get schedule check time', { dbError.message });
+      logger.error('Failed to get schedule check time', { error: dbError.message });
       lastCheck = Math.floor(Date.now() / 1000);
     }
 
@@ -567,7 +567,7 @@ async function handleScheduleRefresh(bot, query) {
           return; // Nothing changed, keep current message as-is
         }
         // Якщо edit не вдалося з іншої причини — fallback на delete+send
-        logger.info('editMessageMedia failed, falling back to delete+send', { editError.message });
+        logger.info('editMessageMedia failed, falling back to delete+send', { error: editError.message });
       }
     }
 
