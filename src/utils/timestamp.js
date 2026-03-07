@@ -27,7 +27,7 @@ function appendTimestamp(htmlMessage, checkTime) {
   // Convert HTML message to plain text + entities
   const { text: plainMessage, entities } = htmlToEntities(htmlMessage);
 
-  const prefix = '\n\n🔄 Оновлення: ';
+  const prefix = '\n\n🔄 Оновлено: ';
   const timestampStr = String(unixTimestamp);
   const fullText = plainMessage + prefix + timestampStr;
   const offset = plainMessage.length + prefix.length;
