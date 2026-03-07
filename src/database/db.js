@@ -152,13 +152,6 @@ async function initializeDatabase() {
       CREATE INDEX IF NOT EXISTS idx_users_telegram_id ON users(telegram_id);
       CREATE INDEX IF NOT EXISTS idx_users_channel_id ON users(channel_id);
 
-      -- Indexes for 500K+ scale: cover the hot-path bulk queries
-      CREATE INDEX IF NOT EXISTS idx_users_active_region ON users(region) WHERE is_active = TRUE;
-      CREATE INDEX IF NOT EXISTS idx_users_router_ip_active ON users(id) WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = TRUE;
-      CREATE INDEX IF NOT EXISTS idx_users_active_channel ON users(id) WHERE channel_id IS NOT NULL AND is_active = TRUE AND channel_status = 'active';
-      CREATE INDEX IF NOT EXISTS idx_users_reminders ON users(region, queue) WHERE is_active = TRUE AND (notify_remind_off = TRUE OR notify_fact_off = TRUE OR notify_remind_on = TRUE OR notify_fact_on = TRUE);
-      CREATE INDEX IF NOT EXISTS idx_users_created_at_desc ON users(created_at DESC);
-
       CREATE TABLE IF NOT EXISTS outage_history (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL,
@@ -462,6 +455,22 @@ async function runMigrations() {
       // Column may already be TIMESTAMPTZ — that is fine
       if (!error.message.toLowerCase().includes('already')) {
         console.error('⚠️ Помилка міграції power_changed_at:', error.message);
+      }
+    }
+
+    // Scale indexes — created here (after migrations add all columns)
+    const scaleIndexes = [
+      'CREATE INDEX IF NOT EXISTS idx_users_active_region ON users(region) WHERE is_active = TRUE',
+      'CREATE INDEX IF NOT EXISTS idx_users_router_ip_active ON users(id) WHERE router_ip IS NOT NULL AND router_ip != \'\' AND is_active = TRUE',
+      'CREATE INDEX IF NOT EXISTS idx_users_active_channel ON users(id) WHERE channel_id IS NOT NULL AND is_active = TRUE AND channel_status = \'active\'',
+      'CREATE INDEX IF NOT EXISTS idx_users_reminders ON users(region, queue) WHERE is_active = TRUE AND (notify_remind_off = TRUE OR notify_fact_off = TRUE OR notify_remind_on = TRUE OR notify_fact_on = TRUE)',
+      'CREATE INDEX IF NOT EXISTS idx_users_created_at_desc ON users(created_at DESC)',
+    ];
+    for (const ddl of scaleIndexes) {
+      try {
+        await client.query(ddl);
+      } catch (idxErr) {
+        console.warn(`⚠️ Index creation skipped: ${idxErr.message}`);
       }
     }
 
