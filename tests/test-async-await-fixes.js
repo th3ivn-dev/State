@@ -108,20 +108,21 @@ assert(
 console.log('✓ getIpMonitoringCount() is correctly awaited and stored in variable\n');
 
 // ============================================================================
-// Test 4: scheduler.js has null check for sentMsg
+// Test 4: scheduler.js uses notificationsQueue for channel publishing
 // ============================================================================
-console.log('Test 4: scheduler.js has null check before accessing sentMsg.message_id');
+console.log('Test 4: scheduler.js delegates message_id tracking to BullMQ worker');
 
 const schedulerCode = fs.readFileSync(path.join(__dirname, '../src/scheduler.js'), 'utf8');
 
-// Check that there's a null check before accessing sentMsg.message_id
-const schedulerMatch = schedulerCode.match(/const sentMsg = await publishScheduleWithPhoto[\s\S]*?if \(sentMsg && sentMsg\.message_id\)[\s\S]*?{[\s\S]*?await usersDb\.updateUserPostId\(user\.id, sentMsg\.message_id\)/);
+// After BullMQ integration, updateUserPostId is handled by the queue worker via metadata.
+// Verify that scheduler.js calls publishScheduleWithPhoto without capturing sentMsg for updateUserPostId.
+const schedulerMatch = schedulerCode.match(/await publishScheduleWithPhoto\(bot, user, user\.region, user\.queue\)/);
 assert(
   schedulerMatch,
-  'scheduler.js should have null check: if (sentMsg && sentMsg.message_id) before updateUserPostId'
+  'scheduler.js should call publishScheduleWithPhoto (message_id tracking is handled by BullMQ worker)'
 );
 
-console.log('✓ sentMsg null check is correctly implemented\n');
+console.log('✓ publishScheduleWithPhoto call is correctly implemented\n');
 
 // ============================================================================
 // Test 5: channelGuard.js has no duplicate const { pool }

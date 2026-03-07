@@ -24,8 +24,10 @@
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/hydrate": "^1.6.0",
     "axios": "^1.6.5",
+    "bullmq": "^5.70.4",
     "dotenv": "^16.3.1",
     "grammy": "^1.41.0",
+    "ioredis": "^5.10.0",
     "node-cron": "^3.0.3",
     "pg": "^8.11.3"
   },
