@@ -66,7 +66,7 @@ async function handleSchedule(bot, msg) {
       }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
       // Якщо зображення недоступне, відправляємо тільки текст
-      logger.info('Зображення графіка недоступне', { imgError.message });
+      logger.info('Зображення графіка недоступне', { error: imgError.message });
       sentMsg = await safeSendMessage(bot, chatId, fullCaption, {
         entities: timestampEntities,
         parse_mode: undefined, // Override global parseMode — entities handle formatting

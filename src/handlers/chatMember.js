@@ -81,7 +81,7 @@ function handleChatMember(bot, channelInstructionMessages) {
               try {
                 await bot.api.deleteMessage(userId, wizardState.lastMessageId);
               } catch (e) {
-                logger.info('Could not delete wizard instruction message', { e.message });
+                logger.info('Could not delete wizard instruction message', { error: e.message });
               }
             }
 
@@ -130,7 +130,7 @@ function handleChatMember(bot, channelInstructionMessages) {
             channelInstructionMessages.delete(userId);
             logger.info('Deleted instruction message for user', { lastInstructionMessageId, userId });
           } catch (e) {
-            logger.info('Could not delete instruction message', { e.message });
+            logger.info('Could not delete instruction message', { error: e.message });
           }
         }
 
@@ -231,7 +231,7 @@ function handleChatMember(bot, channelInstructionMessages) {
                   }
                 );
               } catch (e) {
-                logger.info('Could not update wizard message after bot removal', { e.message });
+                logger.info('Could not update wizard message after bot removal', { error: e.message });
               }
             }
 

@@ -162,7 +162,7 @@ async function restoreUserStates() {
     logger.info(`🔄 Відновлено ${result.rows.length} станів користувачів`);
     return result.rows.length;
   } catch (error) {
-    logger.error('Помилка відновлення станів', { error.message });
+    logger.error('Помилка відновлення станів', { error: error.message });
     return 0;
   }
 }

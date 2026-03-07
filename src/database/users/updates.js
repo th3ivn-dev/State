@@ -12,7 +12,7 @@ async function updateUserRegionQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserRegionQueue', { error.message });
+    logger.error('Error in updateUserRegionQueue', { error: error.message });
     return false;
   }
 }
@@ -32,7 +32,7 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserRegionAndQueue', { error.message });
+    logger.error('Error in updateUserRegionAndQueue', { error: error.message });
     return false;
   }
 }
@@ -48,7 +48,7 @@ async function updateUserPostId(id, postId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserPostId', { error.message });
+    logger.error('Error in updateUserPostId', { error: error.message });
     return false;
   }
 }
@@ -64,7 +64,7 @@ async function updateUserRouterIp(telegramId, routerIp) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserRouterIp', { error.message });
+    logger.error('Error in updateUserRouterIp', { error: error.message });
     return false;
   }
 }
@@ -80,7 +80,7 @@ async function updateLastScheduleMessageId(telegramId, messageId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateLastScheduleMessageId', { error.message });
+    logger.error('Error in updateLastScheduleMessageId', { error: error.message });
     return false;
   }
 }

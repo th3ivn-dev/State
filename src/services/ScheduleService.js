@@ -144,7 +144,7 @@ class ScheduleService {
         const { region, data } = result.value;
         resultMap[region] = data;
       } else {
-        logger.error('Unexpected promise rejection in batchFetchSchedules', { result.reason });
+        logger.error('Unexpected promise rejection in batchFetchSchedules', { error: result.reason });
       }
     }
 

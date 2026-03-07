@@ -12,7 +12,7 @@ async function updateUserHash(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserHash', { error.message });
+    logger.error('Error in updateUserHash', { error: error.message });
     return false;
   }
 }
@@ -28,7 +28,7 @@ async function updateUserPublishedHash(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserPublishedHash', { error.message });
+    logger.error('Error in updateUserPublishedHash', { error: error.message });
     return false;
   }
 }
@@ -44,7 +44,7 @@ async function updateUserHashes(id, hash) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserHashes', { error.message });
+    logger.error('Error in updateUserHashes', { error: error.message });
     return false;
   }
 }
@@ -63,7 +63,7 @@ async function updateSnapshotHashes(telegramId, todayHash, tomorrowHash, tomorro
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateSnapshotHashes', { error.message });
+    logger.error('Error in updateSnapshotHashes', { error: error.message });
     return false;
   }
 }
@@ -79,7 +79,7 @@ async function getSnapshotHashes(telegramId) {
 
     return result.rows[0];
   } catch (error) {
-    logger.error('Error in getSnapshotHashes', { error.message });
+    logger.error('Error in getSnapshotHashes', { error: error.message });
     return null;
   }
 }
@@ -111,7 +111,7 @@ async function batchUpdateHashes(updates) {
       WHERE u.id = v.id
     `, [ids, hashes, pubHashes]);
   } catch (error) {
-    logger.error('Error in batchUpdateHashes', { error.message });
+    logger.error('Error in batchUpdateHashes', { error: error.message });
     throw error;
   }
 }
