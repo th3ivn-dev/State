@@ -1,4 +1,7 @@
-const { pool } = require('./db');
+const { safeQuery, pool } = require('./db');
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('ScheduleHistoryDb');
 
 /**
  * Add a schedule to history
@@ -13,7 +16,7 @@ async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
     // Delete any existing schedule for today before inserting new one
     const today = new Date().toISOString().split('T')[0];
     await client.query(`
-      DELETE FROM schedule_history 
+      DELETE FROM schedule_history
       WHERE user_id = $1 AND DATE(created_at) = $2
     `, [userId, today]);
 
@@ -29,7 +32,7 @@ async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
     if (client) {
       await client.query('ROLLBACK');
     }
-    console.error('Error adding schedule to history:', error);
+    logger.error('Error adding schedule to history:', { error: error.message });
     return false;
   } finally {
     if (client) {
@@ -43,7 +46,7 @@ async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
  */
 async function getLastSchedule(userId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT * FROM schedule_history
       WHERE user_id = $1
       ORDER BY created_at DESC
@@ -58,7 +61,7 @@ async function getLastSchedule(userId) {
 
     return null;
   } catch (error) {
-    console.error('Error getting last schedule:', error);
+    logger.error('Error getting last schedule:', { error: error.message });
     return null;
   }
 }
@@ -68,7 +71,7 @@ async function getLastSchedule(userId) {
  */
 async function getPreviousSchedule(userId) {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       SELECT * FROM schedule_history
       WHERE user_id = $1
       ORDER BY created_at DESC
@@ -83,7 +86,7 @@ async function getPreviousSchedule(userId) {
 
     return null;
   } catch (error) {
-    console.error('Error getting previous schedule:', error);
+    logger.error('Error getting previous schedule:', { error: error.message });
     return null;
   }
 }
@@ -94,126 +97,76 @@ async function getPreviousSchedule(userId) {
  */
 async function cleanOldSchedules() {
   try {
-    const result = await pool.query(`
+    const result = await safeQuery(`
       DELETE FROM schedule_history
       WHERE created_at < NOW() - INTERVAL '7 days'
     `);
 
     const deletedCount = result.rowCount || 0;
-    console.log(`🧹 Cleaned ${deletedCount} old schedule history records`);
+    if (deletedCount > 0) {
+      logger.info(`🧹 Видалено ${deletedCount} старих записів з schedule_history`);
+    }
     return deletedCount;
   } catch (error) {
-    console.error('Error cleaning old schedules:', error);
+    logger.error('Error cleaning old schedules:', { error: error.message });
     return 0;
   }
 }
 
 /**
- * Compare two schedules and return changes
- * Returns: { added: [], removed: [], modified: [], summary: '' }
+ * Get schedule history for a user
  */
-function compareSchedules(oldSchedule, newSchedule) {
-  const changes = {
-    added: [],
-    removed: [],
-    modified: [],
-    summary: ''
-  };
+async function getScheduleHistory(userId, limit = 10) {
+  try {
+    const result = await safeQuery(`
+      SELECT * FROM schedule_history
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT $2
+    `, [userId, limit]);
 
-  if (!oldSchedule || !oldSchedule.events || !newSchedule || !newSchedule.events) {
-    return changes;
+    return result.rows.map(row => {
+      row.schedule_data = JSON.parse(row.schedule_data);
+      return row;
+    });
+  } catch (error) {
+    logger.error('Error getting schedule history:', { error: error.message });
+    return [];
   }
+}
 
-  const oldEvents = oldSchedule.events || [];
-  const newEvents = newSchedule.events || [];
+/**
+ * Get schedule count for a user
+ */
+async function getScheduleCount(userId) {
+  try {
+    const result = await safeQuery(`
+      SELECT COUNT(*) as count FROM schedule_history
+      WHERE user_id = $1
+    `, [userId]);
 
-  // Create maps for easier comparison
-  const oldMap = new Map();
-  oldEvents.forEach(event => {
-    const key = `${event.start}_${event.end}`;
-    oldMap.set(key, event);
-  });
-
-  const newMap = new Map();
-  newEvents.forEach(event => {
-    const key = `${event.start}_${event.end}`;
-    newMap.set(key, event);
-  });
-
-  // Find added and modified events
-  newEvents.forEach(newEvent => {
-    const key = `${newEvent.start}_${newEvent.end}`;
-    if (!oldMap.has(key)) {
-      // Check if there's a similar event with different time
-      const similarOld = oldEvents.find(old =>
-        Math.abs(new Date(old.start) - new Date(newEvent.start)) < 3600000 // within 1 hour
-      );
-
-      if (similarOld) {
-        changes.modified.push({ old: similarOld, new: newEvent });
-      } else {
-        changes.added.push(newEvent);
-      }
-    }
-  });
-
-  // Find removed events
-  oldEvents.forEach(oldEvent => {
-    const key = `${oldEvent.start}_${oldEvent.end}`;
-    if (!newMap.has(key)) {
-      // Check if it was modified rather than removed
-      const wasModified = changes.modified.some(m => m.old === oldEvent);
-      if (!wasModified) {
-        changes.removed.push(oldEvent);
-      }
-    }
-  });
-
-  // Calculate total time change
-  let totalChangeMinutes = 0;
-
-  changes.added.forEach(event => {
-    const duration = (new Date(event.end) - new Date(event.start)) / 60000;
-    totalChangeMinutes += duration;
-  });
-
-  changes.removed.forEach(event => {
-    const duration = (new Date(event.end) - new Date(event.start)) / 60000;
-    totalChangeMinutes -= duration;
-  });
-
-  // Create summary
-  const parts = [];
-
-  if (changes.added.length > 0) {
-    parts.push(`+${changes.added.length} період${changes.added.length === 1 ? '' : 'и'}`);
+    return parseInt(result.rows[0].count);
+  } catch (error) {
+    logger.error('Error getting schedule count:', { error: error.message });
+    return 0;
   }
+}
 
-  if (changes.removed.length > 0) {
-    parts.push(`-${changes.removed.length} період${changes.removed.length === 1 ? '' : 'и'}`);
+/**
+ * Delete all schedule history for a user
+ */
+async function deleteUserScheduleHistory(userId) {
+  try {
+    const result = await safeQuery(`
+      DELETE FROM schedule_history
+      WHERE user_id = $1
+    `, [userId]);
+
+    return result.rowCount || 0;
+  } catch (error) {
+    logger.error('Error deleting user schedule history:', { error: error.message });
+    return 0;
   }
-
-  if (changes.modified.length > 0) {
-    parts.push(`🔄 ${changes.modified.length} змінен${changes.modified.length === 1 ? 'о' : 'і'}`);
-  }
-
-  if (totalChangeMinutes !== 0) {
-    const hours = Math.floor(Math.abs(totalChangeMinutes) / 60);
-    const minutes = Math.abs(totalChangeMinutes) % 60;
-    const sign = totalChangeMinutes > 0 ? '+' : '-';
-    let timeStr = '';
-    if (hours > 0) {
-      timeStr = `${hours} год`;
-      if (minutes > 0) timeStr += ` ${minutes} хв`;
-    } else {
-      timeStr = `${minutes} хв`;
-    }
-    parts.push(`${sign}${timeStr}`);
-  }
-
-  changes.summary = parts.join(', ');
-
-  return changes;
 }
 
 module.exports = {
@@ -221,5 +174,7 @@ module.exports = {
   getLastSchedule,
   getPreviousSchedule,
   cleanOldSchedules,
-  compareSchedules,
+  getScheduleHistory,
+  getScheduleCount,
+  deleteUserScheduleHistory,
 };

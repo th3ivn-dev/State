@@ -1,5 +1,6 @@
 const { pool, safeQuery } = require('./db');
 const { createLogger } = require('../utils/logger');
+const dbCache = require('../utils/dbCache');
 
 const logger = createLogger('UsersDb');
 
@@ -34,6 +35,10 @@ async function saveUser(telegramId, username, region, queue) {
       RETURNING id
     `, [telegramId, username, region, queue]);
 
+    // Invalidate cache
+    const cacheKey = `user:${telegramId}`;
+    dbCache.delete(cacheKey);
+
     return result.rows[0].id;
   } catch (error) {
     logger.error('Помилка збереження користувача:', { error: error.message });
@@ -41,11 +46,26 @@ async function saveUser(telegramId, username, region, queue) {
   }
 }
 
-// Отримати користувача по telegram_id (uses safeQuery for connection resilience)
+// Отримати користувача по telegram_id (uses safeQuery for connection resilience + caching)
 async function getUserByTelegramId(telegramId) {
   try {
+    // Check cache first (30s TTL for frequent lookups)
+    const cacheKey = `user:${telegramId}`;
+    const cached = dbCache.get(cacheKey);
+    if (cached !== null) {
+      return cached;
+    }
+
+    // Query database
     const result = await safeQuery('SELECT * FROM users WHERE telegram_id = $1', [telegramId]);
-    return result.rows[0];
+    const user = result.rows[0];
+
+    // Cache result for 30 seconds
+    if (user) {
+      dbCache.set(cacheKey, user, 30);
+    }
+
+    return user;
   } catch (error) {
     logger.error('Error getting user by telegram_id:', { error: error.message });
     throw error;
