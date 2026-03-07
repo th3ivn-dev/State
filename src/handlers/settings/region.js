@@ -16,8 +16,8 @@ async function handleRegionCallback(bot, query, user) {
     const confirmKeyboard = {
       inline_keyboard: [
         [
-          { text: '✅ Так, змінити', callback_data: 'settings_region_confirm' },
-          { text: '❌ Скасувати', callback_data: 'back_to_settings' }
+          { text: 'Так, змінити', callback_data: 'settings_region_confirm', icon_custom_emoji_id: '5206607081334906820' },
+          { text: 'Скасувати', callback_data: 'back_to_settings', icon_custom_emoji_id: '5210952531676504517' }
         ]
       ]
     };

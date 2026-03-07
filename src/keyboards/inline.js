@@ -4,15 +4,15 @@ const { REGIONS, QUEUES, getQueuesForRegion } = require('../constants/regions');
 function getMainMenu(botStatus = 'active', channelPaused = false) {
   const buttons = [
     [
-      { text: '📊 Графік', callback_data: 'menu_schedule' },
-      { text: '❓ Допомога', callback_data: 'menu_help' }
+      { text: 'Графік', callback_data: 'menu_schedule', icon_custom_emoji_id: '5210956306952758910' },
+      { text: 'Допомога', callback_data: 'menu_help', icon_custom_emoji_id: '5443038326535759644' }
     ],
     [
-      { text: '📈 Статистика', callback_data: 'menu_stats' },
-      { text: '⏱ Таймер', callback_data: 'menu_timer' }
+      { text: 'Статистика', callback_data: 'menu_stats', icon_custom_emoji_id: '5190806721286657692' },
+      { text: 'Таймер', callback_data: 'menu_timer', icon_custom_emoji_id: '5382194935057372936' }
     ],
     [
-      { text: '⚙️ Налаштування', callback_data: 'menu_settings' }
+      { text: 'Налаштування', callback_data: 'menu_settings', icon_custom_emoji_id: '5341715473882955310' }
     ],
   ];
 
@@ -20,11 +20,11 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
   if (botStatus !== 'no_channel') {
     if (channelPaused) {
       buttons.push([
-        { text: '▶️ Відновити роботу каналу', callback_data: 'channel_resume' }
+        { text: 'Відновити роботу каналу', callback_data: 'channel_resume', icon_custom_emoji_id: '5348125953090403204' }
       ]);
     } else {
       buttons.push([
-        { text: '⏸ Тимчасово зупинити канал', callback_data: 'channel_pause' }
+        { text: 'Тимчасово зупинити канал', callback_data: 'channel_pause', icon_custom_emoji_id: '5359543311897998264' }
       ]);
     }
   }
@@ -249,12 +249,12 @@ function getConfirmKeyboard() {
 function getSettingsKeyboard(isAdmin = false) {
   const buttons = [
     [
-      { text: '📍 Регіон', callback_data: 'settings_region' },
-      { text: '🌐 IP', callback_data: 'settings_ip' }
+      { text: 'Регіон', callback_data: 'settings_region', icon_custom_emoji_id: '5399898266265475100' },
+      { text: 'IP', callback_data: 'settings_ip', icon_custom_emoji_id: '5447410659077661506' }
     ],
     [
-      { text: '📺 Канал', callback_data: 'settings_channel' },
-      { text: '🔔 Сповіщення', callback_data: 'settings_alerts' }
+      { text: 'Канал', callback_data: 'settings_channel', icon_custom_emoji_id: '5424818078833715060' },
+      { text: 'Сповіщення', callback_data: 'settings_alerts', icon_custom_emoji_id: '5458603043203327669' }
     ],
     [
       { text: '🗑 Очищення', callback_data: 'settings_cleanup' }
@@ -264,12 +264,12 @@ function getSettingsKeyboard(isAdmin = false) {
   // Add admin panel button if user is admin
   if (isAdmin) {
     buttons.push(
-      [{ text: '🛡 Адмін-панель', callback_data: 'settings_admin' }]
+      [{ text: 'Адмін-панель', callback_data: 'settings_admin', icon_custom_emoji_id: '5217822164362739968' }]
     );
   }
 
   buttons.push(
-    [{ text: '🗑 Видалити мої дані', callback_data: 'settings_delete_data' }]
+    [{ text: 'Видалити мої дані', callback_data: 'settings_delete_data', icon_custom_emoji_id: '5445267414562389170' }]
   );
 
   buttons.push(
@@ -490,7 +490,7 @@ function getDeleteDataFinalKeyboard() {
       inline_keyboard: [
         [
           { text: 'Ні', callback_data: 'back_to_settings', style: 'success' },
-          { text: '🗑 Так, видалити', callback_data: 'confirm_delete_data', style: 'danger' }
+          { text: 'Так, видалити', callback_data: 'confirm_delete_data', style: 'danger', icon_custom_emoji_id: '5445267414562389170' }
         ],
       ],
     },
@@ -1265,8 +1265,9 @@ function getNotificationKeyboard(user) {
   const factOn = user.notify_fact_off !== false;
 
   const scheduleBtn = {
-    text: '📊 Оновлення графіків',
+    text: 'Оновлення графіків',
     callback_data: 'notif_toggle_schedule',
+    icon_custom_emoji_id: '5231200819986047254',
     ...(scheduleOn ? { style: 'success' } : {}),
   };
 
@@ -1287,8 +1288,9 @@ function getNotificationKeyboard(user) {
   };
 
   const factBtn = {
-    text: '⚡ Фактично за графіком',
+    text: 'Фактично за графіком',
     callback_data: 'notif_toggle_fact',
+    icon_custom_emoji_id: '5382194935057372936',
     ...(factOn ? { style: 'success' } : {}),
   };
 

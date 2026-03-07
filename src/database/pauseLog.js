@@ -3,23 +3,20 @@
  * Tracks pause/resume events for audit and history
  */
 
-const { safeQuery } = require('./db');
-const { createLogger } = require('../utils/logger');
-
-const logger = createLogger('PauseLogDb');
+const { pool } = require('./db');
 
 /**
  * Add a pause event to the log
  */
 async function logPauseEvent(adminId, eventType, pauseType = null, message = null, reason = null) {
   try {
-    await safeQuery(`
+    await pool.query(`
       INSERT INTO pause_log (admin_id, event_type, pause_type, message, reason, created_at)
       VALUES ($1, $2, $3, $4, $5, NOW())
     `, [adminId, eventType, pauseType, message, reason]);
     return true;
   } catch (error) {
-    logger.error('Error logging pause event:', { error: error.message });
+    console.error('Error logging pause event:', error);
     return false;
   }
 }
@@ -29,7 +26,7 @@ async function logPauseEvent(adminId, eventType, pauseType = null, message = nul
  */
 async function getPauseLog(limit = 20) {
   try {
-    const result = await safeQuery(`
+    const result = await pool.query(`
       SELECT * FROM pause_log
       ORDER BY created_at DESC
       LIMIT $1
@@ -37,7 +34,7 @@ async function getPauseLog(limit = 20) {
 
     return result.rows;
   } catch (error) {
-    logger.error('Error getting pause log:', { error: error.message });
+    console.error('Error getting pause log:', error);
     return [];
   }
 }
@@ -47,8 +44,8 @@ async function getPauseLog(limit = 20) {
  */
 async function getPauseLogStats() {
   try {
-    const result = await safeQuery(`
-      SELECT
+    const result = await pool.query(`
+      SELECT 
         COUNT(*) as total_events,
         SUM(CASE WHEN event_type = 'pause' THEN 1 ELSE 0 END) as pause_count,
         SUM(CASE WHEN event_type = 'resume' THEN 1 ELSE 0 END) as resume_count,
@@ -58,7 +55,7 @@ async function getPauseLogStats() {
 
     return result.rows[0] || { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   } catch (error) {
-    logger.error('Error getting pause log stats:', { error: error.message });
+    console.error('Error getting pause log stats:', error);
     return { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   }
 }
@@ -68,16 +65,16 @@ async function getPauseLogStats() {
  */
 async function cleanOldPauseLog() {
   try {
-    const result = await safeQuery(`
+    const result = await pool.query(`
       DELETE FROM pause_log
       WHERE created_at < NOW() - INTERVAL '30 days'
     `);
 
     const deletedCount = result.rowCount || 0;
-    logger.info(`🧹 Cleaned ${deletedCount} old pause log entries`);
+    console.log(`🧹 Cleaned ${deletedCount} old pause log entries`);
     return deletedCount;
   } catch (error) {
-    logger.error('Error cleaning pause log:', { error: error.message });
+    console.error('Error cleaning pause log:', error);
     return 0;
   }
 }

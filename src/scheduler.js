@@ -1,4 +1,4 @@
-const { fetchScheduleData, fetchScheduleImage } = require('./api');
+const { fetchScheduleData } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { calculateHash } = require('./utils');
 const usersDb = require('./database/users');
@@ -9,37 +9,33 @@ const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { updateScheduleCheckTime } = require('./database/scheduleChecks');
 const { createLogger } = require('./utils/logger');
-const { formatScheduleMessage } = require('./formatter');
-const { getUpdateTypeV2, publishScheduleWithPhoto } = require('./publisher');
-const { appendTimestamp } = require('./utils/timestamp');
-const { getScheduleViewKeyboard } = require('./keyboards/inline');
 
 const logger = createLogger('Scheduler');
 let bot = null;
 
 async function initScheduler(botInstance) {
   bot = botInstance;
-  logger.info('📅 Ініціалізація планувальника...');
+  console.log('📅 Ініціалізація планувальника...');
 
   const intervalStr = await settingsCache.get('schedule_check_interval', '60');
   let checkIntervalSeconds = parseInt(intervalStr, 10);
 
   if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
-    logger.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
+    console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
     checkIntervalSeconds = 60;
   }
 
   schedulerManager.init({ checkIntervalSeconds });
   schedulerManager.start({ bot: botInstance, checkAllSchedules });
 
-  logger.info(`✅ Планувальник запущено через scheduler manager`);
+  console.log(`✅ Планувальник запущено через scheduler manager`);
 }
 
 let isCheckingSchedules = false;
 
 async function checkAllSchedules() {
   if (isCheckingSchedules) {
-    logger.warn('checkAllSchedules already running, skipping');
+    console.log('⚠️ checkAllSchedules already running, skipping');
     return;
   }
   isCheckingSchedules = true;
@@ -51,11 +47,11 @@ async function checkAllSchedules() {
 
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        logger.error(`Помилка перевірки регіону ${REGION_CODES[index]}:`, { error: result.reason?.message || result.reason });
+        console.error(`Помилка перевірки регіону ${REGION_CODES[index]}:`, result.reason);
       }
     });
   } catch (error) {
-    logger.error('Помилка при перевірці графіків:', { error: error.message });
+    console.error('Помилка при перевірці графіків:', error);
   } finally {
     isCheckingSchedules = false;
   }
@@ -108,7 +104,7 @@ async function checkRegionSchedule(region) {
     }
 
   } catch (error) {
-    logger.error(`Помилка при перевірці графіка для ${region}:`, { error: error.message });
+    console.error(`Помилка при перевірці графіка для ${region}:`, error.message);
   }
 }
 
@@ -125,14 +121,14 @@ async function processUser(user, data, precomputedHash) {
       await handleScheduleChange(user, data, precomputedHash);
     }
   } catch (error) {
-    logger.error(`Помилка перевірки графіка для ${user.telegram_id}:`, { error: error.message });
+    console.error(`Помилка перевірки графіка для ${user.telegram_id}:`, error.message);
   }
 }
 
 async function handleScheduleChange(user, data, newHash) {
   if (user.last_hash === null || user.last_hash === undefined) {
     await usersDb.updateUserHashes(user.id, newHash);
-    logger.info(`[${user.telegram_id}] Перший запуск — зберігаємо хеш, публікацію пропускаємо`);
+    console.log(`[${user.telegram_id}] Перший запуск — зберігаємо хеш, публікацію пропускаємо`);
     return;
   }
 
@@ -150,6 +146,12 @@ async function handleScheduleChange(user, data, newHash) {
 
   if (notifyTarget === 'bot' || notifyTarget === 'both') {
     try {
+      const { formatScheduleMessage } = require('./formatter');
+      const { fetchScheduleImage } = require('./api');
+      const { getUpdateTypeV2 } = require('./publisher');
+      const { appendTimestamp } = require('./utils/timestamp');
+      const { getScheduleViewKeyboard } = require('./keyboards/inline');
+
       // Use snapshot fields directly from user object (no extra DB query)
       const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
       const updateType = {
@@ -177,13 +179,13 @@ async function handleScheduleChange(user, data, newHash) {
         });
       }
 
-      logger.info(`📱 Графік відправлено користувачу ${user.telegram_id}`);
+      console.log(`📱 Графік відправлено користувачу ${user.telegram_id}`);
     } catch (error) {
       if (isTelegramUserInactiveError(error)) {
-        logger.info(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
+        console.log(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
         await usersDb.setUserActive(user.telegram_id, false);
       } else {
-        logger.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, { error: error.message });
+        console.error(`Помилка відправки графіка користувачу ${user.telegram_id}:`, error.message);
       }
     }
   }
@@ -192,16 +194,17 @@ async function handleScheduleChange(user, data, newHash) {
 
   if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
     try {
+      const { publishScheduleWithPhoto } = require('./publisher');
       const sentMsg = await publishScheduleWithPhoto(bot, user, user.region, user.queue);
       if (sentMsg && sentMsg.message_id) {
         await usersDb.updateUserPostId(user.id, sentMsg.message_id);
       }
-      logger.info(`📢 Графік опубліковано в канал ${user.channel_id}`);
+      console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
     } catch (channelError) {
       if (isTelegramUserInactiveError(channelError)) {
-        logger.info(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
+        console.log(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
       } else {
-        logger.error(`Не вдалося відправити в канал ${user.channel_id}:`, { error: channelError.message });
+        console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
       }
     }
   }
