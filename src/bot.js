@@ -1,552 +1,700 @@
-const { Bot } = require(‘grammy’);
-const { hydrate } = require(’@grammyjs/hydrate’);
-const { autoRetry } = require(’@grammyjs/auto-retry’);
-const config = require(’./config’);
-const { pendingChannels, setPendingChannel, removePendingChannel, restorePendingChannels } = require(’./state/pendingChannels’);
-const { createLogger } = require(’./utils/logger’);
+const { Bot } = require('grammy');
+const { hydrate } = require('@grammyjs/hydrate');
+const { autoRetry } = require('@grammyjs/auto-retry');
+const config = require('./config');
+const { pendingChannels, setPendingChannel, removePendingChannel, restorePendingChannels } = require('./state/pendingChannels');
+const { createLogger } = require('./utils/logger');
 
-const logger = createLogger(‘Bot’);
+const logger = createLogger('Bot');
 
 // Import handlers
-const { handleStart, handleWizardCallback, isInWizard, getWizardState, setWizardState } = require(’./handlers/start’);
-const { handleSchedule, handleNext, handleTimer } = require(’./handlers/schedule’);
-const { handleSettings, handleSettingsCallback, handleIpConversation } = require(’./handlers/settings’);
+const { handleStart, handleWizardCallback, isInWizard, getWizardState, setWizardState } = require('./handlers/start');
+const { handleSchedule, handleNext, handleTimer } = require('./handlers/schedule');
+const { handleSettings, handleSettingsCallback, handleIpConversation } = require('./handlers/settings');
 const {
-handleAdmin,
-handleAdminCallback,
-handleStats,
-handleSystem,
-handleBroadcast,
-handleSetInterval,
-handleSetDebounce,
-handleGetDebounce,
-handleMonitoring,
-handleSetAlertChannel,
-handleAdminReply,
-handleAdminRouterIpConversation,
-handleAdminSupportUrlConversation,
-handleMaintenanceConversation
-} = require(’./handlers/admin’);
-const { isMaintenanceMode } = require(’./handlers/admin/maintenance’);
+  handleAdmin,
+  handleAdminCallback,
+  handleStats,
+  handleSystem,
+  handleBroadcast,
+  handleSetInterval,
+  handleSetDebounce,
+  handleGetDebounce,
+  handleMonitoring,
+  handleSetAlertChannel,
+  handleAdminReply,
+  handleAdminRouterIpConversation,
+  handleAdminSupportUrlConversation,
+  handleMaintenanceConversation
+} = require('./handlers/admin');
+const { isMaintenanceMode } = require('./handlers/admin/maintenance');
 const {
-handleChannel,
-handleConversation,
-handleChannelCallback,
-handleCancelChannel
-} = require(’./handlers/channel’);
-const { handleFeedbackCallback, handleFeedbackMessage, getSupportButton } = require(’./handlers/feedback’);
-const { handleRegionRequestCallback, handleRegionRequestMessage } = require(’./handlers/regionRequest’);
+  handleChannel,
+  handleConversation,
+  handleChannelCallback,
+  handleCancelChannel
+} = require('./handlers/channel');
+const { handleFeedbackCallback, handleFeedbackMessage, getSupportButton } = require('./handlers/feedback');
+const { handleRegionRequestCallback, handleRegionRequestMessage } = require('./handlers/regionRequest');
 const {
-handleMenuSchedule,
-handleMenuTimer,
-handleMenuStats,
-handleMenuHelp,
-handleMenuSettings,
-handleBackToMain,
-handleHelpHowto,
-handleHelpFaq,
-handleTimerCallback,
-handleStatsCallback,
-handleScheduleRefresh,
-handleMyQueues,
-} = require(’./handlers/menu’);
-const { escapeHtml, isAdmin } = require(’./utils’);
-const { safeAnswerCallbackQuery, safeDeleteMessage, safeSendMessage, isTelegramUserInactiveError } = require(’./utils/errorHandler’);
-const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require(’./constants/timeouts’);
-const { notifyAdminsAboutError } = require(’./utils/adminNotifier’);
-const usersDb = require(’./database/users’);
-const { checkPauseForChannelActions } = require(’./utils/guards’);
+  handleMenuSchedule,
+  handleMenuTimer,
+  handleMenuStats,
+  handleMenuHelp,
+  handleMenuSettings,
+  handleBackToMain,
+  handleHelpHowto,
+  handleHelpFaq,
+  handleTimerCallback,
+  handleStatsCallback,
+  handleScheduleRefresh,
+  handleMyQueues,
+} = require('./handlers/menu');
+const { escapeHtml, isAdmin } = require('./utils');
+const { safeAnswerCallbackQuery, safeDeleteMessage, isTelegramUserInactiveError } = require('./utils/errorHandler');
+const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('./constants/timeouts');
+const { notifyAdminsAboutError } = require('./utils/adminNotifier');
+const usersDb = require('./database/users');
+const { checkPauseForChannelActions } = require('./utils/guards');
 
 // Store channel instruction message IDs (для видалення старих інструкцій)
 const channelInstructionMessages = new Map();
 
-// ─── Callback Router ──────────────────────────────────────────────────────────
-
-// Exact-match callbacks → handler functions
-const exactCallbackHandlers = new Map([
-[‘menu_schedule’,           (bot, q) => handleMenuSchedule(bot, q)],
-[‘schedule_refresh’,        (bot, q) => handleScheduleRefresh(bot, q)],
-[‘my_queues’,               (bot, q) => handleMyQueues(bot, q)],
-[‘menu_timer’,              (bot, q) => handleMenuTimer(bot, q)],
-[‘menu_stats’,              (bot, q) => handleMenuStats(bot, q)],
-[‘menu_help’,               (bot, q) => handleMenuHelp(bot, q)],
-[‘menu_settings’,           (bot, q) => handleMenuSettings(bot, q)],
-[‘back_to_main’,            (bot, q) => handleBackToMain(bot, q)],
-[‘help_howto’,              (bot, q) => handleHelpHowto(bot, q)],
-[‘help_faq’,                (bot, q) => handleHelpFaq(bot, q)],
-[‘confirm_setup’,           (bot, q) => handleWizardCallback(bot, q)],
-[‘back_to_region’,          (bot, q) => handleWizardCallback(bot, q)],
-[‘restore_profile’,         (bot, q) => handleWizardCallback(bot, q)],
-[‘create_new_profile’,      (bot, q) => handleWizardCallback(bot, q)],
-[‘wizard_notify_bot’,       (bot, q) => handleWizardCallback(bot, q)],
-[‘wizard_notify_channel’,   (bot, q) => handleWizardCallback(bot, q)],
-[‘wizard_notify_back’,      (bot, q) => handleWizardCallback(bot, q)],
-[‘channel_reconnect’,       (bot, q) => handleSettingsCallback(bot, q)],
-[‘confirm_deactivate’,      (bot, q) => handleSettingsCallback(bot, q)],
-[‘confirm_delete_data’,     (bot, q) => handleSettingsCallback(bot, q)],
-[‘delete_data_step2’,       (bot, q) => handleSettingsCallback(bot, q)],
-[‘back_to_settings’,        (bot, q) => handleSettingsCallback(bot, q)],
-[‘cancel_channel_connect’,  (bot, q) => handleChannelCallback(bot, q)],
-[‘keep_current_channel’,    (bot, q) => handleChannelCallback(bot, q)],
-]);
-
-// Prefix-match callbacks → handler functions (порядок важливий — специфічніші спочатку)
-const prefixCallbackHandlers = [
-[‘region_request_’,         (bot, q) => handleRegionRequestCallback(bot, q)],
-[‘region_’,                 (bot, q) => handleWizardCallback(bot, q)],
-[‘queue_’,                  (bot, q) => handleWizardCallback(bot, q)],
-[‘wizard_channel_confirm_’, (bot, q) => handleWizardCallback(bot, q)],
-[‘timer_’,                  (bot, q, data) => handleTimerCallback(bot, q, data)],
-[‘stats_’,                  (bot, q, data) => handleStatsCallback(bot, q, data)],
-[‘settings_’,               (bot, q) => handleSettingsCallback(bot, q)],
-[‘alert_’,                  (bot, q) => handleSettingsCallback(bot, q)],
-[‘ip_’,                     (bot, q) => handleSettingsCallback(bot, q)],
-[‘notify_target_’,          (bot, q) => handleSettingsCallback(bot, q)],
-[‘notif_’,                  (bot, q) => handleSettingsCallback(bot, q)],
-[‘cleanup_’,                (bot, q) => handleSettingsCallback(bot, q)],
-[‘schedule_alert_’,         (bot, q) => handleSettingsCallback(bot, q)],
-[‘feedback_’,               (bot, q) => handleFeedbackCallback(bot, q)],
-[‘admin_’,                  (bot, q) => handleAdminCallback(bot, q)],
-[‘pause_’,                  (bot, q) => handleAdminCallback(bot, q)],
-[‘debounce_’,               (bot, q) => handleAdminCallback(bot, q)],
-[‘growth_’,                 (bot, q) => handleAdminCallback(bot, q)],
-[‘maintenance_’,            (bot, q) => handleAdminCallback(bot, q)],
-[‘channel_’,                (bot, q) => handleChannelCallback(bot, q)],
-[‘brand_’,                  (bot, q) => handleChannelCallback(bot, q)],
-[‘test_’,                   (bot, q) => handleChannelCallback(bot, q)],
-[‘format_’,                 (bot, q) => handleChannelCallback(bot, q)],
-[‘connect_channel_’,        (bot, q) => handleChannelCallback(bot, q)],
-[‘replace_channel_’,        (bot, q) => handleChannelCallback(bot, q)],
-];
-
-/**
-
-- Знайти обробник для callback data
-  */
-  function resolveCallbackHandler(data) {
-  if (exactCallbackHandlers.has(data)) return exactCallbackHandlers.get(data);
-  const entry = prefixCallbackHandlers.find(([prefix]) => data.startsWith(prefix));
-  return entry ? entry[1] : null;
-  }
-
-// ─── my_chat_member helpers ───────────────────────────────────────────────────
-
-/**
-
-- Запит на підключення нового каналу
-  */
-  async function promptConnectChannel(bot, userId, channelId, channelTitle) {
-  await safeSendMessage(
-  bot, userId,
-  `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\nВикористовувати його для сповіщень?`,
-  {
-  parse_mode: ‘HTML’,
-  reply_markup: {
-  inline_keyboard: [
-  [{ text: ‘✅ Так, підключити’, callback_data: `connect_channel_${channelId}` }],
-  [{ text: ‘❌ Ні’, callback_data: ‘cancel_channel_connect’ }]
-  ]
-  }
-  }
-  );
-  }
-
-/**
-
-- Запит на заміну існуючого каналу
-  */
-  async function promptReplaceChannel(bot, userId, channelId, newChannelTitle, currentChannelTitle) {
-  const currentTitle = currentChannelTitle || ‘Поточний канал’;
-  await safeSendMessage(
-  bot, userId,
-  `✅ Ви додали мене в канал "<b>${escapeHtml(newChannelTitle)}</b>"!\n\n` +
-  `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentTitle)}</b>".\n` +
-  `Замінити на новий?`,
-  {
-  parse_mode: ‘HTML’,
-  reply_markup: {
-  inline_keyboard: [
-  [{ text: ‘✅ Так, замінити’, callback_data: `replace_channel_${channelId}` }],
-  [{ text: ‘❌ Залишити поточний’, callback_data: ‘keep_current_channel’ }]
-  ]
-  }
-  }
-  );
-  }
-
-/**
-
-- Обробка wizard channel_setup при додаванні бота до каналу
-  */
-  async function handleWizardChannelSetup(bot, userId, channelId, channelTitle, wizardState) {
-  if (wizardState.lastMessageId) {
-  await safeDeleteMessage(bot, userId, wizardState.lastMessageId);
-  }
-
-await setPendingChannel(channelId, {
-channelId,
-channelUsername: null,
-channelTitle,
-telegramId: userId,
-timestamp: Date.now()
-});
-
-const confirmMessage = await safeSendMessage(
-bot, userId,
-`✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\nВикористовувати його для сповіщень?`,
-{
-parse_mode: ‘HTML’,
-reply_markup: {
-inline_keyboard: [
-[{ text: ‘✅ Так, підключити’, callback_data: `wizard_channel_confirm_${channelId}` }],
-[{ text: ‘❌ Ні’, callback_data: ‘wizard_channel_cancel’ }]
-]
-}
-}
-);
-
-setWizardState(userId, {
-…wizardState,
-lastMessageId: confirmMessage?.message_id,
-pendingChannelId: channelId
-});
-}
-
-/**
-
-- Обробка події: бота додали як адміністратора до каналу
-  */
-  async function handleBotAddedToChannel(bot, update) {
-  const { chat, from } = update;
-  const userId = String(from.id);
-  const channelId = String(chat.id);
-  const channelTitle = chat.title || ‘Без назви’;
-  const channelUsername = chat.username ? `@${chat.username}` : channelTitle;
-
-// Перевірка режиму паузи
-const pauseCheck = await checkPauseForChannelActions();
-if (pauseCheck.blocked) {
-await safeSendMessage(bot, userId, pauseCheck.message, { parse_mode: ‘HTML’ });
-return;
-}
-
-// Канал вже підключений до іншого користувача
-const existingUser = await usersDb.getUserByChannelId(channelId);
-if (existingUser && existingUser.telegram_id !== userId) {
-logger.info(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
-await safeSendMessage(
-bot, userId,
-‘⚠️ <b>Канал вже підключений</b>\n\n’ +
-`Канал "${escapeHtml(channelTitle)}" вже підключено до іншого користувача.\n\n` +
-‘Кожен канал може бути підключений тільки до одного облікового запису.\n\n’ +
-‘Якщо це ваш канал — зверніться до підтримки.’,
-{ parse_mode: ‘HTML’ }
-);
-return;
-}
-
-// Користувач в wizard на етапі channel_setup
-if (isInWizard(userId)) {
-const wizardState = getWizardState(userId);
-if (wizardState?.step === ‘channel_setup’) {
-await handleWizardChannelSetup(bot, userId, channelId, channelTitle, wizardState);
-logger.info(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
-return;
-}
-}
-
-// Видалити старе повідомлення з інструкцією якщо є
-const lastInstructionMessageId = channelInstructionMessages.get(userId);
-if (lastInstructionMessageId) {
-await safeDeleteMessage(bot, userId, lastInstructionMessageId);
-channelInstructionMessages.delete(userId);
-logger.info(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
-}
-
-// Зберегти pending channel
-await setPendingChannel(channelId, {
-channelId,
-channelUsername,
-channelTitle: chat.title,
-telegramId: userId,
-timestamp: Date.now()
-});
-
-// Запитати користувача про підключення або заміну каналу
-const user = await usersDb.getUserByTelegramId(userId);
-if (user?.channel_id) {
-await promptReplaceChannel(bot, userId, channelId, channelTitle, user.channel_title);
-} else {
-await promptConnectChannel(bot, userId, channelId, channelTitle);
-}
-
-logger.info(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
-}
-
-/**
-
-- Обробка події: бота видалили з каналу
-  */
-  async function handleBotRemovedFromChannel(bot, update) {
-  const { chat, from } = update;
-  const userId = String(from.id);
-  const channelId = String(chat.id);
-  const channelTitle = chat.title || ‘Без назви’;
-
-logger.info(`Bot removed from channel: ${channelTitle} (${channelId})`);
-
-await removePendingChannel(channelId);
-
-// Оновити wizard якщо користувач зараз в ньому
-if (isInWizard(userId)) {
-const wizardState = getWizardState(userId);
-if (wizardState?.pendingChannelId === channelId && wizardState.lastMessageId) {
-try {
-await bot.api.editMessageText(
-userId,
-wizardState.lastMessageId,
-`❌ <b>Бота видалено з каналу</b>\n\n` +
-`Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
-`Щоб підключити канал, додайте бота як адміністратора.`,
-{
-parse_mode: ‘HTML’,
-reply_markup: {
-inline_keyboard: [
-[{ text: ‘← Назад’, callback_data: ‘wizard_notify_back’ }]
-]
-}
-}
-);
-} catch (e) {
-logger.warn(‘Could not update wizard message after bot removal:’, { error: e.message });
-}
-setWizardState(userId, { …wizardState, pendingChannelId: null });
-}
-}
-
-// Якщо це був підключений канал — сповістити і очистити
-const user = await usersDb.getUserByTelegramId(userId);
-if (user && String(user.channel_id) === channelId) {
-await safeSendMessage(
-bot, userId,
-`⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
-`Сповіщення в цей канал більше не надсилатимуться.`,
-{ parse_mode: ‘HTML’ }
-);
-await usersDb.updateUser(userId, { channel_id: null, channel_title: null });
-}
-}
-
-// ─── Автоочистка ──────────────────────────────────────────────────────────────
-
+// Автоочистка застарілих записів з pendingChannels та channelInstructionMessages (кожну годину)
 const botCleanupInterval = setInterval(() => {
-const oneHourAgo = Date.now() - PENDING_CHANNEL_CLEANUP_INTERVAL_MS;
+  const oneHourAgo = Date.now() - PENDING_CHANNEL_CLEANUP_INTERVAL_MS;
 
-for (const [key, value] of pendingChannels.entries()) {
-if (value?.timestamp && value.timestamp < oneHourAgo) pendingChannels.delete(key);
-}
+  // Cleanup pendingChannels with size limit
+  for (const [key, value] of pendingChannels.entries()) {
+    if (value && value.timestamp && value.timestamp < oneHourAgo) {
+      pendingChannels.delete(key);
+    }
+  }
 
-if (pendingChannels.size >= MAX_PENDING_CHANNELS_MAP_SIZE) {
-const toDelete = pendingChannels.size - MAX_PENDING_CHANNELS_MAP_SIZE;
-Array.from(pendingChannels.keys()).slice(0, toDelete).forEach(k => pendingChannels.delete(k));
-logger.info(`🧹 Очищено ${toDelete} старих pending channels (перевищено ліміт ${MAX_PENDING_CHANNELS_MAP_SIZE})`);
-}
+  // Enforce max size limit for pendingChannels (LRU-style)
+  if (pendingChannels.size >= MAX_PENDING_CHANNELS_MAP_SIZE) {
+    const entriesToDelete = pendingChannels.size - MAX_PENDING_CHANNELS_MAP_SIZE;
+    const keys = Array.from(pendingChannels.keys()).slice(0, entriesToDelete);
+    keys.forEach(key => pendingChannels.delete(key));
+    logger.info(`🧹 Очищено ${entriesToDelete} старих pending channels (перевищено ліміт ${MAX_PENDING_CHANNELS_MAP_SIZE})`);
+  }
 
-if (channelInstructionMessages.size >= MAX_INSTRUCTION_MESSAGES_MAP_SIZE) {
-const toDelete = channelInstructionMessages.size - MAX_INSTRUCTION_MESSAGES_MAP_SIZE;
-Array.from(channelInstructionMessages.keys()).slice(0, toDelete).forEach(k => channelInstructionMessages.delete(k));
-logger.info(`🧹 Очищено ${toDelete} старих instruction messages (перевищено ліміт ${MAX_INSTRUCTION_MESSAGES_MAP_SIZE})`);
-}
-}, PENDING_CHANNEL_CLEANUP_INTERVAL_MS);
+  // Cleanup channelInstructionMessages with size limit
+  if (channelInstructionMessages.size >= MAX_INSTRUCTION_MESSAGES_MAP_SIZE) {
+    const entriesToDelete = channelInstructionMessages.size - MAX_INSTRUCTION_MESSAGES_MAP_SIZE;
+    const keys = Array.from(channelInstructionMessages.keys()).slice(0, entriesToDelete);
+    keys.forEach(key => channelInstructionMessages.delete(key));
+    logger.info(`🧹 Очищено ${entriesToDelete} старих instruction messages (перевищено ліміт ${MAX_INSTRUCTION_MESSAGES_MAP_SIZE})`);
+  }
+}, PENDING_CHANNEL_CLEANUP_INTERVAL_MS); // Кожну годину
 
-// Graceful shutdown
-process.on(‘SIGTERM’, () => clearInterval(botCleanupInterval));
-process.on(‘SIGINT’,  () => clearInterval(botCleanupInterval));
-
-// ─── Bot instance ─────────────────────────────────────────────────────────────
-
+// Create bot instance
 const bot = new Bot(config.botToken);
 
-logger.info(‘🤖 Telegram Bot ініціалізовано (режим: Webhook)’);
+logger.info('🤖 Telegram Bot ініціалізовано (режим: Webhook)');
 
+// Register hydrate middleware to allow convenient message editing (msg.editText(), msg.delete(), etc.)
 bot.use(hydrate());
 
+// Auto-retry on 429 (Too Many Requests) errors from Telegram API
 bot.api.config.use(autoRetry({
-maxRetryAttempts: 3,
-maxDelaySeconds: 10,
+  maxRetryAttempts: 3,
+  maxDelaySeconds: 10,
 }));
 
-// Compatibility shim для bot.options.id що використовується в хендлерах
+// Compatibility for bot.options.id used in handlers
 bot.options = {};
-Object.defineProperty(bot.options, ‘id’, {
-get() { return bot.botInfo?.id; },
-set(_val) { /* grammY manages this */ }
+Object.defineProperty(bot.options, 'id', {
+  get() { return bot.botInfo?.id; },
+  set(_val) { /* ignore, grammY manages this */ }
 });
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
-
-// Maintenance mode
+// Maintenance mode middleware — blocks non-admin users when maintenance is active
 bot.use(async (ctx, next) => {
-const maintenance = await isMaintenanceMode();
-if (maintenance.enabled) {
-const userId = String(ctx.from?.id);
-if (!isAdmin(userId, config.adminIds, config.ownerId)) {
-if (ctx.callbackQuery) {
-await ctx.answerCallbackQuery({ text: maintenance.message, show_alert: true }).catch(() => {});
-} else {
-await ctx.reply(maintenance.message, { parse_mode: ‘HTML’ }).catch(() => {});
-}
-return;
-}
-}
-await next();
-});
-
-// Авто-видалення команд
-bot.use(async (ctx, next) => {
-await next();
-if (ctx.message?.text?.startsWith(’/’) && ctx.from) {
-try {
-const user = await usersDb.getUserByTelegramId(String(ctx.from.id));
-if (user?.auto_delete_commands) {
-await safeDeleteMessage(bot, ctx.message.chat.id, ctx.message.message_id);
-}
-} catch (_e) { /* Non-critical */ }
-}
-});
-
-// ─── Command handlers ─────────────────────────────────────────────────────────
-
-bot.command(‘start’,           (ctx) => handleStart(bot, ctx.message));
-bot.command(‘schedule’,        (ctx) => handleSchedule(bot, ctx.message));
-bot.command(‘next’,            (ctx) => handleNext(bot, ctx.message));
-bot.command(‘timer’,           (ctx) => handleTimer(bot, ctx.message));
-bot.command(‘settings’,        (ctx) => handleSettings(bot, ctx.message));
-bot.command(‘channel’,         (ctx) => handleChannel(bot, ctx.message));
-bot.command(‘cancel’,          (ctx) => handleCancelChannel(bot, ctx.message));
-bot.command(‘admin’,           (ctx) => handleAdmin(bot, ctx.message));
-bot.command(‘stats’,           (ctx) => handleStats(bot, ctx.message));
-bot.command(‘system’,          (ctx) => handleSystem(bot, ctx.message));
-bot.command(‘monitoring’,      (ctx) => handleMonitoring(bot, ctx.message));
-bot.command(‘getdebounce’,     (ctx) => handleGetDebounce(bot, ctx.message));
-bot.command(‘setalertchannel’, (ctx) => handleSetAlertChannel(bot, ctx.message, [null, ctx.match]));
-bot.command(‘broadcast’,       (ctx) => handleBroadcast(bot, ctx.message, [null, ctx.match]));
-bot.command(‘setinterval’,     (ctx) => handleSetInterval(bot, ctx.message, [null, ctx.match]));
-bot.command(‘setdebounce’,     (ctx) => handleSetDebounce(bot, ctx.message, [null, ctx.match]));
-
-// ─── Message handler ──────────────────────────────────────────────────────────
-
-bot.on(‘message’, async (ctx) => {
-const msg = ctx.message;
-const chatId = msg.chat.id;
-const text = msg.text;
-
-// Невідома команда
-if (text?.startsWith(’/’)) {
-const knownCommands = [
-‘/start’, ‘/schedule’, ‘/next’, ‘/timer’, ‘/settings’,
-‘/channel’, ‘/cancel’, ‘/admin’, ‘/stats’, ‘/system’,
-‘/monitoring’, ‘/setalertchannel’,
-‘/broadcast’, ‘/setinterval’, ‘/setdebounce’, ‘/getdebounce’
-];
-if (!knownCommands.includes(text.split(’ ’)[0].toLowerCase())) {
-await bot.api.sendMessage(chatId, ‘❓ Команда не розпізнана.\n\nОберіть дію:’, {
-parse_mode: ‘HTML’,
-reply_markup: {
-inline_keyboard: [
-[{ text: ‘⤴ Меню’, callback_data: ‘back_to_main’ }],
-[{ text: ‘📢 Новини’, url: ‘https://t.me/Voltyk_news’ }],
-[{ text: ‘💬 Обговорення’, url: ‘https://t.me/voltyk_chat’ }]
-]
-}
-});
-}
-return;
-}
-
-try {
-if (await handleAdminReply(bot, msg)) return;
-if (await handleMaintenanceConversation(bot, msg)) return;
-if (await handleFeedbackMessage(bot, msg)) return;
-if (await handleRegionRequestMessage(bot, msg)) return;
-if (await handleIpConversation(bot, msg)) return;
-if (await handleAdminRouterIpConversation(bot, msg)) return;
-if (await handleAdminSupportUrlConversation(bot, msg)) return;
-if (await handleConversation(bot, msg)) return;
-
-```
-if (text) {
-  const supportButton = await getSupportButton();
-  await bot.api.sendMessage(chatId, '❓ Команда не розпізнана.\n\nОберіть дію:', {
-    parse_mode: 'HTML',
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
-        [supportButton]
-      ]
+  const maintenance = await isMaintenanceMode();
+  if (maintenance.enabled) {
+    const userId = String(ctx.from?.id);
+    if (!isAdmin(userId, config.adminIds, config.ownerId)) {
+      if (ctx.callbackQuery) {
+        await ctx.answerCallbackQuery({ text: maintenance.message, show_alert: true }).catch(() => {});
+      } else {
+        await ctx.reply(maintenance.message, { parse_mode: 'HTML' }).catch(() => {});
+      }
+      return;
     }
-  });
-}
-```
-
-} catch (error) {
-logger.error(‘Помилка обробки повідомлення:’, { error: error.message });
-notifyAdminsAboutError(bot, error, ‘message handler’);
-}
+  }
+  await next();
 });
 
-// ─── Callback query handler ───────────────────────────────────────────────────
-
-bot.on(‘callback_query:data’, async (ctx) => {
-const query = ctx.callbackQuery;
-const data = query.data;
-
-try {
-const handler = resolveCallbackHandler(data);
-if (handler) {
-await handler(bot, query, data);
-} else {
-await bot.api.answerCallbackQuery(query.id);
-}
-} catch (error) {
-logger.error(‘Помилка обробки callback query:’, { error: error.message });
-notifyAdminsAboutError(bot, error, `callback_query: ${data}`);
-await safeAnswerCallbackQuery(bot, query.id, { text: ‘❌ Виникла помилка’, show_alert: false });
-}
+// Auto-delete user commands middleware
+bot.use(async (ctx, next) => {
+  await next();
+  // After processing: if it's a command message and user has auto_delete_commands enabled, delete it
+  if (ctx.message?.text?.startsWith('/') && ctx.from) {
+    try {
+      const telegramId = String(ctx.from.id);
+      const user = await usersDb.getUserByTelegramId(telegramId);
+      if (user?.auto_delete_commands) {
+        await safeDeleteMessage(bot, ctx.message.chat.id, ctx.message.message_id);
+      }
+    } catch (_e) {
+      // Non-critical, ignore errors
+    }
+  }
 });
 
-// ─── Error handler ────────────────────────────────────────────────────────────
+// Command handlers
+bot.command('start', (ctx) => handleStart(bot, ctx.message));
+bot.command('schedule', (ctx) => handleSchedule(bot, ctx.message));
+bot.command('next', (ctx) => handleNext(bot, ctx.message));
+bot.command('timer', (ctx) => handleTimer(bot, ctx.message));
+bot.command('settings', (ctx) => handleSettings(bot, ctx.message));
+bot.command('channel', (ctx) => handleChannel(bot, ctx.message));
+bot.command('cancel', (ctx) => handleCancelChannel(bot, ctx.message));
+bot.command('admin', (ctx) => handleAdmin(bot, ctx.message));
+bot.command('stats', (ctx) => handleStats(bot, ctx.message));
+bot.command('system', (ctx) => handleSystem(bot, ctx.message));
+bot.command('monitoring', (ctx) => handleMonitoring(bot, ctx.message));
+bot.command('setalertchannel', (ctx) => {
+  const match = [null, ctx.match];
+  handleSetAlertChannel(bot, ctx.message, match);
+});
+bot.command('broadcast', (ctx) => {
+  const match = [null, ctx.match];
+  handleBroadcast(bot, ctx.message, match);
+});
+bot.command('setinterval', (ctx) => {
+  const match = [null, ctx.match];
+  handleSetInterval(bot, ctx.message, match);
+});
+bot.command('setdebounce', (ctx) => {
+  const match = [null, ctx.match];
+  handleSetDebounce(bot, ctx.message, match);
+});
+bot.command('getdebounce', (ctx) => handleGetDebounce(bot, ctx.message));
 
+// Handle text button presses from main menu
+bot.on('message', async (ctx) => {
+  const msg = ctx.message;
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
+  // Handle text commands first (if text is present and starts with /)
+  if (text && text.startsWith('/')) {
+    // List of known commands
+    const knownCommands = [
+      '/start', '/schedule', '/next', '/timer', '/settings',
+      '/channel', '/cancel', '/admin', '/stats', '/system',
+      '/monitoring', '/setalertchannel',
+      '/broadcast', '/setinterval', '/setdebounce', '/getdebounce'
+    ];
+
+    // Extract command without parameters
+    const command = text.split(' ')[0].toLowerCase();
+
+    // If it's not a known command, show error
+    if (!knownCommands.includes(command)) {
+      await bot.api.sendMessage(
+        chatId,
+        '❓ Команда не розпізнана.\n\nОберіть дію:',
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+              [{ text: '📢 Новини', url: 'https://t.me/Voltyk_news' }],
+              [{ text: '💬 Обговорення', url: 'https://t.me/voltyk_chat' }]
+            ]
+          }
+        }
+      );
+    }
+    return;
+  }
+
+  try {
+    // Main menu buttons are now handled via inline keyboard callbacks
+    // Keeping only conversation handlers for IP setup, channel setup, feedback, and region requests
+
+    // Handle admin ticket replies first (before other handlers)
+    const adminReplyHandled = await handleAdminReply(bot, msg);
+    if (adminReplyHandled) return;
+
+    // Try maintenance message conversation
+    const maintenanceHandled = await handleMaintenanceConversation(bot, msg);
+    if (maintenanceHandled) return;
+
+    // Try feedback conversation first (handles text, photo, video)
+    const feedbackHandled = await handleFeedbackMessage(bot, msg);
+    if (feedbackHandled) return;
+
+    // Try region request conversation (handles text only)
+    const regionRequestHandled = await handleRegionRequestMessage(bot, msg);
+    if (regionRequestHandled) return;
+
+    // Try IP setup conversation (handles text only)
+    const ipHandled = await handleIpConversation(bot, msg);
+    if (ipHandled) return;
+
+    // Try admin router IP setup conversation (handles text only)
+    const adminRouterIpHandled = await handleAdminRouterIpConversation(bot, msg);
+    if (adminRouterIpHandled) return;
+
+    // Try admin support URL conversation (handles text only)
+    const adminSupportUrlHandled = await handleAdminSupportUrlConversation(bot, msg);
+    if (adminSupportUrlHandled) return;
+
+    // Handle channel conversation (handles text only)
+    const channelHandled = await handleConversation(bot, msg);
+    if (channelHandled) return;
+
+    // If message was not handled by any conversation - show fallback message (only for text)
+    if (text) {
+      const supportButton = await getSupportButton();
+      await bot.api.sendMessage(
+        chatId,
+        '❓ Команда не розпізнана.\n\nОберіть дію:',
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+              [supportButton]
+            ]
+          }
+        }
+      );
+    }
+
+  } catch (error) {
+    logger.error('Помилка обробки повідомлення:', { error: error.message });
+    notifyAdminsAboutError(bot, error, 'message handler');
+  }
+});
+
+// Handle callback queries
+bot.on('callback_query:data', async (ctx) => {
+  const query = ctx.callbackQuery;
+  const data = query.data;
+
+  try {
+    // Region request callbacks - MUST be before region_ check to avoid conflict!
+    if (data.startsWith('region_request_')) {
+      await handleRegionRequestCallback(bot, query);
+      return;
+    }
+
+    // Wizard callbacks (region selection, group selection, etc.)
+    if (data.startsWith('region_') ||
+        data.startsWith('queue_') ||
+        data === 'confirm_setup' ||
+        data === 'back_to_region' ||
+        data === 'restore_profile' ||
+        data === 'create_new_profile' ||
+        data === 'wizard_notify_bot' ||
+        data === 'wizard_notify_channel' ||
+        data === 'wizard_notify_back' ||
+        data.startsWith('wizard_channel_confirm_')) {
+      await handleWizardCallback(bot, query);
+      return;
+    }
+
+    // Menu callbacks
+    if (data === 'menu_schedule') {
+      await handleMenuSchedule(bot, query);
+      return;
+    }
+
+    if (data === 'schedule_refresh') {
+      await handleScheduleRefresh(bot, query);
+      return;
+    }
+
+    if (data === 'my_queues') {
+      await handleMyQueues(bot, query);
+      return;
+    }
+
+    if (data === 'menu_timer') {
+      await handleMenuTimer(bot, query);
+      return;
+    }
+
+    if (data === 'menu_stats') {
+      await handleMenuStats(bot, query);
+      return;
+    }
+
+    if (data === 'menu_help') {
+      await handleMenuHelp(bot, query);
+      return;
+    }
+
+    if (data === 'menu_settings') {
+      await handleMenuSettings(bot, query);
+      return;
+    }
+
+    if (data === 'back_to_main') {
+      await handleBackToMain(bot, query);
+      return;
+    }
+
+    // Handle inline button callbacks from channel schedule messages
+    // These callbacks include user_id like: timer_123, stats_123
+
+    if (data.startsWith('timer_')) {
+      await handleTimerCallback(bot, query, data);
+      return;
+    }
+
+    if (data.startsWith('stats_')) {
+      await handleStatsCallback(bot, query, data);
+      return;
+    }
+
+    // Settings callbacks
+    if (data.startsWith('settings_') ||
+        data.startsWith('alert_') ||
+        data.startsWith('ip_') ||
+        data.startsWith('notify_target_') ||
+        data.startsWith('notif_') ||
+        data.startsWith('cleanup_') ||
+        data.startsWith('schedule_alert_') ||
+        data === 'channel_reconnect' ||
+        data === 'confirm_deactivate' ||
+        data === 'confirm_delete_data' ||
+        data === 'delete_data_step2' ||
+        data === 'back_to_settings') {
+      await handleSettingsCallback(bot, query);
+      return;
+    }
+
+    // Feedback callbacks
+    if (data.startsWith('feedback_')) {
+      await handleFeedbackCallback(bot, query);
+      return;
+    }
+
+    // Admin callbacks (including pause mode, debounce, growth, and maintenance)
+    if (data.startsWith('admin_') || data.startsWith('pause_') || data.startsWith('debounce_') || data.startsWith('growth_') || data.startsWith('maintenance_')) {
+      await handleAdminCallback(bot, query);
+      return;
+    }
+
+    // Channel callbacks (including auto-connect, test, and format)
+    if (data.startsWith('channel_') ||
+        data.startsWith('brand_') ||
+        data.startsWith('test_') ||
+        data.startsWith('format_') ||
+        data.startsWith('connect_channel_') ||
+        data.startsWith('replace_channel_') ||
+        data === 'cancel_channel_connect' ||
+        data === 'keep_current_channel') {
+      await handleChannelCallback(bot, query);
+      return;
+    }
+
+    // Help callbacks
+    if (data === 'help_howto') {
+      await handleHelpHowto(bot, query);
+      return;
+    }
+
+    if (data === 'help_faq') {
+      await handleHelpFaq(bot, query);
+      return;
+    }
+
+    // Default: just acknowledge
+    await bot.api.answerCallbackQuery(query.id);
+
+  } catch (error) {
+    logger.error('Помилка обробки callback query:', { error: error.message });
+    notifyAdminsAboutError(bot, error, `callback_query: ${data}`);
+    await safeAnswerCallbackQuery(bot, query.id, {
+      text: '❌ Виникла помилка',
+      show_alert: false
+    });
+  }
+});
+
+// Error handling
 bot.catch((err) => {
-logger.error(‘Помилка бота:’, { error: err.message || String(err) });
-notifyAdminsAboutError(bot, err.error || err, ‘bot error’);
+  logger.error('Помилка бота:', { error: err.message || String(err) });
+  notifyAdminsAboutError(bot, err.error || err, 'bot error');
 });
 
-// ─── my_chat_member ───────────────────────────────────────────────────────────
+// Handle my_chat_member events for auto-connecting channels
+bot.on('my_chat_member', async (ctx) => {
+  try {
+    const update = ctx.myChatMember;
+    const chat = update.chat;
+    const newStatus = update.new_chat_member.status;
+    const oldStatus = update.old_chat_member.status;
+    const userId = String(update.from.id); // User who added the bot (convert to String for consistency)
 
-bot.on(‘my_chat_member’, async (ctx) => {
-try {
-const update = ctx.myChatMember;
-if (update.chat.type !== ‘channel’) return;
+    // Перевіряємо що це канал
+    if (chat.type !== 'channel') return;
 
-```
-const newStatus = update.new_chat_member.status;
-const oldStatus = update.old_chat_member.status;
+    const channelId = String(chat.id);
+    const channelTitle = chat.title || 'Без назви';
 
-const isAdminAdded = newStatus === 'administrator' && oldStatus !== 'administrator';
-const isRemoved    = (newStatus === 'left' || newStatus === 'kicked') &&
-                     (oldStatus === 'administrator' || oldStatus === 'member');
+    // Бота додали як адміністратора
+    if (newStatus === 'administrator' && oldStatus !== 'administrator') {
+      // Перевірка режиму паузи
+      const pauseCheck = await checkPauseForChannelActions();
+      if (pauseCheck.blocked) {
+        // Бот на паузі - не дозволяємо додавання каналів
+        try {
+          await bot.api.sendMessage(
+            userId,
+            pauseCheck.message,
+            { parse_mode: 'HTML' }
+          );
+        } catch (error) {
+          if (isTelegramUserInactiveError(error)) {
+            logger.info(`ℹ️ Користувач ${userId} недоступний — сповіщення про паузу пропущено`);
+          } else {
+            logger.error('Error sending pause message in my_chat_member:', { error: error.message });
+          }
+        }
+        return;
+      }
 
-if (isAdminAdded) await handleBotAddedToChannel(bot, update);
-if (isRemoved)    await handleBotRemovedFromChannel(bot, update);
-```
+      const channelUsername = chat.username ? `@${chat.username}` : chat.title;
 
-} catch (error) {
-logger.error(‘Error in my_chat_member handler:’, { error: error.message });
-}
+      // Перевіряємо чи канал вже зайнятий іншим користувачем
+      const existingUser = await usersDb.getUserByChannelId(channelId);
+      if (existingUser && existingUser.telegram_id !== userId) {
+        // Канал вже зайнятий - повідомляємо користувача
+        logger.info(`Channel ${channelId} already connected to user ${existingUser.telegram_id}`);
+
+        try {
+          await bot.api.sendMessage(
+            userId,
+            '⚠️ <b>Канал вже підключений</b>\n\n' +
+            `Канал "${escapeHtml(channelTitle)}" вже підключено до іншого користувача.\n\n` +
+            'Кожен канал може бути підключений тільки до одного облікового запису.\n\n' +
+            'Якщо це ваш канал — зверніться до підтримки.',
+            { parse_mode: 'HTML' }
+          );
+        } catch (error) {
+          if (isTelegramUserInactiveError(error)) {
+            logger.info(`ℹ️ Користувач ${userId} недоступний — сповіщення про зайнятий канал пропущено`);
+          } else {
+            logger.error('Error sending occupied channel notification:', { error: error.message });
+          }
+        }
+        return;
+      }
+
+      // Перевіряємо чи користувач в wizard на етапі channel_setup
+
+      if (isInWizard(userId)) {
+        const wizardState = getWizardState(userId);
+
+        if (wizardState && wizardState.step === 'channel_setup') {
+          // Користувач в wizard - замінюємо інструкцію на підтвердження
+
+          // Видаляємо попереднє повідомлення якщо є
+          if (wizardState.lastMessageId) {
+            try {
+              await bot.api.deleteMessage(userId, wizardState.lastMessageId);
+            } catch (e) {
+              logger.warn('Could not delete wizard instruction message:', { error: e.message });
+            }
+          }
+
+          // Зберігаємо pending channel
+          setPendingChannel(channelId, {
+            channelId,
+            channelUsername: chat.username ? `@${chat.username}` : null,
+            channelTitle: channelTitle,
+            telegramId: userId,
+            timestamp: Date.now()
+          });
+
+          // Надсилаємо підтвердження
+          const confirmMessage = await bot.api.sendMessage(
+            userId,
+            `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
+            `Використовувати його для сповіщень?`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Так, підключити', callback_data: `wizard_channel_confirm_${channelId}` }],
+                  [{ text: '❌ Ні', callback_data: 'wizard_channel_cancel' }]
+                ]
+              }
+            }
+          );
+
+          // Оновлюємо wizard state з новим message ID
+          setWizardState(userId, {
+            ...wizardState,
+            lastMessageId: confirmMessage.message_id,
+            pendingChannelId: channelId
+          });
+
+          logger.info(`Bot added to channel during wizard: ${channelUsername} (${channelId}) by user ${userId}`);
+          return; // Не продовжуємо стандартну логіку
+        }
+      }
+
+      // Спробувати видалити старе повідомлення з інструкцією
+      // (якщо є збережений message_id)
+      const lastInstructionMessageId = channelInstructionMessages.get(userId);
+      if (lastInstructionMessageId) {
+        try {
+          await bot.api.deleteMessage(userId, lastInstructionMessageId);
+          channelInstructionMessages.delete(userId);
+          logger.info(`Deleted instruction message ${lastInstructionMessageId} for user ${userId}`);
+        } catch (e) {
+          logger.warn('Could not delete instruction message:', { error: e.message });
+        }
+      }
+
+      // Отримати користувача з БД
+      const user = await usersDb.getUserByTelegramId(userId);
+
+      if (user && user.channel_id) {
+        // У користувача вже є канал - запитати про заміну
+        const currentChannelTitle = user.channel_title || 'Поточний канал';
+
+        try {
+          await bot.api.sendMessage(userId,
+            `✅ Ви додали мене в канал "<b>${escapeHtml(channelTitle)}</b>"!\n\n` +
+            `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentChannelTitle)}</b>".\n` +
+            `Замінити на новий?`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Так, замінити', callback_data: `replace_channel_${channelId}` }],
+                  [{ text: '❌ Залишити поточний', callback_data: 'keep_current_channel' }]
+                ]
+              }
+            }
+          );
+        } catch (error) {
+          if (isTelegramUserInactiveError(error)) {
+            logger.info(`ℹ️ Користувач ${userId} недоступний — запит на заміну каналу пропущено`);
+          } else {
+            logger.error('Error sending replace channel prompt:', { error: error.message });
+          }
+        }
+      } else {
+        // У користувача немає каналу - запропонувати підключити
+        try {
+          await bot.api.sendMessage(userId,
+            `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
+            `Використовувати його для сповіщень?`,
+            {
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Так, підключити', callback_data: `connect_channel_${channelId}` }],
+                  [{ text: '❌ Ні', callback_data: 'cancel_channel_connect' }]
+                ]
+              }
+            }
+          );
+        } catch (error) {
+          if (isTelegramUserInactiveError(error)) {
+            logger.info(`ℹ️ Користувач ${userId} недоступний — запит на підключення каналу пропущено`);
+          } else {
+            logger.error('Error sending connect channel prompt:', { error: error.message });
+          }
+        }
+      }
+
+      // Зберегти інформацію про канал тимчасово для callback
+      setPendingChannel(channelId, {
+        channelId,
+        channelUsername,
+        channelTitle: chat.title,
+        telegramId: userId,
+        timestamp: Date.now()
+      });
+
+      logger.info(`Bot added as admin to channel: ${channelUsername} (${channelId}) by user ${userId}`);
+    }
+
+    // Бота видалили з каналу
+    if ((newStatus === 'left' || newStatus === 'kicked') &&
+        (oldStatus === 'administrator' || oldStatus === 'member')) {
+
+      logger.info(`Bot removed from channel: ${channelTitle} (${channelId})`);
+
+      // Видаляємо з pending channels
+      removePendingChannel(channelId);
+
+      // Перевіряємо чи користувач в wizard з цим каналом
+
+      if (isInWizard(userId)) {
+        const wizardState = getWizardState(userId);
+
+        if (wizardState && wizardState.pendingChannelId === channelId) {
+          // Оновлюємо повідомлення
+          if (wizardState.lastMessageId) {
+            try {
+              await bot.api.editMessageText(
+                userId,
+                wizardState.lastMessageId,
+                `❌ <b>Бота видалено з каналу</b>\n\n` +
+                `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
+                `Щоб підключити канал, додайте бота як адміністратора.`,
+                {
+                  parse_mode: 'HTML',
+                  reply_markup: {
+                    inline_keyboard: [
+                      [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
+                    ]
+                  }
+                }
+              );
+            } catch (e) {
+              logger.warn('Could not update wizard message after bot removal:', { error: e.message });
+            }
+          }
+
+          // Очищаємо pending channel з wizard state
+          setWizardState(userId, {
+            ...wizardState,
+            pendingChannelId: null
+          });
+        }
+      }
+
+      const user = await usersDb.getUserByTelegramId(userId);
+
+      // Також перевіряємо чи це був підключений канал користувача
+      if (user && String(user.channel_id) === channelId) {
+        try {
+          await bot.api.sendMessage(userId,
+            `⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
+            `Сповіщення в цей канал більше не надсилатимуться.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (error) {
+          if (isTelegramUserInactiveError(error)) {
+            logger.info(`ℹ️ Користувач ${userId} недоступний — сповіщення про видалення каналу пропущено`);
+          } else {
+            logger.error('Error sending channel removal notification:', { error: error.message });
+          }
+        }
+
+        // Очистити channel_id в БД
+        await usersDb.updateUser(userId, { channel_id: null, channel_title: null });
+      }
+    }
+
+  } catch (error) {
+    logger.error('Error in my_chat_member handler:', { error: error.message });
+  }
 });
-
-// ─── Exports ──────────────────────────────────────────────────────────────────
 
 module.exports = bot;
 module.exports.pendingChannels = pendingChannels;
@@ -554,5 +702,5 @@ module.exports.channelInstructionMessages = channelInstructionMessages;
 module.exports.restorePendingChannels = restorePendingChannels;
 module.exports.removePendingChannel = removePendingChannel;
 module.exports.stopBotCleanup = function() {
-clearInterval(botCleanupInterval);
+  clearInterval(botCleanupInterval);
 };
