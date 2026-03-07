@@ -1,7 +1,6 @@
 const axios = require('axios');
 const config = require('./config');
 const { CircuitBreaker, CircuitOpenError } = require('./utils/circuitBreaker');
-const logger = require('./utils/logger');
 
 const cache = new Map();
 const CACHE_TTL = 2 * 60 * 1000;
@@ -63,7 +62,7 @@ async function fetchWithRetry(url, retries = 3, isImage = false) {
       }
 
       const delay = delays[i] || delays[delays.length - 1];
-      logger.debug(`Retry ${i + 1}/${retries} for ${url} after ${delay}ms`);
+      console.log(`Retry ${i + 1}/${retries} for ${url} after ${delay}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -99,14 +98,14 @@ async function fetchScheduleData(region) {
     return data;
   } catch (error) {
     if (error instanceof CircuitOpenError) {
-      logger.warn('⚡ Circuit breaker OPEN для — використання кешу', { region });
+      console.warn(`⚡ Circuit breaker OPEN для ${region} — використання кешу`);
     } else {
-      logger.error('Помилка отримання даних для', { region, message: error.message });
+      console.error(`Помилка отримання даних для ${region}:`, error.message);
     }
 
     // Stale-cache fallback — return old data rather than crashing
     if (cached) {
-      logger.info('Використання застарілих даних з кешу для', { region });
+      console.log(`Використання застарілих даних з кешу для ${region}`);
       return cached.data;
     }
 

@@ -4,7 +4,6 @@
  */
 
 const config = require('../config');
-const logger = require('../utils/logger');
 
 // Rate limiting для запобігання спаму
 const errorNotifications = new Map();
@@ -55,7 +54,7 @@ async function notifyAdminsAboutError(bot, error, context) {
   try {
     // Перевірка чи bot ініціалізований
     if (!bot) {
-      logger.error('notifyAdminsAboutError: bot не ініціалізований');
+      console.error('notifyAdminsAboutError: bot не ініціалізований');
       return;
     }
 
@@ -128,17 +127,17 @@ async function notifyAdminsAboutError(bot, error, context) {
     // Надсилаємо повідомлення кожному адміну окремо
     for (const adminId of adminList) {
       try {
-        await bot.api.sendMessage(adminId, message);
+        await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });
       } catch (sendError) {
         // Ігноруємо помилки відправки окремим адмінам
         // (можливо бот заблокований або chat не існує)
-        logger.error('Не вдалося надіслати повідомлення адміну', { adminId, message: sendError.message });
+        console.error(`Не вдалося надіслати повідомлення адміну ${adminId}:`, sendError.message);
       }
     }
 
   } catch (error) {
     // Ніколи не кидати виняток з цієї функції
-    logger.error('Помилка в notifyAdminsAboutError', { error });
+    console.error('Помилка в notifyAdminsAboutError:', error);
   }
 }
 

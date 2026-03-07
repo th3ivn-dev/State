@@ -1,5 +1,4 @@
 const { pool } = require('./database/db');
-const logger = require('./utils/logger');
 
 // Додати запис про відключення
 async function addOutageRecord(userId, startTime, endTime) {
@@ -9,7 +8,7 @@ async function addOutageRecord(userId, startTime, endTime) {
     const durationMinutes = Math.floor((end - start) / (1000 * 60));
 
     if (durationMinutes < 0) {
-      logger.error('Invalid outage duration: end time before start time');
+      console.error('Invalid outage duration: end time before start time');
       return false;
     }
 
@@ -20,7 +19,7 @@ async function addOutageRecord(userId, startTime, endTime) {
 
     return true;
   } catch (error) {
-    logger.error('Error adding outage record', { error });
+    console.error('Error adding outage record:', error);
     return false;
   }
 }
@@ -73,7 +72,7 @@ async function getWeeklyStats(userId) {
       shortest,
     };
   } catch (error) {
-    logger.error('Error getting weekly stats', { error });
+    console.error('Error getting weekly stats:', error);
     return {
       count: 0,
       totalMinutes: 0,

@@ -1,5 +1,4 @@
 const { pool } = require('../db');
-const logger = require('../../utils/logger');
 
 // Оновити channel_id користувача
 async function updateUserChannel(telegramId, channelId) {
@@ -12,7 +11,7 @@ async function updateUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserChannel', { error: error.message });
+    console.error('Error in updateUserChannel:', error.message);
     return false;
   }
 }
@@ -35,7 +34,7 @@ async function resetUserChannel(telegramId, channelId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in resetUserChannel', { error: error.message });
+    console.error('Error in resetUserChannel:', error.message);
     return false;
   }
 }
@@ -67,7 +66,7 @@ async function updateChannelBranding(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateChannelBranding', { error: error.message });
+    console.error('Error in updateChannelBranding:', error.message);
     return false;
   }
 }
@@ -106,7 +105,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
     }
 
     if (fields.length === 0) {
-      logger.warn('updateChannelBrandingPartial викликано без полів для оновлення');
+      console.warn('updateChannelBrandingPartial викликано без полів для оновлення');
       return false;
     }
 
@@ -123,7 +122,7 @@ async function updateChannelBrandingPartial(telegramId, brandingData) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateChannelBrandingPartial', { error: error.message });
+    console.error('Error in updateChannelBrandingPartial:', error.message);
     return false;
   }
 }
@@ -139,7 +138,7 @@ async function updateChannelStatus(telegramId, status) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateChannelStatus', { error: error.message });
+    console.error('Error in updateChannelStatus:', error.message);
     return false;
   }
 }
@@ -155,7 +154,7 @@ async function updateUserChannelPaused(telegramId, paused) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserChannelPaused', { error: error.message });
+    console.error('Error in updateUserChannelPaused:', error.message);
     return false;
   }
 }

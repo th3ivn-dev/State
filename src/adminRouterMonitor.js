@@ -7,7 +7,6 @@ const {
 } = require('./database/adminRouters');
 const { safeSendMessage } = require('./utils/errorHandler');
 const { formatExactDuration, formatTime } = require('./utils');
-const logger = require('./utils/logger');
 
 const ADMIN_ROUTER_CHECK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const ADMIN_ROUTER_PING_TIMEOUT_MS = 5000; // 5 seconds
@@ -89,7 +88,7 @@ async function monitorAdminRouter(adminRouter) {
       await updateAdminRouterState(admin_telegram_id, newState);
     }
   } catch (error) {
-    logger.error('Error monitoring admin router for', { admin_telegram_id, error });
+    console.error(`Error monitoring admin router for ${admin_telegram_id}:`, error);
   }
 }
 
@@ -114,7 +113,7 @@ async function sendStateChangeNotification(adminTelegramId, newState, durationMi
       await safeSendMessage(bot, adminTelegramId, message);
     }
   } catch (error) {
-    logger.error('Error sending state change notification to', { adminTelegramId, error });
+    console.error(`Error sending state change notification to ${adminTelegramId}:`, error);
   }
 }
 
@@ -129,14 +128,14 @@ async function runMonitoringCheck() {
       return;
     }
 
-    logger.info(`🔍 Checking ${adminRouters.length} admin router(s)...`);
+    console.log(`🔍 Checking ${adminRouters.length} admin router(s)...`);
 
     // Monitor each admin's router
     for (const adminRouter of adminRouters) {
       await monitorAdminRouter(adminRouter);
     }
   } catch (error) {
-    logger.error('Error in admin router monitoring check', { error });
+    console.error('Error in admin router monitoring check:', error);
   }
 }
 
@@ -145,14 +144,14 @@ async function runMonitoringCheck() {
  */
 function startAdminRouterMonitoring(botInstance) {
   if (monitoringInterval) {
-    logger.info('⚠️ Admin router monitoring already running');
+    console.log('⚠️ Admin router monitoring already running');
     return;
   }
 
   bot = botInstance;
 
-  logger.info('🚀 Starting admin router monitoring...');
-  logger.info(`⏱️ Check interval: ${ADMIN_ROUTER_CHECK_INTERVAL_MS / 1000 / 60} minutes`);
+  console.log('🚀 Starting admin router monitoring...');
+  console.log(`⏱️ Check interval: ${ADMIN_ROUTER_CHECK_INTERVAL_MS / 1000 / 60} minutes`);
 
   // Run initial check after 30 seconds
   setTimeout(() => {
@@ -164,7 +163,7 @@ function startAdminRouterMonitoring(botInstance) {
     runMonitoringCheck();
   }, ADMIN_ROUTER_CHECK_INTERVAL_MS);
 
-  logger.info('✅ Admin router monitoring started');
+  console.log('✅ Admin router monitoring started');
 }
 
 /**
@@ -174,7 +173,7 @@ function stopAdminRouterMonitoring() {
   if (monitoringInterval) {
     clearInterval(monitoringInterval);
     monitoringInterval = null;
-    logger.info('🛑 Admin router monitoring stopped');
+    console.log('🛑 Admin router monitoring stopped');
   }
 }
 
@@ -209,7 +208,7 @@ async function forceCheckAdminRouter(adminTelegramId) {
 
     return newState;
   } catch (error) {
-    logger.error('Error force checking admin router for', { adminTelegramId, error });
+    console.error(`Error force checking admin router for ${adminTelegramId}:`, error);
     return null;
   }
 }

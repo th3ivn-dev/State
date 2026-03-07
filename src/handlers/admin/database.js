@@ -2,7 +2,6 @@ const { getAdminKeyboard, getAdminSettingsMenuKeyboard, getRestartConfirmKeyboar
 const { pool } = require('../../database/db');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { saveAllUserStates, stopPowerMonitoring } = require('../../powerMonitor');
-const logger = require('../../utils/logger');
 
 // Callback handler for database/restart callbacks
 async function handleDatabaseCallback(bot, query, chatId, userId, data) {
@@ -16,6 +15,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -55,12 +55,13 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getAdminSettingsMenuKeyboard().reply_markup
         }
       );
       await safeAnswerCallbackQuery(bot, query.id, { text: '✅ База очищена' });
     } catch (error) {
-      logger.error('Error clearing database', { error });
+      console.error('Error clearing database:', error);
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка очищення бази',
         show_alert: true
@@ -79,6 +80,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getRestartConfirmKeyboard().reply_markup,
       }
     );
@@ -97,6 +99,7 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
       }
     );
 
@@ -108,9 +111,9 @@ async function handleDatabaseCallback(bot, query, chatId, userId, data) {
           // Зберігаємо стани користувачів
           await saveAllUserStates();
           stopPowerMonitoring();
-          logger.info('🔄 Адмін-перезапуск ініційований користувачем', userId);
+          console.log('🔄 Адмін-перезапуск ініційований користувачем', userId);
         } catch (error) {
-          logger.error('Помилка при graceful shutdown', { error });
+          console.error('Помилка при graceful shutdown:', error);
         } finally {
           // Always exit, even if there were errors during shutdown
           process.exit(1);

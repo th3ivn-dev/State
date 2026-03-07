@@ -1,5 +1,4 @@
 const { pool } = require('../db');
-const logger = require('../../utils/logger');
 
 // Оновити стан живлення користувача
 async function updateUserPowerState(telegramId, state) {
@@ -12,7 +11,7 @@ async function updateUserPowerState(telegramId, state) {
 
     return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error in updateUserPowerState', { error: error.message });
+    console.error('Error in updateUserPowerState:', error.message);
     return false;
   }
 }
@@ -41,7 +40,7 @@ async function changePowerStateAndGetDuration(telegramId, newState) {
 
     return result.rows[0];
   } catch (error) {
-    logger.error('Error in changePowerStateAndGetDuration', { error: error.message });
+    console.error('Error in changePowerStateAndGetDuration:', error.message);
     return null;
   }
 }
@@ -57,7 +56,7 @@ async function setPendingPowerChange(telegramId, pendingState) {
     `, [pendingState, telegramId]);
     return result.rows[0];
   } catch (error) {
-    logger.error('Error in setPendingPowerChange', { error: error.message });
+    console.error('Error in setPendingPowerChange:', error.message);
     return null;
   }
 }
@@ -71,7 +70,7 @@ async function clearPendingPowerChange(telegramId) {
       WHERE telegram_id = $1
     `, [telegramId]);
   } catch (error) {
-    logger.error('Error in clearPendingPowerChange', { error: error.message });
+    console.error('Error in clearPendingPowerChange:', error.message);
   }
 }
 

@@ -2,7 +2,6 @@ const fs = require('fs');
 const usersDb = require('../../database/users');
 const { getBotUsername } = require('../../utils');
 const { safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
-const logger = require('../../utils/logger');
 const {
   setConversationState,
   getConversationState,
@@ -50,7 +49,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await safeSetChatTitle(bot, state.channelId, fullTitle);
       operations.title = true;
     } catch (error) {
-      logger.error('Error setting channel title', { error });
+      console.error('Error setting channel title:', error);
       errors.push('назву');
     }
 
@@ -59,7 +58,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await safeSetChatDescription(bot, state.channelId, fullDescription);
       operations.description = true;
     } catch (error) {
-      logger.error('Error setting channel description', { error });
+      console.error('Error setting channel description:', error);
       errors.push('опис');
     }
 
@@ -77,11 +76,11 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         }
         operations.photo = true;
       } else {
-        logger.warn('Photo file not found', { PHOTO_PATH });
+        console.warn('Photo file not found:', PHOTO_PATH);
         errors.push('фото (файл не знайдено)');
       }
     } catch (error) {
-      logger.error('Error setting channel photo', { error });
+      console.error('Error setting channel photo:', error);
       errors.push('фото');
     }
 
@@ -99,7 +98,8 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         `• Публікацію повідомлень\n` +
         `• Редагування інформації каналу\n\n` +
         `Спробуйте ще раз через:\n` +
-        `Налаштування → Канал → Підключити канал`
+        `Налаштування → Канал → Підключити канал`,
+        { parse_mode: 'HTML' }
       );
       await clearConversationState(telegramId);
       return;
@@ -121,11 +121,12 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         state.channelId,
         getChannelWelcomeMessage(user),
         {
+          parse_mode: 'HTML',
           disable_web_page_preview: true
         }
       );
     } catch (error) {
-      logger.error('Error sending first publication', { error });
+      console.error('Error sending first publication:', error);
       // Continue even if first publication fails
     }
 
@@ -144,6 +145,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       `і канал потрібно буде налаштувати заново.`;
 
     await bot.api.sendMessage(chatId, successMessage, {
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -152,7 +154,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     });
 
   } catch (error) {
-    logger.error('Помилка в applyChannelBranding', { error });
+    console.error('Помилка в applyChannelBranding:', error);
     await bot.api.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуйте ще раз!');
   }
 }
@@ -184,6 +186,7 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -220,7 +223,8 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
       `<b>Приклад:</b> ЖК "Сонячний", під'їзд 2`,
       {
         chat_id: chatId,
-        message_id: query.message.message_id
+        message_id: query.message.message_id,
+        parse_mode: 'HTML'
       }
     );
 
@@ -246,7 +250,8 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
         'Наприклад: ЖК "Сонячний", під\'їзд 2',
         {
           chat_id: chatId,
-          message_id: query.message.message_id
+          message_id: query.message.message_id,
+          parse_mode: 'HTML'
         }
       );
 

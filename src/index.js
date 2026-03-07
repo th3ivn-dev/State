@@ -1,9 +1,5 @@
 #!/usr/bin/env node
 
-require('dotenv').config();
-const { validateEnv } = require('./utils/envValidator');
-validateEnv(); // Will throw and stop the process if critical vars are missing
-
 const bot = require('./bot');
 const { restorePendingChannels, stopBotCleanup } = require('./bot');
 const { initScheduler, schedulerManager } = require('./scheduler');
@@ -19,15 +15,14 @@ const { monitoringManager } = require('./monitoring/monitoringManager');
 const { startHealthCheck, stopHealthCheck } = require('./healthcheck');
 const messageQueue = require('./utils/messageQueue');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
-const logger = require('./utils/logger');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
 
 // Головна async функція для запуску
 async function main() {
-  logger.info('🚀 Запуск СвітлоБот...');
-  logger.info(`📍 Timezone: ${config.timezone}`);
+  console.log('🚀 Запуск СвітлоБот...');
+  console.log(`📍 Timezone: ${config.timezone}`);
 
   // КРИТИЧНО: Ініціалізація та міграція бази даних перед запуском
   await initializeDatabase();
@@ -39,12 +34,12 @@ async function main() {
 
   // Validate the interval
   if (isNaN(checkIntervalSeconds) || checkIntervalSeconds < 1) {
-    logger.warn('⚠️ Invalid schedule_check_interval "", using default 60 seconds', { intervalStr });
+    console.warn(`⚠️ Invalid schedule_check_interval "${intervalStr}", using default 60 seconds`);
     checkIntervalSeconds = 60;
   }
 
-  logger.info(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
-  logger.info(`💾 База даних: PostgreSQL`);
+  console.log(`📊 Перевірка графіків: кожні ${formatInterval(checkIntervalSeconds)}`);
+  console.log(`💾 База даних: PostgreSQL`);
 
   // Перевірка здоров'я пулу підключень
   await checkPoolHealth();
@@ -75,7 +70,7 @@ async function main() {
   startReminderScheduler(bot);
 
   // Ініціалізація системи моніторингу та алертів
-  logger.info('🔎 Ініціалізація системи моніторингу...');
+  console.log('🔎 Ініціалізація системи моніторингу...');
   monitoringManager.init(bot, {
     checkIntervalMinutes: 5,
     errorSpikeThreshold: 10,
@@ -85,11 +80,11 @@ async function main() {
     maxUptimeDays: 7
   });
   await monitoringManager.start();
-  logger.info('✅ Система моніторингу запущена');
+  console.log('✅ Система моніторингу запущена');
 
   // Ініціалізація бота (отримання botInfo для bot.options.id)
   await bot.init();
-  logger.info(`🤖 Bot info: @${bot.botInfo.username}`);
+  console.log(`🤖 Bot info: @${bot.botInfo.username}`);
 
   // Запуск health check server
   startHealthCheck(bot, config.HEALTH_PORT);
@@ -105,7 +100,7 @@ async function main() {
   const memoryWatchdog = setInterval(() => {
     const heapMB = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
     if (heapMB > HEAP_LIMIT_MB) {
-      logger.error('🚨 Heap MB > MB limit — triggering graceful restart', { heapMB, HEAP_LIMIT_MB });
+      console.error(`🚨 Heap ${heapMB}MB > ${HEAP_LIMIT_MB}MB limit — triggering graceful restart`);
       notifyAdminsAboutError(bot, new Error(`Heap limit exceeded: ${heapMB}MB`), 'memoryWatchdog');
       clearInterval(memoryWatchdog);
       shutdown('MEMORY_LIMIT');
@@ -113,11 +108,11 @@ async function main() {
   }, 60_000);
   memoryWatchdog.unref();
 
-  logger.info('✨ Бот успішно запущено та готовий до роботи!');
+  console.log('✨ Бот успішно запущено та готовий до роботи!');
 }
 
 main().catch(error => {
-  logger.error('❌ Критична помилка запуску', { error });
+  console.error('❌ Критична помилка запуску:', error);
   process.exit(1);
 });
 
@@ -126,16 +121,16 @@ const SHUTDOWN_TIMEOUT_MS = 15000; // Force-kill after 15 seconds
 
 const shutdown = async (signal) => {
   if (isShuttingDown) {
-    logger.info('⏳ Завершення вже виконується...');
+    console.log('⏳ Завершення вже виконується...');
     return;
   }
   isShuttingDown = true;
 
-  logger.info('\n⏳ Отримано , завершую роботу...', { signal });
+  console.log(`\n⏳ Отримано ${signal}, завершую роботу...`);
 
   // Force-kill timeout to prevent hanging shutdown
   const forceKillTimer = setTimeout(() => {
-    logger.error('❌ Shutdown timed out, force exiting...');
+    console.error('❌ Shutdown timed out, force exiting...');
     process.exit(1);
   }, SHUTDOWN_TIMEOUT_MS);
   forceKillTimer.unref(); // Don't keep process alive just for this timer
@@ -143,69 +138,69 @@ const shutdown = async (signal) => {
   try {
     // 1. Зупиняємо прийом повідомлень
     await bot.api.deleteWebhook().catch((error) => {
-      logger.error('⚠️  Помилка при видаленні webhook', { message: error.message });
+      console.error('⚠️  Помилка при видаленні webhook:', error.message);
     });
-    logger.info('✅ Webhook видалено');
+    console.log('✅ Webhook видалено');
 
     // 2. Drain message queue (wait for pending messages)
     await messageQueue.drain();
-    logger.info('✅ Message queue drained');
+    console.log('✅ Message queue drained');
 
     // 3. Зупиняємо scheduler manager
     schedulerManager.stop();
-    logger.info('✅ Scheduler manager зупинено');
+    console.log('✅ Scheduler manager зупинено');
 
     // 3.1 Зупиняємо планувальник нагадувань
     stopReminderScheduler();
 
     // 4. Зупиняємо state manager cleanup
     stopCleanup();
-    logger.info('✅ State manager зупинено');
+    console.log('✅ State manager зупинено');
 
     // 5. Зупиняємо cache cleanup
     const { stopCacheCleanup } = require('./api');
     stopCacheCleanup();
-    logger.debug('✅ Cache cleanup зупинено');
+    console.log('✅ Cache cleanup зупинено');
 
     // 5.1 Зупиняємо bot cleanup interval
     stopBotCleanup();
-    logger.info('✅ Bot cleanup зупинено');
+    console.log('✅ Bot cleanup зупинено');
 
     // 6. Зупиняємо систему моніторингу
     monitoringManager.stop();
-    logger.info('✅ Система моніторингу зупинена');
+    console.log('✅ Система моніторингу зупинена');
 
     // 7. Зупиняємо моніторинг живлення
     stopPowerMonitoring();
-    logger.info('✅ Моніторинг живлення зупинено');
+    console.log('✅ Моніторинг живлення зупинено');
 
     // 7.1 Зупиняємо моніторинг роутерів адміністраторів
     const { stopAdminRouterMonitoring } = require('./adminRouterMonitor');
     stopAdminRouterMonitoring();
-    logger.info('✅ Моніторинг роутерів адміністраторів зупинено');
+    console.log('✅ Моніторинг роутерів адміністраторів зупинено');
 
     // 8. Зберігаємо всі стани користувачів
     await saveAllUserStates();
-    logger.info('✅ Стани користувачів збережено');
+    console.log('✅ Стани користувачів збережено');
 
     // 9. Зупиняємо health check server
     stopHealthCheck();
-    logger.info('✅ Health check server stopped');
+    console.log('✅ Health check server stopped');
 
     // 10. Зупиняємо pool metrics logging
     const { stopPoolMetricsLogging } = require('./database/db');
     stopPoolMetricsLogging();
-    logger.info('✅ Pool metrics logging stopped');
+    console.log('✅ Pool metrics logging stopped');
 
     // 11. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
     await closeDatabase();
 
     clearTimeout(forceKillTimer);
-    logger.info('👋 Бот завершив роботу');
+    console.log('👋 Бот завершив роботу');
     process.exit(0);
   } catch (error) {
-    logger.error('❌ Помилка при завершенні', { error });
+    console.error('❌ Помилка при завершенні:', error);
     clearTimeout(forceKillTimer);
     process.exit(1);
   }
@@ -221,7 +216,7 @@ let uncaughtResetTimer = null;
 const MAX_UNCAUGHT_PER_MINUTE = 10;
 
 process.on('uncaughtException', (error) => {
-  logger.error('❌ Необроблена помилка', { error });
+  console.error('❌ Необроблена помилка:', error);
 
   try {
     const metricsCollector = monitoringManager.getMetricsCollector();
@@ -240,13 +235,13 @@ process.on('uncaughtException', (error) => {
 
   // If exceptions are cascading, the process is likely in a corrupted state
   if (uncaughtCount >= MAX_UNCAUGHT_PER_MINUTE) {
-    logger.error('🚨 uncaughtExceptions in 1 min — shutting down', { uncaughtCount });
+    console.error(`🚨 ${uncaughtCount} uncaughtExceptions in 1 min — shutting down`);
     shutdown('EXCEPTION_CASCADE');
   }
 });
 
 process.on('unhandledRejection', (reason, _promise) => {
-  logger.error('❌ Необроблене відхилення промісу', { reason });
+  console.error('❌ Необроблене відхилення промісу:', reason);
   // Track error in monitoring system
   try {
     const metricsCollector = monitoringManager.getMetricsCollector();

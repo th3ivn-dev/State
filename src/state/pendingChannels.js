@@ -1,6 +1,5 @@
 const { savePendingChannel, deletePendingChannel, getAllPendingChannels } = require('../database/db');
 const { MAX_PENDING_CHANNELS_MAP_SIZE } = require('../constants/timeouts');
-const logger = require('../utils/logger');
 
 // Store pending channel connections
 const pendingChannels = new Map();
@@ -38,7 +37,7 @@ async function restorePendingChannels() {
       timestamp: new Date(channel.created_at).getTime()
     });
   }
-  logger.info('✅ Відновлено pending каналів', { count: channels.length });
+  console.log(`✅ Відновлено ${channels.length} pending каналів`);
 }
 
 module.exports = { pendingChannels, setPendingChannel, removePendingChannel, restorePendingChannels };

@@ -7,7 +7,6 @@ const { getUpdateTypeV2 } = require('../publisher');
 const { appendTimestamp } = require('../utils/timestamp');
 const { getScheduleViewKeyboard } = require('../keyboards/inline');
 const { getScheduleCheckTime } = require('../database/scheduleChecks');
-const logger = require('../utils/logger');
 
 // Обробник команди /schedule
 async function handleSchedule(bot, msg) {
@@ -31,13 +30,8 @@ async function handleSchedule(bot, msg) {
     // Показуємо індикатор завантаження
     await bot.api.sendChatAction(chatId, 'typing');
 
-    // Fetch data, image, and check time in parallel
-    const [data, imageResult, lastCheck] = await Promise.all([
-      fetchScheduleData(user.region),
-      fetchScheduleImage(user.region, user.queue).catch(() => null),
-      getScheduleCheckTime(user.region, user.queue).catch(() => Math.floor(Date.now() / 1000)),
-    ]);
-
+    // Отримуємо дані графіка
+    const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
@@ -53,25 +47,26 @@ async function handleSchedule(bot, msg) {
     // Pass null for changes parameter since we're not marking new events in bot view
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
-    // Додаємо date_time entity до повідомлення
+    // Читаємо час останньої перевірки ботом та додаємо date_time entity
+    const lastCheck = await getScheduleCheckTime(user.region, user.queue);
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
     // Спробуємо відправити зображення графіка з caption
     let sentMsg;
-    if (imageResult) {
-      sentMsg = await safeSendPhoto(bot, chatId, imageResult, {
+    try {
+      const imageBuffer = await fetchScheduleImage(user.region, user.queue);
+      sentMsg = await safeSendPhoto(bot, chatId, imageBuffer, {
         caption: fullCaption,
         caption_entities: timestampEntities,
-        parse_mode: undefined, // Override global parseMode — entities handle formatting
         reply_markup: scheduleKeyboard,
       }, { filename: 'schedule.png', contentType: 'image/png' });
-    }
-    if (!sentMsg) {
+    } catch (imgError) {
+      // Якщо зображення недоступне, відправляємо тільки текст
+      console.log('Зображення графіка недоступне:', imgError.message);
       sentMsg = await safeSendMessage(bot, chatId, fullCaption, {
         entities: timestampEntities,
-        parse_mode: undefined, // Override global parseMode — entities handle formatting
         reply_markup: scheduleKeyboard,
       });
     }
@@ -81,7 +76,7 @@ async function handleSchedule(bot, msg) {
     }
 
   } catch (error) {
-    logger.error('Помилка в handleSchedule', { error });
+    console.error('Помилка в handleSchedule:', error);
     await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
@@ -106,10 +101,10 @@ async function handleNext(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatNextEventMessage(nextEvent);
-    await safeSendMessage(bot, chatId, message);
+    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error('Помилка в handleNext', { error });
+    console.error('Помилка в handleNext:', error);
     await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
@@ -139,10 +134,10 @@ async function handleTimer(bot, msg) {
     const nextEvent = findNextEvent(scheduleData);
 
     const message = formatTimerMessage(nextEvent);
-    await bot.api.sendMessage(chatId, message);
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error('Помилка в handleTimer', { error });
+    console.error('Помилка в handleTimer:', error);
     await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }

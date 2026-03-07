@@ -1,5 +1,4 @@
 const { pool } = require('./db');
-const logger = require('../utils/logger');
 
 /**
  * Додати запис про подію зміни стану живлення
@@ -16,7 +15,7 @@ async function addPowerEvent(userId, eventType, timestamp, durationSeconds = nul
     `, [userId, eventType, timestamp, durationSeconds]);
     return true;
   } catch (error) {
-    logger.error('Error adding power event', { error });
+    console.error('Error adding power event:', error);
     return false;
   }
 }
@@ -37,7 +36,7 @@ async function getPowerHistory(userId, limit = 100) {
 
     return result.rows;
   } catch (error) {
-    logger.error('Error getting power history', { error });
+    console.error('Error getting power history:', error);
     return [];
   }
 }
@@ -58,7 +57,7 @@ async function getPowerHistoryByPeriod(userId, startTimestamp, endTimestamp) {
 
     return result.rows;
   } catch (error) {
-    logger.error('Error getting power history by period', { error });
+    console.error('Error getting power history by period:', error);
     return [];
   }
 }
@@ -77,10 +76,10 @@ async function cleanupOldHistory(daysToKeep = 30) {
     `, [cutoffTimestamp]);
 
     const deletedCount = result.rowCount || 0;
-    logger.info('Видалено старих записів з power_history', { deletedCount });
+    console.log(`Видалено ${deletedCount} старих записів з power_history`);
     return deletedCount;
   } catch (error) {
-    logger.error('Error cleaning up old history', { error });
+    console.error('Error cleaning up old history:', error);
     return 0;
   }
 }

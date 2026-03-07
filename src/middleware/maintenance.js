@@ -11,7 +11,7 @@ function maintenanceMiddleware() {
         if (ctx.callbackQuery) {
           await ctx.answerCallbackQuery({ text: maintenance.message, show_alert: true }).catch(() => {});
         } else {
-          await ctx.reply(maintenance.message).catch(() => {});
+          await ctx.reply(maintenance.message, { parse_mode: 'HTML' }).catch(() => {});
         }
         return;
       }

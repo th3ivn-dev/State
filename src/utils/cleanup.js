@@ -1,6 +1,5 @@
 const { pendingChannels } = require('../state/pendingChannels');
 const { MAX_INSTRUCTION_MESSAGES_MAP_SIZE, MAX_PENDING_CHANNELS_MAP_SIZE, PENDING_CHANNEL_CLEANUP_INTERVAL_MS } = require('../constants/timeouts');
-const logger = require('../utils/logger');
 
 function startBotCleanup(channelInstructionMessages) {
   const interval = setInterval(() => {
@@ -18,7 +17,7 @@ function startBotCleanup(channelInstructionMessages) {
       const entriesToDelete = pendingChannels.size - MAX_PENDING_CHANNELS_MAP_SIZE;
       const keys = Array.from(pendingChannels.keys()).slice(0, entriesToDelete);
       keys.forEach(key => pendingChannels.delete(key));
-      logger.info('🧹 Очищено старих pending channels (перевищено ліміт )', { entriesToDelete, MAX_PENDING_CHANNELS_MAP_SIZE });
+      console.log(`🧹 Очищено ${entriesToDelete} старих pending channels (перевищено ліміт ${MAX_PENDING_CHANNELS_MAP_SIZE})`);
     }
 
     // Cleanup channelInstructionMessages with size limit
@@ -26,7 +25,7 @@ function startBotCleanup(channelInstructionMessages) {
       const entriesToDelete = channelInstructionMessages.size - MAX_INSTRUCTION_MESSAGES_MAP_SIZE;
       const keys = Array.from(channelInstructionMessages.keys()).slice(0, entriesToDelete);
       keys.forEach(key => channelInstructionMessages.delete(key));
-      logger.info('🧹 Очищено старих instruction messages (перевищено ліміт )', { entriesToDelete, MAX_INSTRUCTION_MESSAGES_MAP_SIZE });
+      console.log(`🧹 Очищено ${entriesToDelete} старих instruction messages (перевищено ліміт ${MAX_INSTRUCTION_MESSAGES_MAP_SIZE})`);
     }
   }, PENDING_CHANNEL_CLEANUP_INTERVAL_MS); // Кожну годину
 

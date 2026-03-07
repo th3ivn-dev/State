@@ -5,7 +5,6 @@ const { isAdmin, formatExactDuration } = require('../../utils');
 const config = require('../../config');
 const { clearState, getState, setState } = require('../../state/stateManager');
 const usersDb = require('../../database/users');
-const logger = require('../../utils/logger');
 
 // In-memory cache for maintenance mode
 let maintenanceCache = { enabled: false, message: '', lastCheck: 0 };
@@ -54,6 +53,7 @@ async function showMaintenanceScreen(bot, chatId, messageId) {
   await safeEditMessageText(bot, buildMaintenanceText(enabled, message, startedAt), {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'HTML',
     reply_markup: getMaintenanceKeyboard(enabled).reply_markup,
   });
 }
@@ -96,6 +96,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, buildMaintenanceText(newEnabled, message, startedAt), {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: getMaintenanceKeyboard(newEnabled).reply_markup,
     });
 
@@ -119,7 +120,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
 
         let sent = 0;
         let total = 0;
-        const broadcastOptions = {};
+        const broadcastOptions = { parse_mode: 'HTML' };
         if (!newEnabled) {
           broadcastOptions.reply_markup = {
             inline_keyboard: [
@@ -138,10 +139,11 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
         }
 
         await safeSendMessage(bot, chatId,
-          `📤 Сповіщення надіслано: ${sent} з ${total} користувачів`
+          `📤 Сповіщення надіслано: ${sent} з ${total} користувачів`,
+          { parse_mode: 'HTML' }
         );
       } catch (err) {
-        logger.error('Помилка масової розсилки maintenance', { err });
+        console.error('Помилка масової розсилки maintenance:', err);
       }
     })();
 
@@ -163,6 +165,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'admin_maintenance' }]
@@ -214,12 +217,13 @@ async function handleMaintenanceConversation(bot, msg) {
     message += buildMaintenanceText(enabled, text);
 
     await safeSendMessage(bot, chatId, message, {
+      parse_mode: 'HTML',
       reply_markup: getMaintenanceKeyboard(enabled).reply_markup,
     });
 
     return true;
   } catch (error) {
-    logger.error('Помилка в handleMaintenanceConversation', { error });
+    console.error('Помилка в handleMaintenanceConversation:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні. Спробуйте ще раз:');
     return true;
   }

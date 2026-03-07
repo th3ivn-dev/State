@@ -1,5 +1,4 @@
 const { pool } = require('./pool');
-const logger = require('../utils/logger');
 
 /**
  * Перевірка здоров'я пулу підключень
@@ -8,7 +7,7 @@ async function checkPoolHealth() {
   const client = await pool.connect();
   try {
     await client.query('SELECT 1');
-    logger.info('✅ Database connection verified');
+    console.log('✅ Database connection verified');
   } finally {
     client.release();
   }
@@ -27,7 +26,7 @@ function startPoolMetricsLogging() {
   }
 
   poolMetricsInterval = setInterval(() => {
-    logger.info(`[DB] Pool: total=${pool.totalCount} idle=${pool.idleCount} waiting=${pool.waitingCount}`);
+    console.log(`[DB] Pool: total=${pool.totalCount} idle=${pool.idleCount} waiting=${pool.waitingCount}`);
   }, POOL_STATS_LOG_INTERVAL_MS);
 }
 

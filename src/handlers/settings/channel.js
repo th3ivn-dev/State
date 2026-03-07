@@ -32,6 +32,7 @@ async function handleChannelCallback(bot, query, user) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: getChannelMenuKeyboard(user.channel_id, isPublic, channelStatus).reply_markup,
     });
     return;
@@ -59,6 +60,7 @@ async function handleChannelCallback(bot, query, user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
       }
     );
 
@@ -80,6 +82,7 @@ async function handleChannelCallback(bot, query, user) {
       chatId,
       '🏠 <b>Головне меню</b>',
       {
+        parse_mode: 'HTML',
         ...getMainMenu(botStatus, channelPaused),
       }
     );

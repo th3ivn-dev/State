@@ -13,7 +13,6 @@ const { handleSupportCallback, handleAdminSupportUrlConversation } = require('./
 const { handleMonitoring, handleSetAlertChannel } = require('./monitoring');
 const { handleDatabaseCallback } = require('./database');
 const { handleMaintenanceCallback, handleMaintenanceConversation } = require('./maintenance');
-const logger = require('../../utils/logger');
 
 // Main admin callback router
 async function handleAdminCallback(bot, query) {
@@ -51,7 +50,7 @@ async function handleAdminCallback(bot, query) {
       await handleCommandsCallback(bot, query, chatId, userId, data);
     }
   } catch (error) {
-    logger.error('Помилка в handleAdminCallback', { error });
+    console.error('Помилка в handleAdminCallback:', error);
     notifyAdminsAboutError(bot, error, 'handleAdminCallback');
     await safeAnswerCallbackQuery(bot, query.id, { text: '❌ Виникла помилка' });
   }

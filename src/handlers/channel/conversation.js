@@ -3,7 +3,6 @@ const { getBotUsername } = require('../../utils');
 const { safeSetChatTitle, safeSetChatDescription } = require('../../utils/errorHandler');
 const { getFormatPowerKeyboard, getMainMenu, getPauseMessageKeyboard } = require('../../keyboards/inline');
 const { getSetting, setSetting } = require('../../database/db');
-const logger = require('../../utils/logger');
 const {
   setConversationState,
   getConversationState,
@@ -55,7 +54,7 @@ async function handleConversation(bot, msg) {
         chatId,
         '📝 <b>Хочете додати додатковий опис каналу?</b>\n\n' +
         'Наприклад: ЖК "Сонячний", під\'їзд 2',
-        { reply_markup: keyboard }
+        { parse_mode: 'HTML', reply_markup: keyboard }
       );
 
       await setConversationState(telegramId, state);
@@ -114,6 +113,7 @@ async function handleConversation(bot, msg) {
           `⚠️ <b>Важливо:</b> Зміна через бота - дозволена.\n` +
           `Не змінюйте назву вручну в Telegram!`,
           {
+            parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [
                 [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -126,7 +126,7 @@ async function handleConversation(bot, msg) {
 
         return true;
       } catch (error) {
-        logger.error('Error updating channel title', { error });
+        console.error('Error updating channel title:', error);
         await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -183,6 +183,7 @@ async function handleConversation(bot, msg) {
           `⚠️ <b>Важливо:</b> Зміна через бота - дозволена.\n` +
           `Не змінюйте опис вручну в Telegram!`,
           {
+            parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [
                 [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -195,7 +196,7 @@ async function handleConversation(bot, msg) {
 
         return true;
       } catch (error) {
-        logger.error('Error updating channel description', { error });
+        console.error('Error updating channel description:', error);
         await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -213,7 +214,7 @@ async function handleConversation(bot, msg) {
 
       await usersDb.updateUserFormatSettings(telegramId, { scheduleCaption: text.trim() });
 
-      await bot.api.sendMessage(chatId, '✅ Шаблон підпису оновлено!');
+      await bot.api.sendMessage(chatId, '✅ Шаблон підпису оновлено!', { parse_mode: 'HTML' });
 
       // Return to schedule text instruction screen
       const user = await usersDb.getUserByTelegramId(telegramId);
@@ -224,6 +225,7 @@ async function handleConversation(bot, msg) {
         chatId,
         getScheduleTextInstructionMessage(currentCaption, currentPeriod),
         {
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '📝 Змінити підпис', callback_data: 'format_schedule_caption' }],
@@ -246,7 +248,7 @@ async function handleConversation(bot, msg) {
 
       await usersDb.updateUserFormatSettings(telegramId, { periodFormat: text.trim() });
 
-      await bot.api.sendMessage(chatId, '✅ Формат періодів оновлено!');
+      await bot.api.sendMessage(chatId, '✅ Формат періодів оновлено!', { parse_mode: 'HTML' });
 
       // Return to schedule text instruction screen
       const user = await usersDb.getUserByTelegramId(telegramId);
@@ -257,6 +259,7 @@ async function handleConversation(bot, msg) {
         chatId,
         getScheduleTextInstructionMessage(currentCaption, currentPeriod),
         {
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '📝 Змінити підпис', callback_data: 'format_schedule_caption' }],
@@ -279,13 +282,14 @@ async function handleConversation(bot, msg) {
 
       await usersDb.updateUserFormatSettings(telegramId, { powerOffText: text.trim() });
 
-      await bot.api.sendMessage(chatId, '✅ Текст відключення оновлено!');
+      await bot.api.sendMessage(chatId, '✅ Текст відключення оновлено!', { parse_mode: 'HTML' });
 
       // Return to power state settings menu (Level 2b)
       await bot.api.sendMessage(
         chatId,
         FORMAT_POWER_MESSAGE,
         {
+          parse_mode: 'HTML',
           ...getFormatPowerKeyboard()
         }
       );
@@ -302,13 +306,14 @@ async function handleConversation(bot, msg) {
 
       await usersDb.updateUserFormatSettings(telegramId, { powerOnText: text.trim() });
 
-      await bot.api.sendMessage(chatId, '✅ Текст включення оновлено!');
+      await bot.api.sendMessage(chatId, '✅ Текст включення оновлено!', { parse_mode: 'HTML' });
 
       // Return to power state settings menu (Level 2b)
       await bot.api.sendMessage(
         chatId,
         FORMAT_POWER_MESSAGE,
         {
+          parse_mode: 'HTML',
           ...getFormatPowerKeyboard()
         }
       );
@@ -326,7 +331,7 @@ async function handleConversation(bot, msg) {
       const user = await usersDb.getUserByTelegramId(telegramId);
 
       try {
-        await bot.api.sendMessage(user.channel_id, text.trim());
+        await bot.api.sendMessage(user.channel_id, text.trim(), { parse_mode: 'HTML' });
 
         // Send success message with navigation buttons
         let botStatus = 'active';
@@ -341,11 +346,12 @@ async function handleConversation(bot, msg) {
           chatId,
           '✅ Повідомлення опубліковано в канал!\n\nОберіть наступну дію:',
           {
+            parse_mode: 'HTML',
             ...getMainMenu(botStatus, channelPaused)
           }
         );
       } catch (error) {
-        logger.error('Error publishing custom test', { error });
+        console.error('Error publishing custom test:', error);
 
         // Send error message with navigation buttons
         let botStatus = 'active';
@@ -375,7 +381,7 @@ async function handleConversation(bot, msg) {
 
       await setSetting('pause_message', text.trim());
 
-      await bot.api.sendMessage(chatId, '✅ Повідомлення паузи збережено!');
+      await bot.api.sendMessage(chatId, '✅ Повідомлення паузи збережено!', { parse_mode: 'HTML' });
 
       // Show pause message settings again
       const showSupport = await getSetting('pause_show_support', '1') === '1';
@@ -386,6 +392,7 @@ async function handleConversation(bot, msg) {
         'Оберіть шаблон або введіть свій текст:\n\n' +
         `Поточне повідомлення:\n"${text.trim()}"`,
         {
+          parse_mode: 'HTML',
           reply_markup: getPauseMessageKeyboard(showSupport).reply_markup
         }
       );
@@ -395,7 +402,7 @@ async function handleConversation(bot, msg) {
     }
 
   } catch (error) {
-    logger.error('Помилка в handleConversation', { error });
+    console.error('Помилка в handleConversation:', error);
     await bot.api.sendMessage(chatId, '😅 Щось пішло не так. Спробуйте ще раз.');
     await clearConversationState(telegramId);
   }

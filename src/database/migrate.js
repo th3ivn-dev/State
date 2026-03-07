@@ -4,18 +4,17 @@
  */
 
 const { pool, runMigrations } = require('./db');
-const logger = require('../utils/logger');
 
-logger.info('🔄 Starting database migration...');
+console.log('🔄 Starting database migration...');
 
 async function main() {
   try {
     await runMigrations();
-    logger.info('\n✅ Migration completed!');
+    console.log('\n✅ Migration completed!');
     await pool.end();
     process.exit(0);
   } catch (error) {
-    logger.error('❌ Migration failed', { error });
+    console.error('❌ Migration failed:', error);
     await pool.end();
     process.exit(1);
   }

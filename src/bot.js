@@ -1,9 +1,6 @@
 const { Bot } = require('grammy');
 const { hydrate } = require('@grammyjs/hydrate');
 const { autoRetry } = require('@grammyjs/auto-retry');
-const { apiThrottler } = require('@grammyjs/transformer-throttler');
-const { hydrateReply, parseMode } = require('@grammyjs/parse-mode');
-const { limit } = require('@grammyjs/ratelimiter');
 const config = require('./config');
 const { pendingChannels, removePendingChannel, restorePendingChannels } = require('./state/pendingChannels');
 
@@ -14,7 +11,6 @@ const { maintenanceMiddleware, autoDeleteCommandsMiddleware } = require('./middl
 const { handleStart } = require('./handlers/start');
 const { handleSchedule, handleNext, handleTimer } = require('./handlers/schedule');
 const { handleSettings, handleIpConversation } = require('./handlers/settings');
-const logger = require('./utils/logger');
 const {
   handleAdmin,
   handleStats,
@@ -52,24 +48,16 @@ const botCleanupInterval = startBotCleanup(channelInstructionMessages);
 // Create bot instance
 const bot = new Bot(config.botToken);
 
-logger.info('🤖 Telegram Bot ініціалізовано (режим: Webhook)');
+console.log('🤖 Telegram Bot ініціалізовано (режим: Webhook)');
 
 // Register hydrate middleware to allow convenient message editing (msg.editText(), msg.delete(), etc.)
 bot.use(hydrate());
-bot.use(hydrateReply);
-
-// === API Transformers (order: throttle → retry → parseMode) ===
-const throttler = apiThrottler();
-bot.api.config.use(throttler);
 
 // Auto-retry on 429 (Too Many Requests) errors from Telegram API
 bot.api.config.use(autoRetry({
-  maxRetryAttempts: 5,
-  maxDelaySeconds: 30,
-  rethrowInternalServerErrors: false,
+  maxRetryAttempts: 3,
+  maxDelaySeconds: 10,
 }));
-
-bot.api.config.use(parseMode('HTML'));
 
 // Compatibility for bot.options.id used in handlers
 bot.options = {};
@@ -80,20 +68,6 @@ Object.defineProperty(bot.options, 'id', {
 
 // Maintenance mode middleware — blocks non-admin users when maintenance is active
 bot.use(maintenanceMiddleware());
-
-// Rate limit user requests to prevent spam
-bot.use(limit({
-  timeFrame: 2000,
-  limit: 3,
-  onLimitExceeded: async (ctx) => {
-    try {
-      await ctx.reply('⏳ Занадто багато запитів. Зачекайте кілька секунд.');
-    } catch (_e) {
-      // Ignore errors when notifying about rate limit
-    }
-  },
-  keyGenerator: (ctx) => ctx.from?.id?.toString(),
-}));
 
 // Auto-delete user commands middleware
 bot.use(autoDeleteCommandsMiddleware(bot));
@@ -153,6 +127,7 @@ bot.on('message', async (ctx) => {
         chatId,
         '❓ Команда не розпізнана.\n\nОберіть дію:',
         {
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
@@ -209,6 +184,7 @@ bot.on('message', async (ctx) => {
         chatId,
         '❓ Команда не розпізнана.\n\nОберіть дію:',
         {
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
@@ -220,7 +196,7 @@ bot.on('message', async (ctx) => {
     }
 
   } catch (error) {
-    logger.error('Помилка обробки повідомлення', { error });
+    console.error('Помилка обробки повідомлення:', error);
     notifyAdminsAboutError(bot, error, 'message handler');
   }
 });
@@ -241,7 +217,7 @@ bot.on('callback_query:data', async (ctx) => {
       await bot.api.answerCallbackQuery(query.id);
     }
   } catch (error) {
-    logger.error('Помилка обробки callback query', { error });
+    console.error('Помилка обробки callback query:', error);
     notifyAdminsAboutError(bot, error, `callback_query: ${data}`);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '❌ Виникла помилка',
@@ -252,7 +228,7 @@ bot.on('callback_query:data', async (ctx) => {
 
 // Error handling
 bot.catch((err) => {
-  logger.error('Помилка бота', { error: err.message || err });
+  console.error('Помилка бота:', err.message || err);
   notifyAdminsAboutError(bot, err.error || err, 'bot error');
 });
 

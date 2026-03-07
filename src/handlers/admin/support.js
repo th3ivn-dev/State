@@ -4,7 +4,6 @@ const { safeSendMessage, safeEditMessageText, safeDeleteMessage } = require('../
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
 const { clearState, getState, setState } = require('../../state/stateManager');
-const logger = require('../../utils/logger');
 
 // Helper function to display support settings screen
 async function showSupportSettingsScreen(bot, chatId, messageId) {
@@ -22,6 +21,7 @@ async function showSupportSettingsScreen(bot, chatId, messageId) {
   await safeEditMessageText(bot, message, {
     chat_id: chatId,
     message_id: messageId,
+    parse_mode: 'HTML',
     ...getAdminSupportKeyboard(mode, url),
   });
 }
@@ -60,6 +60,7 @@ async function handleSupportCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'admin_support' }]
@@ -122,12 +123,13 @@ async function handleAdminSupportUrlConversation(bot, msg) {
 
     // Send new message with support settings
     await safeSendMessage(bot, chatId, message, {
+      parse_mode: 'HTML',
       ...getAdminSupportKeyboard(mode, url),
     });
 
     return true;
   } catch (error) {
-    logger.error('Помилка в handleAdminSupportUrlConversation', { error });
+    console.error('Помилка в handleAdminSupportUrlConversation:', error);
     // Don't clear state on error - let user retry
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні посилання. Спробуйте ще раз:');
     return true;

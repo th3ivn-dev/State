@@ -5,7 +5,6 @@
 
 const { getSetting, setSetting } = require('./database/db');
 const usersDb = require('./database/users');
-const logger = require('./utils/logger');
 
 // Growth stages definition
 const GROWTH_STAGES = {
@@ -222,7 +221,7 @@ async function logGrowthEvent(eventType, data) {
     timestamp
   });
 
-  logger.info('📈 GROWTH EVENT', { logEntry });
+  console.log(`📈 GROWTH EVENT: ${logEntry}`);
 
   // Store in settings as recent events (keep last 100)
   try {
@@ -236,7 +235,7 @@ async function logGrowthEvent(eventType, data) {
 
     await setSetting('growth_events', JSON.stringify(recentEvents));
   } catch (error) {
-    logger.error('Error storing growth event', { error });
+    console.error('Error storing growth event:', error);
   }
 }
 
@@ -307,7 +306,7 @@ async function getRecentGrowthEvents(limit = 20) {
     const events = JSON.parse(await getSetting('growth_events', '[]'));
     return events.slice(-limit).reverse();
   } catch (error) {
-    logger.error('Error getting growth events', { error });
+    console.error('Error getting growth events:', error);
     return [];
   }
 }

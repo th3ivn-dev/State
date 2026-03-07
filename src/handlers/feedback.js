@@ -5,7 +5,6 @@ const { getHelpKeyboard } = require('../keyboards/inline');
 const config = require('../config');
 const { notifyAdminsAboutError } = require('../utils/adminNotifier');
 const { getSetting } = require('../database/db');
-const logger = require('../utils/logger');
 
 // Час очікування на введення (5 хвилин)
 const FEEDBACK_TIMEOUT_MS = 5 * 60 * 1000;
@@ -107,11 +106,12 @@ async function handleFeedbackStart(bot, query) {
       {
         chat_id: chatId,
         message_id: messageId,
+        parse_mode: 'HTML',
         reply_markup: getFeedbackTypeKeyboard(),
       }
     );
   } catch (error) {
-    logger.error('Помилка handleFeedbackStart', { error });
+    console.error('Помилка handleFeedbackStart:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -148,6 +148,7 @@ async function handleFeedbackType(bot, query) {
       'Надішліть ваше повідомлення (текст, фото або відео).\n\n' +
       '⏱ У вас є 5 хвилин на введення.',
       {
+        parse_mode: 'HTML',
         reply_markup: getFeedbackCancelKeyboard(),
       }
     );
@@ -177,7 +178,7 @@ async function handleFeedbackType(bot, query) {
       timeout,
     });
   } catch (error) {
-    logger.error('Помилка handleFeedbackType', { error });
+    console.error('Помилка handleFeedbackType:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
   }
 }
@@ -253,6 +254,7 @@ async function handleFeedbackMessage(bot, msg) {
     previewText += 'Надіслати це звернення?';
 
     const sentMessage = await safeSendMessage(bot, chatId, previewText, {
+      parse_mode: 'HTML',
       reply_markup: getFeedbackConfirmKeyboard(),
     });
 
@@ -267,7 +269,7 @@ async function handleFeedbackMessage(bot, msg) {
 
     return true; // Повідомлення оброблене
   } catch (error) {
-    logger.error('Помилка handleFeedbackMessage', { error });
+    console.error('Помилка handleFeedbackMessage:', error);
     notifyAdminsAboutError(bot, error, 'handleFeedbackMessage');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
@@ -319,6 +321,7 @@ async function handleFeedbackConfirm(bot, query) {
       `Ваше звернення #${ticket.id} прийнято.\n` +
       `Ми розглянемо його найближчим часом.`,
       {
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -333,7 +336,7 @@ async function handleFeedbackConfirm(bot, query) {
     // Очищаємо стан
     await clearFeedbackState(telegramId);
   } catch (error) {
-    logger.error('Помилка handleFeedbackConfirm', { error });
+    console.error('Помилка handleFeedbackConfirm:', error);
     notifyAdminsAboutError(bot, error, 'handleFeedbackConfirm');
     await safeSendMessage(bot, chatId, '❌ Виникла помилка під час відправки. Спробуйте пізніше.');
     await clearFeedbackState(telegramId);
@@ -371,7 +374,7 @@ async function handleFeedbackCancel(bot, query) {
       }
     });
   } catch (error) {
-    logger.error('Помилка handleFeedbackCancel', { error });
+    console.error('Помилка handleFeedbackCancel:', error);
   }
 }
 
@@ -409,26 +412,29 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
       try {
         if (state.messageType === 'text') {
           await bot.api.sendMessage(adminId, message, {
+            parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         } else if (state.messageType === 'photo' && state.fileId) {
           await bot.api.sendPhoto(adminId, state.fileId, {
             caption: message,
+            parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         } else if (state.messageType === 'video' && state.fileId) {
           await bot.api.sendVideo(adminId, state.fileId, {
             caption: message,
+            parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         }
       } catch (error) {
         // Ігноруємо помилки відправки адміну
-        logger.error('Не вдалося сповістити адміна', { adminId, message: error.message });
+        console.error(`Не вдалося сповістити адміна ${adminId}:`, error.message);
       }
     }
   } catch (error) {
-    logger.error('Помилка notifyAdminsAboutNewTicket', { error });
+    console.error('Помилка notifyAdminsAboutNewTicket:', error);
   }
 }
 
@@ -464,6 +470,7 @@ async function handleFeedbackCallback(bot, query) {
       {
         chat_id: chatId,
         message_id: messageId,
+        parse_mode: 'HTML',
         reply_markup: helpKeyboard.reply_markup,
       }
     );
