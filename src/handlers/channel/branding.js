@@ -142,13 +142,16 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     successMessage += `\n⚠️ <b>Увага!</b>\n` +
       `Не змінюйте назву, опис або фото каналу.\n\n` +
       `Якщо ці дані буде змінено — бот припинить роботу,\n` +
-      `і канал потрібно буде налаштувати заново.`;
+      `і канал потрібно буде налаштувати заново.\n\n` +
+      `⤵ Меню — перейти в головне меню\n` +
+      `📢 Новини бота — канал з оновленнями`;
 
     await bot.api.sendMessage(chatId, successMessage, {
       parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
-          [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+          [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
+          [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
         ]
       }
     });
@@ -191,7 +194,7 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
           inline_keyboard: [
             [
               { text: '← Назад', callback_data: 'settings_channel' },
-              { text: '⤴ Меню', callback_data: 'back_to_main' }
+              { text: '⤵ Меню', callback_data: 'back_to_main' }
             ]
           ]
         }

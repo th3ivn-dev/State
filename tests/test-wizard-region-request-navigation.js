@@ -28,7 +28,7 @@ console.log('Test 2: Verify handleRegionRequestConfirm has conditional navigatio
 assert(
   regionRequestCode.includes('const navigationButton = isInWizardFlow') &&
   regionRequestCode.includes("? [{ text: '← Назад', callback_data: 'back_to_region' }]") &&
-  regionRequestCode.includes(": [{ text: '⤴ Меню', callback_data: 'back_to_main' }]"),
+  regionRequestCode.includes(": [{ text: '⤵ Меню', callback_data: 'back_to_main' }]"),
   'handleRegionRequestConfirm should have conditional navigation button'
 );
 console.log('✓ handleRegionRequestConfirm has conditional navigation\n');
@@ -50,7 +50,7 @@ console.log('Test 4: Verify handleRegionRequestCancel has conditional navigation
 assert(
   cancelFunction.includes('const navigationButton = isInWizardFlow') &&
   cancelFunction.includes("? [{ text: '← Назад', callback_data: 'back_to_region' }]") &&
-  cancelFunction.includes(": [{ text: '⤴ Меню', callback_data: 'back_to_main' }]"),
+  cancelFunction.includes(": [{ text: '⤵ Меню', callback_data: 'back_to_main' }]"),
   'handleRegionRequestCancel should have conditional navigation button'
 );
 console.log('✓ handleRegionRequestCancel has conditional navigation\n');
@@ -72,7 +72,7 @@ console.log('Test 6: Verify timeout handler has conditional navigation');
 assert(
   timeoutHandler.includes('const navigationButton = isInWizardFlow') &&
   timeoutHandler.includes("? [{ text: '← Назад', callback_data: 'back_to_region' }]") &&
-  timeoutHandler.includes(": [{ text: '⤴ Меню', callback_data: 'back_to_main' }]"),
+  timeoutHandler.includes(": [{ text: '⤵ Меню', callback_data: 'back_to_main' }]"),
   'Timeout handler should have conditional navigation button'
 );
 console.log('✓ Timeout handler has conditional navigation\n');

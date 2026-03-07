@@ -123,7 +123,7 @@ try {
     settingsContent.includes('IP-адресу збережено') &&
     settingsContent.includes('← Назад') &&
     settingsContent.includes('settings_ip') &&
-    settingsContent.includes('⤴ Меню') &&
+    settingsContent.includes('⤵ Меню') &&
     settingsContent.includes('back_to_main'),
     'IP save confirmation should have navigation buttons'
   );

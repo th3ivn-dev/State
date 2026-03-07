@@ -10,8 +10,7 @@ function generateLiveStatusMessage(user, regionName) {
   const notificationsEnabled = user.is_active && user.alerts_off_enabled;
 
   if (!hasIp) {
-    // No IP configured
-    message += '⚪ Світло зараз: Невідомо\n\n';
+    // Не показуємо статус світла якщо IP не налаштовано
   } else if (hasPowerState) {
     // Has IP and power state
     const powerOn = user.power_state === 'on';
