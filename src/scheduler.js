@@ -170,11 +170,13 @@ async function handleScheduleChange(user, data, newHash) {
         await bot.api.sendPhoto(user.telegram_id, photoInput, {
           caption: fullCaption,
           caption_entities: timestampEntities,
+          parse_mode: undefined, // Override global parseMode — entities handle formatting
           reply_markup: scheduleKeyboard
         });
       } catch (_imgError) {
         await bot.api.sendMessage(user.telegram_id, fullCaption, {
           entities: timestampEntities,
+          parse_mode: undefined, // Override global parseMode — entities handle formatting
           reply_markup: scheduleKeyboard
         });
       }
