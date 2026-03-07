@@ -43,7 +43,6 @@ async function handleGrowthCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getGrowthKeyboard().reply_markup
     });
     return;
@@ -74,7 +73,6 @@ async function handleGrowthCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getGrowthKeyboard().reply_markup
     });
     return;
@@ -93,7 +91,6 @@ async function handleGrowthCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getGrowthStageKeyboard(currentStage.id).reply_markup
     });
     return;
@@ -123,7 +120,6 @@ async function handleGrowthCallback(bot, query, chatId, userId, data) {
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getGrowthStageKeyboard(currentStage.id).reply_markup
       });
     }
@@ -148,7 +144,6 @@ async function handleGrowthCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getGrowthRegistrationKeyboard(enabled).reply_markup
     });
     return;
@@ -186,7 +181,6 @@ async function handleGrowthCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getGrowthRegistrationKeyboard(newEnabled).reply_markup
     });
     return;
@@ -214,7 +208,6 @@ async function handleGrowthCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getGrowthKeyboard().reply_markup
     });
     return;

@@ -83,7 +83,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: keyboard
         }
       );
@@ -97,7 +96,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '✅ Перевірити', callback_data: 'channel_connect' }],
@@ -157,7 +155,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '← Назад', callback_data: 'settings_channel' }]
@@ -186,7 +183,6 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
           {
             chat_id: chatId,
             message_id: query.message.message_id,
-            parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [
                 [{ text: '← Назад', callback_data: 'settings_channel' }]
@@ -235,8 +231,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
       {
         chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML'
+        message_id: query.message.message_id
       }
     );
 
@@ -255,10 +250,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          pauseCheck.message,
-          {
-            parse_mode: 'HTML'
-          }
+          pauseCheck.message
         );
         return true;
       }
@@ -269,10 +261,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          validation.message,
-          {
-            parse_mode: 'HTML'
-          }
+          validation.message
         );
         return true;
       }
@@ -296,10 +285,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
-        {
-          parse_mode: 'HTML'
-        }
+        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1'
       );
     } else {
       await bot.api.editMessageText(
@@ -325,10 +311,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          pauseCheck.message,
-          {
-            parse_mode: 'HTML'
-          }
+          pauseCheck.message
         );
         return true;
       }
@@ -339,10 +322,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          validation.message,
-          {
-            parse_mode: 'HTML'
-          }
+          validation.message
         );
         return true;
       }
@@ -367,10 +347,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
-        {
-          parse_mode: 'HTML'
-        }
+        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1'
       );
     } else {
       await bot.api.editMessageText(

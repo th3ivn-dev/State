@@ -22,7 +22,6 @@ async function handleAlertsCallback(bot, query, user) {
     await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getNotificationKeyboard(fresh).reply_markup,
     });
     return;
@@ -36,7 +35,6 @@ async function handleAlertsCallback(bot, query, user) {
     await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getNotificationKeyboard(fresh).reply_markup,
     });
     return;
@@ -51,7 +49,6 @@ async function handleAlertsCallback(bot, query, user) {
     await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getNotificationKeyboard(fresh).reply_markup,
     });
     return;
@@ -82,7 +79,6 @@ async function handleAlertsCallback(bot, query, user) {
     await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getNotificationKeyboard(fresh).reply_markup,
     });
     return;
@@ -101,7 +97,6 @@ async function handleAlertsCallback(bot, query, user) {
     await safeEditMessageText(bot, buildAlertsMessage(updatedUser.is_active, currentTarget), {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: getUnifiedAlertsKeyboard(updatedUser.is_active, currentTarget).reply_markup,
     });
     return;
@@ -120,7 +115,6 @@ async function handleAlertsCallback(bot, query, user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getAdminKeyboard().reply_markup,
       }
     );
@@ -148,7 +142,6 @@ async function handleAlertsCallback(bot, query, user) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: getUnifiedAlertsKeyboard(updatedUser.is_active, target).reply_markup
         }
       );

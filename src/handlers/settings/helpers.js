@@ -59,7 +59,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
   const sentMessage = await bot.api.sendMessage(
     chatId,
     message,
-    { parse_mode: 'HTML', ...getMainMenu(botStatus, channelPaused) }
+    { ...getMainMenu(botStatus, channelPaused) }
   ).catch(() => null);
 
   if (sentMessage) {

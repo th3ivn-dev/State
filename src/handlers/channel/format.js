@@ -30,7 +30,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getFormatScheduleKeyboard(user).reply_markup
       }
     );
@@ -55,7 +54,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getFormatPowerKeyboard().reply_markup
       }
     );
@@ -77,7 +75,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getFormatScheduleKeyboard(updatedUser).reply_markup
       }
     );
@@ -99,7 +96,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getFormatScheduleKeyboard(updatedUser).reply_markup
       }
     );
@@ -118,7 +114,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getScheduleTextKeyboard()
       }
     );
@@ -214,7 +209,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [{ text: '← Назад', callback_data: 'format_schedule_text' }]
@@ -242,7 +236,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getScheduleTextKeyboard()
       }
     );
@@ -267,7 +260,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getScheduleTextKeyboard()
       }
     );
@@ -299,7 +291,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'format_schedule_text' }]
@@ -336,7 +327,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'format_schedule_text' }]
@@ -368,7 +358,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'format_power_settings' }]
@@ -400,7 +389,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '❌ Скасувати', callback_data: 'format_power_settings' }]
@@ -426,7 +414,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getFormatPowerKeyboard().reply_markup
       }
     );
@@ -448,7 +435,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getFormatPowerKeyboard().reply_markup
       }
     );
@@ -476,7 +462,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getScheduleTextKeyboard()
       }
     );
@@ -501,7 +486,6 @@ async function handleFormatCallbacks(bot, query, data, chatId, telegramId, user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getFormatPowerKeyboard().reply_markup
       }
     );

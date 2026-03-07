@@ -1,6 +1,9 @@
 const { Bot } = require('grammy');
 const { hydrate } = require('@grammyjs/hydrate');
 const { autoRetry } = require('@grammyjs/auto-retry');
+const { apiThrottler } = require('@grammyjs/transformer-throttler');
+const { hydrateReply, parseMode } = require('@grammyjs/parse-mode');
+const { limit } = require('@grammyjs/ratelimiter');
 const config = require('./config');
 const { pendingChannels, removePendingChannel, restorePendingChannels } = require('./state/pendingChannels');
 
@@ -52,12 +55,20 @@ console.log('🤖 Telegram Bot ініціалізовано (режим: Webhook
 
 // Register hydrate middleware to allow convenient message editing (msg.editText(), msg.delete(), etc.)
 bot.use(hydrate());
+bot.use(hydrateReply);
+
+// === API Transformers (order: throttle → retry → parseMode) ===
+const throttler = apiThrottler();
+bot.api.config.use(throttler);
 
 // Auto-retry on 429 (Too Many Requests) errors from Telegram API
 bot.api.config.use(autoRetry({
-  maxRetryAttempts: 3,
-  maxDelaySeconds: 10,
+  maxRetryAttempts: 5,
+  maxDelaySeconds: 30,
+  rethrowInternalServerErrors: false,
 }));
+
+bot.api.config.use(parseMode('HTML'));
 
 // Compatibility for bot.options.id used in handlers
 bot.options = {};
@@ -68,6 +79,20 @@ Object.defineProperty(bot.options, 'id', {
 
 // Maintenance mode middleware — blocks non-admin users when maintenance is active
 bot.use(maintenanceMiddleware());
+
+// Rate limit user requests to prevent spam
+bot.use(limit({
+  timeFrame: 2000,
+  limit: 3,
+  onLimitExceeded: async (ctx) => {
+    try {
+      await ctx.reply('⏳ Занадто багато запитів. Зачекайте кілька секунд.');
+    } catch (_e) {
+      // Ignore errors when notifying about rate limit
+    }
+  },
+  keyGenerator: (ctx) => ctx.from?.id?.toString(),
+}));
 
 // Auto-delete user commands middleware
 bot.use(autoDeleteCommandsMiddleware(bot));
@@ -127,7 +152,6 @@ bot.on('message', async (ctx) => {
         chatId,
         '❓ Команда не розпізнана.\n\nОберіть дію:',
         {
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
@@ -184,7 +208,6 @@ bot.on('message', async (ctx) => {
         chatId,
         '❓ Команда не розпізнана.\n\nОберіть дію:',
         {
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '⤴ Меню', callback_data: 'back_to_main' }],

@@ -21,7 +21,6 @@ async function handleDataCallback(bot, query, _user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getDeleteDataConfirmKeyboard().reply_markup,
       }
     );
@@ -36,7 +35,6 @@ async function handleDataCallback(bot, query, _user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getDeleteDataFinalKeyboard().reply_markup,
       }
     );
@@ -55,7 +53,6 @@ async function handleDataCallback(bot, query, _user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
       }
     );
     return;
@@ -93,7 +90,6 @@ async function handleDataCallback(bot, query, _user) {
       chatId,
       '🏠 <b>Головне меню</b>',
       {
-        parse_mode: 'HTML',
         ...getMainMenu('paused', false),
       }
     );

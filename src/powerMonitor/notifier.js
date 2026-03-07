@@ -172,7 +172,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       // Send to the user's private chat
       if (notifyTarget === 'bot' || notifyTarget === 'both') {
         try {
-          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+          await bot.api.sendMessage(user.telegram_id, message);
           console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
         } catch (error) {
           if (isTelegramUserInactiveError(error)) {
@@ -196,7 +196,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
           console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
         } else {
           try {
-            await bot.api.sendMessage(user.channel_id, message, { parse_mode: 'HTML' });
+            await bot.api.sendMessage(user.channel_id, message);
             console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {

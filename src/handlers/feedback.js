@@ -106,7 +106,6 @@ async function handleFeedbackStart(bot, query) {
       {
         chat_id: chatId,
         message_id: messageId,
-        parse_mode: 'HTML',
         reply_markup: getFeedbackTypeKeyboard(),
       }
     );
@@ -148,7 +147,6 @@ async function handleFeedbackType(bot, query) {
       'Надішліть ваше повідомлення (текст, фото або відео).\n\n' +
       '⏱ У вас є 5 хвилин на введення.',
       {
-        parse_mode: 'HTML',
         reply_markup: getFeedbackCancelKeyboard(),
       }
     );
@@ -254,7 +252,6 @@ async function handleFeedbackMessage(bot, msg) {
     previewText += 'Надіслати це звернення?';
 
     const sentMessage = await safeSendMessage(bot, chatId, previewText, {
-      parse_mode: 'HTML',
       reply_markup: getFeedbackConfirmKeyboard(),
     });
 
@@ -321,7 +318,6 @@ async function handleFeedbackConfirm(bot, query) {
       `Ваше звернення #${ticket.id} прийнято.\n` +
       `Ми розглянемо його найближчим часом.`,
       {
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -412,19 +408,16 @@ async function notifyAdminsAboutNewTicket(bot, ticket, state, username) {
       try {
         if (state.messageType === 'text') {
           await bot.api.sendMessage(adminId, message, {
-            parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         } else if (state.messageType === 'photo' && state.fileId) {
           await bot.api.sendPhoto(adminId, state.fileId, {
             caption: message,
-            parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         } else if (state.messageType === 'video' && state.fileId) {
           await bot.api.sendVideo(adminId, state.fileId, {
             caption: message,
-            parse_mode: 'HTML',
             reply_markup: keyboard,
           });
         }
@@ -470,7 +463,6 @@ async function handleFeedbackCallback(bot, query) {
       {
         chat_id: chatId,
         message_id: messageId,
-        parse_mode: 'HTML',
         reply_markup: helpKeyboard.reply_markup,
       }
     );

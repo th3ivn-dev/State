@@ -29,8 +29,7 @@ function handleChatMember(bot, channelInstructionMessages) {
           try {
             await bot.api.sendMessage(
               userId,
-              pauseCheck.message,
-              { parse_mode: 'HTML' }
+              pauseCheck.message
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
@@ -56,8 +55,7 @@ function handleChatMember(bot, channelInstructionMessages) {
               '⚠️ <b>Канал вже підключений</b>\n\n' +
               `Канал "${escapeHtml(channelTitle)}" вже підключено до іншого користувача.\n\n` +
               'Кожен канал може бути підключений тільки до одного облікового запису.\n\n' +
-              'Якщо це ваш канал — зверніться до підтримки.',
-              { parse_mode: 'HTML' }
+              'Якщо це ваш канал — зверніться до підтримки.'
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
@@ -101,7 +99,6 @@ function handleChatMember(bot, channelInstructionMessages) {
               `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
               `Використовувати його для сповіщень?`,
               {
-                parse_mode: 'HTML',
                 reply_markup: {
                   inline_keyboard: [
                     [{ text: '✅ Так, підключити', callback_data: `wizard_channel_confirm_${channelId}` }],
@@ -149,7 +146,6 @@ function handleChatMember(bot, channelInstructionMessages) {
               `⚠️ У вас вже підключений канал "<b>${escapeHtml(currentChannelTitle)}</b>".\n` +
               `Замінити на новий?`,
               {
-                parse_mode: 'HTML',
                 reply_markup: {
                   inline_keyboard: [
                     [{ text: '✅ Так, замінити', callback_data: `replace_channel_${channelId}` }],
@@ -172,7 +168,6 @@ function handleChatMember(bot, channelInstructionMessages) {
               `✅ Канал знайдено: "<b>${escapeHtml(channelTitle)}</b>"\n\n` +
               `Використовувати його для сповіщень?`,
               {
-                parse_mode: 'HTML',
                 reply_markup: {
                   inline_keyboard: [
                     [{ text: '✅ Так, підключити', callback_data: `connect_channel_${channelId}` }],
@@ -227,7 +222,6 @@ function handleChatMember(bot, channelInstructionMessages) {
                   `Канал "${escapeHtml(channelTitle)}" більше недоступний.\n\n` +
                   `Щоб підключити канал, додайте бота як адміністратора.`,
                   {
-                    parse_mode: 'HTML',
                     reply_markup: {
                       inline_keyboard: [
                         [{ text: '← Назад', callback_data: 'wizard_notify_back' }]
@@ -255,8 +249,7 @@ function handleChatMember(bot, channelInstructionMessages) {
           try {
             await bot.api.sendMessage(userId,
               `⚠️ Мене видалили з каналу "<b>${escapeHtml(channelTitle)}</b>".\n\n` +
-              `Сповіщення в цей канал більше не надсилатимуться.`,
-              { parse_mode: 'HTML' }
+              `Сповіщення в цей канал більше не надсилатимуться.`
             );
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {

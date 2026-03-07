@@ -165,7 +165,6 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
         const photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
         sentMessage = await bot.api.sendPhoto(user.channel_id, photoInput, {
           caption: messageText,
-          parse_mode: 'HTML',
           reply_markup: inlineKeyboard
         });
       }
@@ -174,7 +173,6 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
 
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
       sentMessage = await bot.api.sendMessage(user.channel_id, messageText, {
-        parse_mode: 'HTML',
         reply_markup: inlineKeyboard
       });
     }

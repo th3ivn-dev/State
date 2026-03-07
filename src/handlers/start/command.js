@@ -36,7 +36,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       'Налаштування займе ~1 хвилину.\n\n' +
       DEVELOPMENT_WARNING + '\n\n' +
       '📍 Крок 1 із 3 — Оберіть свій регіон:',
-      { parse_mode: 'HTML', ...getRegionKeyboard() }
+      { ...getRegionKeyboard() }
     );
   } else {
     sentMessage = await safeSendMessage(
@@ -44,7 +44,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
       chatId,
       '📍 Крок 1 із 3 — Оберіть свій регіон:\n\n' +
       DEVELOPMENT_WARNING,
-      { parse_mode: 'HTML', ...getRegionKeyboard() }
+      { ...getRegionKeyboard() }
     );
   }
 
@@ -70,7 +70,6 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
         chatId,
         retryText,
         {
-          parse_mode: 'HTML',
           ...getRegionKeyboard(),
         }
       );
@@ -90,7 +89,6 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
         chatId,
         '😅 Не вдалося відкрити зміну регіону.\nСпробуйте ще раз через налаштування.',
         {
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -125,8 +123,7 @@ async function handleStart(bot, msg) {
     if (isInWizard(telegramId)) {
       await safeSendMessage(bot, chatId,
         '⚠️ Спочатку завершіть налаштування!\n\n' +
-        'Продовжіть з того місця, де зупинились.',
-        { parse_mode: 'HTML' }
+        'Продовжіть з того місця, де зупинились.'
       );
       return;
     }
@@ -193,7 +190,6 @@ async function handleStart(bot, msg) {
         chatId,
         message,
         {
-          parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
       );
@@ -209,7 +205,6 @@ async function handleStart(bot, msg) {
     notifyAdminsAboutError(bot, error, 'handleStart');
     const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
-      parse_mode: 'HTML',
       ...errorKeyboard
     });
   }

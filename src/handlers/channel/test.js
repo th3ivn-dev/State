@@ -22,7 +22,6 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getTestPublicationKeyboard().reply_markup
       }
     );
@@ -77,7 +76,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         schedule: '18:00 - 20:00'
       });
 
-      await bot.api.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
+      await bot.api.sendMessage(user.channel_id, text);
 
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '✅ Тестове повідомлення опубліковано!',
@@ -114,7 +113,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         schedule: '16:00'
       });
 
-      await bot.api.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
+      await bot.api.sendMessage(user.channel_id, text);
 
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '✅ Тестове повідомлення опубліковано!',
@@ -151,8 +150,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
       'Можна використовувати HTML форматування.',
       {
         chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML'
+        message_id: query.message.message_id
       }
     );
     return true;

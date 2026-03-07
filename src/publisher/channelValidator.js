@@ -29,7 +29,6 @@ async function notifyChannelBlocked(bot, user, reason) {
       user.telegram_id,
       message,
       {
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⚙️ Налаштування', callback_data: 'menu_settings' }]

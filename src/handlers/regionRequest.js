@@ -81,7 +81,6 @@ async function handleRegionRequestStart(bot, query) {
       'Приклад: <i>Житомир</i>, <i>Вінниця</i>, <i>Черкаси</i>\n\n' +
       '⏱ У вас є 5 хвилин на введення.',
       {
-        parse_mode: 'HTML',
         reply_markup: getRegionRequestCancelKeyboard(),
       }
     );
@@ -195,7 +194,6 @@ async function handleRegionRequestMessage(bot, msg) {
       'Надіслати цей запит?';
 
     const sentMessage = await safeSendMessage(bot, chatId, previewText, {
-      parse_mode: 'HTML',
       reply_markup: getRegionRequestConfirmKeyboard(),
     });
 
@@ -269,7 +267,6 @@ async function handleRegionRequestConfirm(bot, query) {
       `Ваш запит #${ticket.id} на додавання регіону "<b>${state.regionName}</b>" прийнято.\n\n` +
       `Ми розглянемо його найближчим часом.`,
       {
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [navigationButton]
         }
@@ -354,7 +351,6 @@ async function notifyAdminsAboutRegionRequest(bot, ticket, state, username) {
     for (const adminId of allAdmins) {
       try {
         await bot.api.sendMessage(adminId, message, {
-          parse_mode: 'HTML',
           reply_markup: keyboard,
         });
       } catch (error) {

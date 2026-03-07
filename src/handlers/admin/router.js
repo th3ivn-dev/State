@@ -54,7 +54,6 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       ...getAdminRouterKeyboard(routerData),
     });
     return;
@@ -77,7 +76,6 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         ...getAdminRouterSetIpKeyboard(),
       }
     );
@@ -128,7 +126,6 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         ...getAdminRouterKeyboard(routerData),
       });
     }
@@ -177,7 +174,6 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       ...getAdminRouterStatsKeyboard(),
     });
     return;
@@ -223,7 +219,6 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
-      parse_mode: 'HTML',
       ...getAdminRouterKeyboard(routerData),
     });
 
@@ -298,12 +293,10 @@ async function handleAdminRouterIpConversation(bot, msg) {
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: state.messageId,
-        parse_mode: 'HTML',
         ...getAdminRouterKeyboard(routerData),
       });
     } else {
       await safeSendMessage(bot, chatId, message, {
-        parse_mode: 'HTML',
         ...getAdminRouterKeyboard(routerData),
       });
     }

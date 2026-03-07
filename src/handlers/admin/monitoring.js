@@ -63,7 +63,7 @@ async function handleMonitoring(bot, msg) {
     message += '\n\nДля налаштування канала:\n';
     message += '/setalertchannel <channel_id>';
 
-    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
+    await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
     console.error('Помилка в handleMonitoring:', error);
@@ -102,8 +102,7 @@ async function handleSetAlertChannel(bot, msg, match) {
       await bot.api.sendMessage(
         channelId,
         '✅ Канал для алертів налаштовано успішно!\n\n' +
-        'Тут будуть публікуватися алерти системи моніторингу.',
-        { parse_mode: 'HTML' }
+        'Тут будуть публікуватися алерти системи моніторингу.'
       );
     } catch (error) {
       await bot.api.sendMessage(
@@ -124,8 +123,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     await bot.api.sendMessage(
       chatId,
       `✅ Канал для алертів налаштовано: ${channelId}\n\n` +
-      'Тепер усі алерти системи моніторингу будуть публікуватися в цьому каналі.',
-      { parse_mode: 'HTML' }
+      'Тепер усі алерти системи моніторингу будуть публікуватися в цьому каналі.'
     );
 
   } catch (error) {

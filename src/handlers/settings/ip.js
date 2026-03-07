@@ -19,7 +19,6 @@ async function handleIpCallback(bot, query, user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getIpMonitoringKeyboard().reply_markup,
       }
     );
@@ -141,7 +140,6 @@ DDNS (Dynamic Domain Name System) дозволяє
     };
 
     await bot.api.editMessageText(chatId, query.message.message_id, instructionText, {
-      parse_mode: 'HTML',
       disable_web_page_preview: true,
       ...keyboard
     });
@@ -160,7 +158,6 @@ DDNS (Dynamic Domain Name System) дозволяє
         {
           chat_id: chatId,
           message_id: query.message.message_id,
-          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [
@@ -188,7 +185,6 @@ DDNS (Dynamic Domain Name System) дозволяє
       {
         chat_id: chatId,
         message_id: query.message.message_id,
-        parse_mode: 'HTML',
         reply_markup: getIpCancelKeyboard().reply_markup,
       }
     );
@@ -223,7 +219,6 @@ DDNS (Dynamic Domain Name System) дозволяє
         'Режим налаштування IP завершено.\n\n' +
         'Оберіть наступну дію:',
         {
-          parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
       ).catch(() => {});
@@ -379,7 +374,6 @@ async function handleIpConversation(bot, msg) {
           'Режим налаштування IP завершено.\n\n' +
           'Оберіть наступну дію:',
           {
-            parse_mode: 'HTML',
             ...getMainMenu(botStatus, channelPaused)
           }
         ).catch(() => {});
@@ -406,7 +400,6 @@ async function handleIpConversation(bot, msg) {
       `📡 Адреса: ${validationResult.address}\n\n` +
       `Тепер бот буде моніторити доступність цієї адреси для визначення наявності світла.`,
       {
-        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
