@@ -197,11 +197,11 @@ try {
   process.exit(1);
 }
 
-// Test 7: Verify bot.js routing
-console.log('Test 7: Checking bot.js callback routing...');
+// Test 7: Verify callback routing
+console.log('Test 7: Checking callback routing...');
 try {
   const fs = require('fs');
-  const botContent = fs.readFileSync(path.join(__dirname, '../src/bot.js'), 'utf8');
+  const botContent = fs.readFileSync(path.join(__dirname, '../src/handlers/callbackRoutes.js'), 'utf8');
 
   // Check for test_ routing
   assert(botContent.includes("startsWith('test_')"), 'Should route test_ callbacks');
