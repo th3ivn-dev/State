@@ -38,7 +38,7 @@ async function restorePendingChannels() {
       timestamp: new Date(channel.created_at).getTime()
     });
   }
-  logger.info(`✅ Відновлено ${channels.length} pending каналів`);
+  logger.info('✅ Відновлено pending каналів', { count: channels.length });
 }
 
 module.exports = { pendingChannels, setPendingChannel, removePendingChannel, restorePendingChannels };
