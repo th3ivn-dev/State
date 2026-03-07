@@ -3,6 +3,7 @@ const { getBotUsername } = require('../../utils');
 const { safeSetChatTitle, safeSetChatDescription } = require('../../utils/errorHandler');
 const { getFormatPowerKeyboard, getMainMenu, getPauseMessageKeyboard } = require('../../keyboards/inline');
 const { getSetting, setSetting } = require('../../database/db');
+const logger = require('../../utils/logger');
 const {
   setConversationState,
   getConversationState,
@@ -125,7 +126,7 @@ async function handleConversation(bot, msg) {
 
         return true;
       } catch (error) {
-        console.error('Error updating channel title:', error);
+        logger.error('Error updating channel title', { error });
         await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити назву каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -194,7 +195,7 @@ async function handleConversation(bot, msg) {
 
         return true;
       } catch (error) {
-        console.error('Error updating channel description:', error);
+        logger.error('Error updating channel description', { error });
         await bot.api.sendMessage(
           chatId,
           '😅 Щось пішло не так. Не вдалося змінити опис каналу. Переконайтесь, що бот має права на редагування інформації каналу.'
@@ -344,7 +345,7 @@ async function handleConversation(bot, msg) {
           }
         );
       } catch (error) {
-        console.error('Error publishing custom test:', error);
+        logger.error('Error publishing custom test', { error });
 
         // Send error message with navigation buttons
         let botStatus = 'active';
@@ -394,7 +395,7 @@ async function handleConversation(bot, msg) {
     }
 
   } catch (error) {
-    console.error('Помилка в handleConversation:', error);
+    logger.error('Помилка в handleConversation', { error });
     await bot.api.sendMessage(chatId, '😅 Щось пішло не так. Спробуйте ще раз.');
     await clearConversationState(telegramId);
   }

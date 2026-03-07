@@ -14,6 +14,7 @@ const { maintenanceMiddleware, autoDeleteCommandsMiddleware } = require('./middl
 const { handleStart } = require('./handlers/start');
 const { handleSchedule, handleNext, handleTimer } = require('./handlers/schedule');
 const { handleSettings, handleIpConversation } = require('./handlers/settings');
+const logger = require('./utils/logger');
 const {
   handleAdmin,
   handleStats,
@@ -51,7 +52,7 @@ const botCleanupInterval = startBotCleanup(channelInstructionMessages);
 // Create bot instance
 const bot = new Bot(config.botToken);
 
-console.log('🤖 Telegram Bot ініціалізовано (режим: Webhook)');
+logger.info('🤖 Telegram Bot ініціалізовано (режим: Webhook)');
 
 // Register hydrate middleware to allow convenient message editing (msg.editText(), msg.delete(), etc.)
 bot.use(hydrate());
@@ -219,7 +220,7 @@ bot.on('message', async (ctx) => {
     }
 
   } catch (error) {
-    console.error('Помилка обробки повідомлення:', error);
+    logger.error('Помилка обробки повідомлення', { error });
     notifyAdminsAboutError(bot, error, 'message handler');
   }
 });
@@ -240,7 +241,7 @@ bot.on('callback_query:data', async (ctx) => {
       await bot.api.answerCallbackQuery(query.id);
     }
   } catch (error) {
-    console.error('Помилка обробки callback query:', error);
+    logger.error('Помилка обробки callback query', { error });
     notifyAdminsAboutError(bot, error, `callback_query: ${data}`);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '❌ Виникла помилка',
@@ -251,7 +252,7 @@ bot.on('callback_query:data', async (ctx) => {
 
 // Error handling
 bot.catch((err) => {
-  console.error('Помилка бота:', err.message || err);
+  logger.error('Помилка бота', { error: err.message || err });
   notifyAdminsAboutError(bot, err.error || err, 'bot error');
 });
 

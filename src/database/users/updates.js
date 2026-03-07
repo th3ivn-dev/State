@@ -1,4 +1,5 @@
 const { pool } = require('../db');
+const logger = require('../../utils/logger');
 
 // Оновити регіон та чергу користувача
 async function updateUserRegionQueue(telegramId, region, queue) {
@@ -11,7 +12,7 @@ async function updateUserRegionQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRegionQueue:', error.message);
+    logger.error('Error in updateUserRegionQueue', { error.message });
     return false;
   }
 }
@@ -31,7 +32,7 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRegionAndQueue:', error.message);
+    logger.error('Error in updateUserRegionAndQueue', { error.message });
     return false;
   }
 }
@@ -47,7 +48,7 @@ async function updateUserPostId(id, postId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPostId:', error.message);
+    logger.error('Error in updateUserPostId', { error.message });
     return false;
   }
 }
@@ -63,7 +64,7 @@ async function updateUserRouterIp(telegramId, routerIp) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserRouterIp:', error.message);
+    logger.error('Error in updateUserRouterIp', { error.message });
     return false;
   }
 }
@@ -79,7 +80,7 @@ async function updateLastScheduleMessageId(telegramId, messageId) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateLastScheduleMessageId:', error.message);
+    logger.error('Error in updateLastScheduleMessageId', { error.message });
     return false;
   }
 }

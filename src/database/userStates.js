@@ -1,4 +1,5 @@
 const { pool } = require('./pool');
+const logger = require('../utils/logger');
 
 // ===============================
 // User States Management Functions
@@ -18,7 +19,7 @@ async function saveUserState(telegramId, stateType, stateData) {
     `, [telegramId, stateType, JSON.stringify(stateData)]);
     return true;
   } catch (error) {
-    console.error(`Error saving user state ${stateType} for ${telegramId}:`, error);
+    logger.error('Error saving user state for', { stateType, telegramId, error });
     return false;
   }
 }
@@ -34,7 +35,7 @@ async function getUserState(telegramId, stateType) {
     `, [telegramId, stateType]);
     return result.rows.length > 0 ? JSON.parse(result.rows[0].state_data) : null;
   } catch (error) {
-    console.error(`Error getting user state ${stateType} for ${telegramId}:`, error);
+    logger.error('Error getting user state for', { stateType, telegramId, error });
     return null;
   }
 }
@@ -49,7 +50,7 @@ async function deleteUserState(telegramId, stateType) {
     `, [telegramId, stateType]);
     return true;
   } catch (error) {
-    console.error(`Error deleting user state ${stateType} for ${telegramId}:`, error);
+    logger.error('Error deleting user state for', { stateType, telegramId, error });
     return false;
   }
 }
@@ -64,7 +65,7 @@ async function getAllUserStates(stateType) {
     `, [stateType]);
     return result.rows;
   } catch (error) {
-    console.error(`Error getting all user states of type ${stateType}:`, error);
+    logger.error('Error getting all user states of type', { stateType, error });
     return [];
   }
 }

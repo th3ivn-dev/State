@@ -17,6 +17,7 @@
 
 const cron = require('node-cron');
 const { formatInterval } = require('../utils');
+const logger = require('../utils/logger');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -56,14 +57,14 @@ class SchedulerManager {
    */
   init(config) {
     if (this.isInitialized) {
-      console.log('⚠️ Scheduler manager already initialized');
+      logger.info('⚠️ Scheduler manager already initialized');
       return;
     }
 
     this.config.scheduleCheckInterval = config.checkIntervalSeconds;
     this.isInitialized = true;
 
-    console.log('✅ Scheduler manager initialized');
+    logger.info('✅ Scheduler manager initialized');
   }
 
   /**
@@ -79,11 +80,11 @@ class SchedulerManager {
     }
 
     if (this.isRunning) {
-      console.log('⚠️ Schedulers already running');
+      logger.info('⚠️ Schedulers already running');
       return;
     }
 
-    console.log('🚀 Starting schedulers...');
+    logger.info('🚀 Starting schedulers...');
 
     // Track scheduler start
     if (metricsCollector) {
@@ -97,7 +98,7 @@ class SchedulerManager {
     this._startScheduleChecker(dependencies.checkAllSchedules);
 
     this.isRunning = true;
-    console.log('✅ All schedulers started');
+    logger.info('✅ All schedulers started');
   }
 
   /**
@@ -106,11 +107,11 @@ class SchedulerManager {
    */
   stop() {
     if (!this.isRunning) {
-      console.log('⚠️ Schedulers not running');
+      logger.info('⚠️ Schedulers not running');
       return;
     }
 
-    console.log('🛑 Stopping schedulers...');
+    logger.info('🛑 Stopping schedulers...');
 
     // Track scheduler stop
     if (metricsCollector) {
@@ -123,7 +124,7 @@ class SchedulerManager {
     this._stopScheduleChecker();
 
     this.isRunning = false;
-    console.log('✅ All schedulers stopped');
+    logger.info('✅ All schedulers stopped');
   }
 
   /**
@@ -131,7 +132,7 @@ class SchedulerManager {
    * @param {object} dependencies - Dependencies needed by schedulers
    */
   restart(dependencies) {
-    console.log('🔄 Restarting schedulers...');
+    logger.info('🔄 Restarting schedulers...');
     this.stop();
     this.start(dependencies);
   }
@@ -144,7 +145,7 @@ class SchedulerManager {
   _startScheduleChecker(checkFunction) {
     const intervalSeconds = this.config.scheduleCheckInterval;
 
-    console.log(`📅 Starting schedule checker (every ${formatInterval(intervalSeconds)})`);
+    logger.info(`📅 Starting schedule checker (every ${formatInterval(intervalSeconds)})`);
 
     // If interval >= 60 seconds and divides evenly into 60, use cron
     if (intervalSeconds >= 60 && intervalSeconds % 60 === 0) {
@@ -152,11 +153,11 @@ class SchedulerManager {
       const cronExpression = `*/${intervalMinutes} * * * *`;
 
       this.schedulers.scheduleChecker = cron.schedule(cronExpression, async () => {
-        console.log(`🔄 Schedule check triggered (every ${formatInterval(intervalSeconds)})`);
+        logger.info(`🔄 Schedule check triggered (every ${formatInterval(intervalSeconds)})`);
         try {
           await checkFunction();
         } catch (error) {
-          console.error('❌ Error in schedule checker:', error);
+          logger.error('❌ Error in schedule checker', { error });
           // Track error
           if (metricsCollector) {
             metricsCollector.trackError(error, { context: 'schedule_checker' });
@@ -166,11 +167,11 @@ class SchedulerManager {
     } else {
       // For intervals < 60 seconds or not divisible by 60, use setInterval
       this.intervals.scheduleChecker = setInterval(async () => {
-        console.log(`🔄 Schedule check triggered (every ${formatInterval(intervalSeconds)})`);
+        logger.info(`🔄 Schedule check triggered (every ${formatInterval(intervalSeconds)})`);
         try {
           await checkFunction();
         } catch (error) {
-          console.error('❌ Error in schedule checker:', error);
+          logger.error('❌ Error in schedule checker', { error });
           // Track error
           if (metricsCollector) {
             metricsCollector.trackError(error, { context: 'schedule_checker' });
@@ -179,7 +180,7 @@ class SchedulerManager {
       }, intervalSeconds * 1000);
     }
 
-    console.log(`✅ Schedule checker started`);
+    logger.info(`✅ Schedule checker started`);
   }
 
   /**
@@ -226,8 +227,8 @@ class SchedulerManager {
     }
 
     this.config.scheduleCheckInterval = seconds;
-    console.log(`✅ Schedule check interval updated to ${formatInterval(seconds)}`);
-    console.log('⚠️ Restart schedulers for changes to take effect');
+    logger.info(`✅ Schedule check interval updated to ${formatInterval(seconds)}`);
+    logger.info('⚠️ Restart schedulers for changes to take effect');
   }
 }
 

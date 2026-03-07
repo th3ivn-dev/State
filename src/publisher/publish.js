@@ -7,6 +7,7 @@ const { REGIONS } = require('../constants/regions');
 const { InputFile } = require('grammy');
 const { calculateScheduleHash, getUpdateTypeV2 } = require('./scheduleHash');
 const { validateChannel } = require('./channelValidator');
+const logger = require('../utils/logger');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -25,7 +26,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
   try {
     // Check if channel is paused
     if (user.channel_paused) {
-      console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію графіка`);
+      logger.info(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію графіка`);
       return;
     }
 
@@ -39,10 +40,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     if (user.delete_old_message && user.last_schedule_message_id) {
       try {
         await bot.api.deleteMessage(user.channel_id, user.last_schedule_message_id);
-        console.log(`Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
+        logger.info(`Видалено попереднє повідомлення ${user.last_schedule_message_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
-        console.log(`Не вдалося видалити попереднє повідомлення: ${deleteError.message}`);
+        logger.info(`Не вдалося видалити попереднє повідомлення: ${deleteError.message}`);
       }
     }
 
@@ -50,10 +51,10 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     if (user.last_post_id) {
       try {
         await bot.api.deleteMessage(user.channel_id, user.last_post_id);
-        console.log(`Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
+        logger.info(`Видалено попередній пост ${user.last_post_id} з каналу ${user.channel_id}`);
       } catch (deleteError) {
         // Ignore errors if message was already deleted or doesn't exist
-        console.log(`Не вдалося видалити попередній пост: ${deleteError.message}`);
+        logger.info(`Не вдалося видалити попередній пост: ${deleteError.message}`);
       }
     }
 
@@ -69,7 +70,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
 
     // Skip publication if nothing changed (unless forced)
     if (!force && !updateTypeV2.todayChanged && !updateTypeV2.tomorrowChanged) {
-      console.log(`[${user.telegram_id}] Snapshots unchanged, skipping publication`);
+      logger.info(`[${user.telegram_id}] Snapshots unchanged, skipping publication`);
       return null;
     }
 
@@ -169,7 +170,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
         });
       }
     } catch (_imageError) {
-      console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
+      logger.info('Зображення недоступне для /, відправляємо тільки текст', { region, queue });
 
       // Якщо не вдалося завантажити зображення, відправляємо тільки текст
       sentMessage = await bot.api.sendMessage(user.channel_id, messageText, {
@@ -185,7 +186,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     return sentMessage;
 
   } catch (error) {
-    console.error('Помилка публікації графіка:', error);
+    logger.error('Помилка публікації графіка', { error });
 
     // Track channel publish error
     if (metricsCollector) {

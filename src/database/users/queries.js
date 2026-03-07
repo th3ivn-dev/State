@@ -1,4 +1,5 @@
 const { pool, safeQuery } = require('../db');
+const logger = require('../../utils/logger');
 
 // Отримати всіх користувачів по регіону
 async function getUsersByRegion(region) {
@@ -6,7 +7,7 @@ async function getUsersByRegion(region) {
     const result = await pool.query('SELECT * FROM users WHERE region = $1 AND is_active = TRUE', [region]);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersByRegion:', error.message);
+    logger.error('Error in getUsersByRegion', { error.message });
     return [];
   }
 }
@@ -33,7 +34,7 @@ async function getUsersByRegionForScheduler(region) {
     );
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersByRegionForScheduler:', error.message);
+    logger.error('Error in getUsersByRegionForScheduler', { error.message });
     return [];
   }
 }
@@ -44,7 +45,7 @@ async function getAllActiveUsers() {
     const result = await pool.query('SELECT * FROM users WHERE is_active = TRUE');
     return result.rows;
   } catch (error) {
-    console.error('Error in getAllActiveUsers:', error.message);
+    logger.error('Error in getAllActiveUsers', { error.message });
     return [];
   }
 }
@@ -55,7 +56,7 @@ async function getAllUsers() {
     const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC');
     return result.rows;
   } catch (error) {
-    console.error('Error in getAllUsers:', error.message);
+    logger.error('Error in getAllUsers', { error.message });
     return [];
   }
 }
@@ -66,7 +67,7 @@ async function getRecentUsers(limit = 20) {
     const result = await pool.query('SELECT * FROM users ORDER BY created_at DESC LIMIT $1', [limit]);
     return result.rows;
   } catch (error) {
-    console.error('Error in getRecentUsers:', error.message);
+    logger.error('Error in getRecentUsers', { error.message });
     return [];
   }
 }
@@ -77,7 +78,7 @@ async function getUsersWithRouterIp() {
     const result = await pool.query("SELECT * FROM users WHERE router_ip IS NOT NULL AND router_ip != '' AND is_active = TRUE");
     return result.rows;
   } catch (error) {
-    console.error('Помилка getUsersWithRouterIp:', error.message);
+    logger.error('Помилка getUsersWithRouterIp', { error.message });
     return [];
   }
 }
@@ -93,7 +94,7 @@ async function getUsersWithActiveChannels() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersWithActiveChannels:', error.message);
+    logger.error('Error in getUsersWithActiveChannels', { error.message });
     return [];
   }
 }
@@ -109,7 +110,7 @@ async function getUsersWithChannelsForVerification() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getUsersWithChannelsForVerification:', error.message);
+    logger.error('Error in getUsersWithChannelsForVerification', { error.message });
     return [];
   }
 }
@@ -132,7 +133,7 @@ async function getActiveUsersByRegionQueue() {
     }
     return groups;
   } catch (error) {
-    console.error('Error in getActiveUsersByRegionQueue:', error.message);
+    logger.error('Error in getActiveUsersByRegionQueue', { error.message });
     return {};
   }
 }
@@ -149,7 +150,7 @@ async function getActiveUsersWithReminders() {
     `);
     return result.rows;
   } catch (error) {
-    console.error('Error in getActiveUsersWithReminders:', error.message);
+    logger.error('Error in getActiveUsersWithReminders', { error.message });
     return [];
   }
 }

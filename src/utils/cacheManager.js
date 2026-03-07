@@ -115,7 +115,7 @@ function startPeriodicCleanup(intervalMs = 30 * 60 * 1000) {
       logger.info('Початок періодичного очищення кешів...');
       cleanupAllCaches();
     } catch (error) {
-      logger.error('Помилка під час періодичного очищення кешів:', { error: error.message });
+      logger.error('Помилка під час періодичного очищення кешів', { error: error.message });
     }
   }, intervalMs);
 

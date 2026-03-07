@@ -40,7 +40,7 @@ async function safeSendMessage(bot, chatId, text, options = {}) {
     return await bot.api.sendMessage(chatId, text, options);
   } catch (error) {
     if (isTelegramUserInactiveError(error)) {
-      console.log(`ℹ️ Користувач ${chatId} недоступний — повідомлення не відправлено`);
+      logger.info('ℹ️ Користувач недоступний — повідомлення не відправлено', { chatId });
     } else {
       logger.error(`Помилка відправки повідомлення ${chatId}:`, { error: error.message });
     }
@@ -79,7 +79,7 @@ async function safeEditMessage(bot, chatId, messageId, text, options = {}) {
     return await bot.api.editMessageText(chatId, messageId, text, options);
   } catch (error) {
     if (isTelegramUserInactiveError(error)) {
-      console.log(`ℹ️ Користувач ${chatId} недоступний — редагування повідомлення пропущено`);
+      logger.info('ℹ️ Користувач недоступний — редагування повідомлення пропущено', { chatId });
     } else {
       logger.error(`Помилка редагування повідомлення:`, { error: error.message });
     }
@@ -145,7 +145,7 @@ async function safeSendPhoto(bot, chatId, photo, options = {}, _fileOpts = {}) {
     return await bot.api.sendPhoto(chatId, input, options);
   } catch (error) {
     if (isTelegramUserInactiveError(error)) {
-      console.log(`ℹ️ Користувач ${chatId} недоступний — відправку фото пропущено`);
+      logger.info('ℹ️ Користувач недоступний — відправку фото пропущено', { chatId });
     } else {
       logger.error(`Помилка відправки фото ${chatId}:`, { error: error.message });
     }

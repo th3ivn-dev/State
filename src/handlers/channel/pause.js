@@ -2,6 +2,7 @@ const usersDb = require('../../database/users');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
+const logger = require('../../utils/logger');
 
 // Handle pause-related callbacks
 async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user) {
@@ -40,7 +41,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
           '<tg-emoji emoji-id="5458603043203327669">⚠</tg-emoji> <b>Канал зупинено на технічну перерву!</b>'
         );
       } catch (error) {
-        console.error('Помилка відправки повідомлення про паузу в канал:', error);
+        logger.error('Помилка відправки повідомлення про паузу в канал', { error });
       }
     }
 
@@ -108,7 +109,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
           '<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> <b>Роботу каналу відновлено!</b>'
         );
       } catch (error) {
-        console.error('Помилка відправки повідомлення про відновлення в канал:', error);
+        logger.error('Помилка відправки повідомлення про відновлення в канал', { error });
       }
     }
 

@@ -1,4 +1,5 @@
 const { pool } = require('./pool');
+const logger = require('../utils/logger');
 
 /**
  * Очистка старих станів (старше 24 годин)
@@ -12,12 +13,12 @@ async function cleanupOldStates() {
     const channelsDeleted = channelsResult.rowCount || 0;
 
     if (statesDeleted > 0 || channelsDeleted > 0) {
-      console.log(`🧹 Очищено старих станів: ${statesDeleted} user_states, ${channelsDeleted} pending_channels`);
+      logger.info('🧹 Очищено старих станів: user_states, pending_channels', { statesDeleted, channelsDeleted });
     }
 
     return true;
   } catch (error) {
-    console.error('Error cleaning up old states:', error);
+    logger.error('Error cleaning up old states', { error });
     return false;
   }
 }

@@ -4,6 +4,7 @@ const { getIpMonitoringKeyboard, getIpCancelKeyboard, getMainMenu } = require('.
 const { logIpMonitoringSetup } = require('../../growthMetrics');
 const { getUserIpStatus } = require('../../powerMonitor');
 const { setIpSetupState, getIpSetupState, clearIpSetupState, isValidIPorDomain } = require('./helpers');
+const logger = require('../../utils/logger');
 
 async function handleIpCallback(bot, query, user) {
   const chatId = query.message.chat.id;
@@ -413,7 +414,7 @@ async function handleIpConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    console.error('Помилка в handleIpConversation:', error);
+    logger.error('Помилка в handleIpConversation', { error });
     await clearIpSetupState(telegramId);
 
     // Send error message with navigation buttons

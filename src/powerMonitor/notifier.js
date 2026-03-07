@@ -63,7 +63,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       if (timeSinceLastNotification < NOTIFICATION_COOLDOWN_MS) {
         shouldNotify = false;
         const remainingSeconds = Math.ceil((NOTIFICATION_COOLDOWN_MS - timeSinceLastNotification) / 1000);
-        console.log(`User ${user.id}: Пропуск сповіщення через cooldown (залишилось ${remainingSeconds}с)`);
+        logger.info(`User ${user.id}: Пропуск сповіщення через cooldown (залишилось ${remainingSeconds}с)`);
       }
     }
 
@@ -98,7 +98,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       const scheduleData = parseScheduleForQueue(data, user.queue);
       isScheduledOutage = isCurrentlyOff(scheduleData);
     } catch (error) {
-      console.error('Error checking schedule:', error);
+      logger.error('Error checking schedule', { error });
     }
 
     let scheduleText = '';
@@ -173,13 +173,13 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       if (notifyTarget === 'bot' || notifyTarget === 'both') {
         try {
           await bot.api.sendMessage(user.telegram_id, message);
-          console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
+          logger.info(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
         } catch (error) {
           if (isTelegramUserInactiveError(error)) {
-            console.log(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
+            logger.info(`ℹ️ Користувач ${user.telegram_id} заблокував бота або недоступний — сповіщення вимкнено`);
             await usersDb.setUserActive(user.telegram_id, false);
           } else {
-            console.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, error.message);
+            logger.error(`Помилка відправки повідомлення користувачу ${user.telegram_id}:`, { message: error.message });
           }
           if (metricsCollector) {
             metricsCollector.trackError(error, {
@@ -193,16 +193,16 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       // Send to the user's channel if configured and different from their private chat
       if (user.channel_id && user.channel_id !== user.telegram_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
         if (user.channel_paused) {
-          console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
+          logger.info(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
         } else {
           try {
             await bot.api.sendMessage(user.channel_id, message);
-            console.log(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
+            logger.info(`📢 Повідомлення про зміну стану відправлено в канал ${user.channel_id}`);
           } catch (error) {
             if (isTelegramUserInactiveError(error)) {
-              console.log(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
+              logger.info(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
             } else {
-              console.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, error.message);
+              logger.error(`Помилка відправки повідомлення в канал ${user.channel_id}:`, { message: error.message });
             }
             if (metricsCollector) {
               metricsCollector.trackChannelEvent('publishErrors');
@@ -227,7 +227,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
     userState.switchCount = 0;
 
   } catch (error) {
-    console.error('Error handling power state change:', error);
+    logger.error('Error handling power state change', { error });
   }
 }
 

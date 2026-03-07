@@ -98,12 +98,12 @@ function stopPowerMonitoring() {
   if (monitoringInterval) {
     clearInterval(monitoringInterval);
     monitoringInterval = null;
-    console.log('⚡ Моніторинг живлення зупинено');
+    logger.info('⚡ Моніторинг живлення зупинено');
   }
   if (periodicSaveInterval) {
     clearInterval(periodicSaveInterval);
     periodicSaveInterval = null;
-    console.log('💾 Періодичне збереження станів зупинено');
+    logger.info('💾 Періодичне збереження станів зупинено');
   }
 }
 

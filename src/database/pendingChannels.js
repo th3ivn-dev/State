@@ -1,4 +1,5 @@
 const { pool } = require('./pool');
+const logger = require('../utils/logger');
 
 // ===============================
 // Pending Channels Management Functions
@@ -20,7 +21,7 @@ async function savePendingChannel(channelId, channelUsername, channelTitle, tele
     `, [channelId, channelUsername, channelTitle, telegramId]);
     return true;
   } catch (error) {
-    console.error(`Error saving pending channel ${channelId}:`, error);
+    logger.error('Error saving pending channel', { channelId, error });
     return false;
   }
 }
@@ -33,7 +34,7 @@ async function getPendingChannel(channelId) {
     const result = await pool.query(`SELECT * FROM pending_channels WHERE channel_id = $1`, [channelId]);
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    console.error(`Error getting pending channel ${channelId}:`, error);
+    logger.error('Error getting pending channel', { channelId, error });
     return null;
   }
 }
@@ -46,7 +47,7 @@ async function deletePendingChannel(channelId) {
     await pool.query(`DELETE FROM pending_channels WHERE channel_id = $1`, [channelId]);
     return true;
   } catch (error) {
-    console.error(`Error deleting pending channel ${channelId}:`, error);
+    logger.error('Error deleting pending channel', { channelId, error });
     return false;
   }
 }
@@ -59,7 +60,7 @@ async function getAllPendingChannels() {
     const result = await pool.query(`SELECT * FROM pending_channels`);
     return result.rows;
   } catch (error) {
-    console.error('Error getting all pending channels:', error);
+    logger.error('Error getting all pending channels', { error });
     return [];
   }
 }

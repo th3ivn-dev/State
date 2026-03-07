@@ -1,4 +1,5 @@
 const { pool } = require('../db');
+const logger = require('../../utils/logger');
 
 // Оновити налаштування сповіщень
 async function updateUserAlertSettings(telegramId, settings) {
@@ -39,7 +40,7 @@ async function updateUserAlertSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserAlertSettings:', error.message);
+    logger.error('Error in updateUserAlertSettings', { error.message });
     return false;
   }
 }
@@ -93,7 +94,7 @@ async function updateUserFormatSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserFormatSettings:', error.message);
+    logger.error('Error in updateUserFormatSettings', { error.message });
     return false;
   }
 }
@@ -108,7 +109,7 @@ async function getUserFormatSettings(telegramId) {
     `, [telegramId]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error in getUserFormatSettings:', error.message);
+    logger.error('Error in getUserFormatSettings', { error.message });
     return null;
   }
 }
@@ -125,7 +126,7 @@ async function updateUserPowerNotifyTarget(telegramId, target) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserPowerNotifyTarget:', error.message);
+    logger.error('Error in updateUserPowerNotifyTarget', { error.message });
     return false;
   }
 }
@@ -141,7 +142,7 @@ async function updateScheduleAlertEnabled(telegramId, enabled) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertEnabled:', error.message);
+    logger.error('Error in updateScheduleAlertEnabled', { error.message });
     return false;
   }
 }
@@ -157,7 +158,7 @@ async function updateScheduleAlertMinutes(telegramId, minutes) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertMinutes:', error.message);
+    logger.error('Error in updateScheduleAlertMinutes', { error.message });
     return false;
   }
 }
@@ -174,7 +175,7 @@ async function updateScheduleAlertTarget(telegramId, target) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateScheduleAlertTarget:', error.message);
+    logger.error('Error in updateScheduleAlertTarget', { error.message });
     return false;
   }
 }
@@ -213,7 +214,7 @@ async function updateUserScheduleAlertSettings(telegramId, settings) {
 
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateUserScheduleAlertSettings:', error.message);
+    logger.error('Error in updateUserScheduleAlertSettings', { error.message });
     return false;
   }
 }
@@ -249,7 +250,7 @@ async function updateNotificationSettings(telegramId, updates) {
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateNotificationSettings:', error.message);
+    logger.error('Error in updateNotificationSettings', { error.message });
     return false;
   }
 }
@@ -279,7 +280,7 @@ async function updateCleanupSettings(telegramId, updates) {
     );
     return result.rowCount > 0;
   } catch (error) {
-    console.error('Error in updateCleanupSettings:', error.message);
+    logger.error('Error in updateCleanupSettings', { error.message });
     return false;
   }
 }

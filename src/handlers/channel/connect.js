@@ -4,6 +4,7 @@ const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/er
 const { checkPauseForChannelActions } = require('../../utils/guards');
 const { getSetting } = require('../../database/db');
 const { getSupportButton } = require('../feedback');
+const logger = require('../../utils/logger');
 const {
   setConversationState,
   CHANNEL_NAME_PREFIX,
@@ -193,7 +194,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         return true;
       }
     } catch (error) {
-      console.error('Error checking bot permissions:', error);
+      logger.error('Error checking bot permissions', { error });
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '😅 Щось пішло не так при перевірці прав',
         show_alert: true
