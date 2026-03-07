@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 // Кешуємо username бота щоб не робити повторні API виклики
 let cachedBotUsername = null;
 let botUsernamePromise = null; // Кешуємо promise для обробки конкурентних викликів
@@ -21,7 +22,7 @@ function getBotUsername(bot) {
       cachedBotUsername = `@${botInfo.username}`;
       return cachedBotUsername;
     } catch (error) {
-      console.error('Помилка отримання інформації про бота:', error);
+      logger.error('Помилка отримання інформації про бота:', error);
       // Не кешуємо помилку - дозволяємо повторні спроби
       botUsernamePromise = null;
       return 'цей_бот'; // Fallback value in Ukrainian for consistency

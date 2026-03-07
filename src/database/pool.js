@@ -1,10 +1,11 @@
 const { Pool } = require('pg');
+const logger = require('../utils/logger');
 
 // Підключення до PostgreSQL через DATABASE_URL
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  console.error('❌ DATABASE_URL не знайдено в змінних середовища');
+  logger.error('❌ DATABASE_URL не знайдено в змінних середовища');
   process.exit(1);
 }
 
@@ -27,27 +28,27 @@ const pool = new Pool({
 const poolMax = pool.options.max;
 const poolMin = pool.options.min;
 if (isNaN(poolMax) || poolMax < 1) {
-  console.error('❌ DB_POOL_MAX must be a positive integer');
+  logger.error('❌ DB_POOL_MAX must be a positive integer');
   process.exit(1);
 }
 if (isNaN(poolMin) || poolMin < 0) {
-  console.error('❌ DB_POOL_MIN must be a non-negative integer');
+  logger.error('❌ DB_POOL_MIN must be a non-negative integer');
   process.exit(1);
 }
 if (poolMin > poolMax) {
-  console.error('❌ DB_POOL_MIN cannot be greater than DB_POOL_MAX');
+  logger.error('❌ DB_POOL_MIN cannot be greater than DB_POOL_MAX');
   process.exit(1);
 }
 
 // Перевірка підключення
 pool.on('connect', () => {
   if (process.env.NODE_ENV === 'development') {
-    console.log('✅ PostgreSQL pool connected');
+    logger.info('✅ PostgreSQL pool connected');
   }
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
+  logger.error('❌ Unexpected error on idle client', err);
 });
 
 // Resilient query wrapper — retries once on connection errors
@@ -74,7 +75,7 @@ async function safeQuery(text, params) {
       || msg.includes('Client has encountered a connection error');
 
     if (isRetriable) {
-      console.warn(`⚠️ DB connection error (${code || msg.slice(0, 60)}), retrying in 1s…`);
+      logger.warn(`⚠️ DB connection error (${code || msg.slice(0, 60)}), retrying in 1s…`);
       await new Promise(r => setTimeout(r, 1000));
       return pool.query(text, params);
     }
@@ -88,9 +89,9 @@ async function safeQuery(text, params) {
 async function closeDatabase() {
   try {
     await pool.end();
-    console.log('✅ БД закрита коректно');
+    logger.info('✅ БД закрита коректно');
   } catch (error) {
-    console.error('❌ Помилка закриття БД:', error);
+    logger.error('❌ Помилка закриття БД:', error);
   }
 }
 

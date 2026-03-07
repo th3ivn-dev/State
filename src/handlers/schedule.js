@@ -7,6 +7,7 @@ const { getUpdateTypeV2 } = require('../publisher');
 const { appendTimestamp } = require('../utils/timestamp');
 const { getScheduleViewKeyboard } = require('../keyboards/inline');
 const { getScheduleCheckTime } = require('../database/scheduleChecks');
+const logger = require('../utils/logger');
 
 // Обробник команди /schedule
 async function handleSchedule(bot, msg) {
@@ -64,7 +65,7 @@ async function handleSchedule(bot, msg) {
       }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
       // Якщо зображення недоступне, відправляємо тільки текст
-      console.log('Зображення графіка недоступне:', imgError.message);
+      logger.info('Зображення графіка недоступне:', imgError.message);
       sentMsg = await safeSendMessage(bot, chatId, fullCaption, {
         entities: timestampEntities,
         reply_markup: scheduleKeyboard,
@@ -76,7 +77,7 @@ async function handleSchedule(bot, msg) {
     }
 
   } catch (error) {
-    console.error('Помилка в handleSchedule:', error);
+    logger.error('Помилка в handleSchedule:', error);
     await safeSendMessage(bot, chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
@@ -104,7 +105,7 @@ async function handleNext(bot, msg) {
     await safeSendMessage(bot, chatId, message);
 
   } catch (error) {
-    console.error('Помилка в handleNext:', error);
+    logger.error('Помилка в handleNext:', error);
     await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }
@@ -137,7 +138,7 @@ async function handleTimer(bot, msg) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    console.error('Помилка в handleTimer:', error);
+    logger.error('Помилка в handleTimer:', error);
     await bot.api.sendMessage(chatId, '🔄 Не вдалося завантажити. Спробуйте пізніше.');
   }
 }

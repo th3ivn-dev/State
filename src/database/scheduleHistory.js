@@ -1,4 +1,5 @@
 const { pool } = require('./db');
+const logger = require('../utils/logger');
 
 /**
  * Add a schedule to history
@@ -29,7 +30,7 @@ async function addScheduleToHistory(userId, region, queue, scheduleData, hash) {
     if (client) {
       await client.query('ROLLBACK');
     }
-    console.error('Error adding schedule to history:', error);
+    logger.error('Error adding schedule to history:', error);
     return false;
   } finally {
     if (client) {
@@ -58,7 +59,7 @@ async function getLastSchedule(userId) {
 
     return null;
   } catch (error) {
-    console.error('Error getting last schedule:', error);
+    logger.error('Error getting last schedule:', error);
     return null;
   }
 }
@@ -83,7 +84,7 @@ async function getPreviousSchedule(userId) {
 
     return null;
   } catch (error) {
-    console.error('Error getting previous schedule:', error);
+    logger.error('Error getting previous schedule:', error);
     return null;
   }
 }
@@ -100,10 +101,10 @@ async function cleanOldSchedules() {
     `);
 
     const deletedCount = result.rowCount || 0;
-    console.log(`🧹 Cleaned ${deletedCount} old schedule history records`);
+    logger.info('🧹 Cleaned old schedule history records', { deletedCount });
     return deletedCount;
   } catch (error) {
-    console.error('Error cleaning old schedules:', error);
+    logger.error('Error cleaning old schedules:', error);
     return 0;
   }
 }

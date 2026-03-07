@@ -5,6 +5,7 @@ const { isAdmin, formatExactDuration } = require('../../utils');
 const config = require('../../config');
 const { clearState, getState, setState } = require('../../state/stateManager');
 const usersDb = require('../../database/users');
+const logger = require('../../utils/logger');
 
 // In-memory cache for maintenance mode
 let maintenanceCache = { enabled: false, message: '', lastCheck: 0 };
@@ -140,7 +141,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
           `📤 Сповіщення надіслано: ${sent} з ${total} користувачів`
         );
       } catch (err) {
-        console.error('Помилка масової розсилки maintenance:', err);
+        logger.error('Помилка масової розсилки maintenance:', err);
       }
     })();
 
@@ -218,7 +219,7 @@ async function handleMaintenanceConversation(bot, msg) {
 
     return true;
   } catch (error) {
-    console.error('Помилка в handleMaintenanceConversation:', error);
+    logger.error('Помилка в handleMaintenanceConversation:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні. Спробуйте ще раз:');
     return true;
   }

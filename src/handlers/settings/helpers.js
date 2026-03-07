@@ -2,6 +2,7 @@ const usersDb = require('../../database/users');
 const { getMainMenu } = require('../../keyboards/inline');
 const { getState, setState, clearState } = require('../../state/stateManager');
 const { REGIONS } = require('../../constants/regions');
+const logger = require('../../utils/logger');
 
 // Helper functions to manage IP setup states (now using centralized state manager)
 async function setIpSetupState(telegramId, data) {
@@ -73,7 +74,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
  */
 function restoreIpSetupStates() {
   // State restoration is now handled by initStateManager()
-  console.log('✅ IP setup states restored by centralized state manager');
+  logger.info('✅ IP setup states restored by centralized state manager');
 }
 
 // Build the notification settings message (single screen)

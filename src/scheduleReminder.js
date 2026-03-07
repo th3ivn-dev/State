@@ -18,6 +18,7 @@ const { REGIONS } = require('./constants/regions');
 const usersDb = require('./database/users');
 const { safeSendMessage } = require('./utils/errorHandler');
 const { MAX_SENT_REMINDERS_MAP_SIZE } = require('./constants/timeouts');
+const logger = require('./utils/logger');
 
 // In-memory tracking of already-sent reminders (cleared daily, bounded)
 // Key: `${telegramId}:${eventType}:${eventTimeIso}`
@@ -238,7 +239,7 @@ async function checkReminders(bot) {
       }
     }
   } catch (error) {
-    console.error('❌ scheduleReminder error:', error.message);
+    logger.error('❌ scheduleReminder error:', error.message);
   }
 }
 
@@ -255,7 +256,7 @@ function clearOldReminders() {
     const excess = sentReminders.size - MAX_SENT_REMINDERS_MAP_SIZE;
     const keys = Array.from(sentReminders.keys()).slice(0, excess);
     keys.forEach(k => sentReminders.delete(k));
-    console.log(`🧹 Очищено ${excess} старих записів sentReminders (ліміт ${MAX_SENT_REMINDERS_MAP_SIZE})`);
+    logger.info('🧹 Очищено старих записів sentReminders (ліміт )', { excess, MAX_SENT_REMINDERS_MAP_SIZE });
   }
 }
 
@@ -272,7 +273,7 @@ function startReminderScheduler(bot) {
 
   cleanupReminderInterval = setInterval(clearOldReminders, 86400000);
 
-  console.log('✅ Schedule reminder scheduler started');
+  logger.info('✅ Schedule reminder scheduler started');
 }
 
 /**
@@ -287,7 +288,7 @@ function stopReminderScheduler() {
     clearInterval(cleanupReminderInterval);
     cleanupReminderInterval = null;
   }
-  console.log('✅ Schedule reminder scheduler stopped');
+  logger.info('✅ Schedule reminder scheduler stopped');
 }
 
 module.exports = {

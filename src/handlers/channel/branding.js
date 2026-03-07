@@ -2,6 +2,7 @@ const fs = require('fs');
 const usersDb = require('../../database/users');
 const { getBotUsername } = require('../../utils');
 const { safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
+const logger = require('../../utils/logger');
 const {
   setConversationState,
   getConversationState,
@@ -49,7 +50,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await safeSetChatTitle(bot, state.channelId, fullTitle);
       operations.title = true;
     } catch (error) {
-      console.error('Error setting channel title:', error);
+      logger.error('Error setting channel title:', error);
       errors.push('назву');
     }
 
@@ -58,7 +59,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       await safeSetChatDescription(bot, state.channelId, fullDescription);
       operations.description = true;
     } catch (error) {
-      console.error('Error setting channel description:', error);
+      logger.error('Error setting channel description:', error);
       errors.push('опис');
     }
 
@@ -76,11 +77,11 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         }
         operations.photo = true;
       } else {
-        console.warn('Photo file not found:', PHOTO_PATH);
+        logger.warn('Photo file not found:', PHOTO_PATH);
         errors.push('фото (файл не знайдено)');
       }
     } catch (error) {
-      console.error('Error setting channel photo:', error);
+      logger.error('Error setting channel photo:', error);
       errors.push('фото');
     }
 
@@ -124,7 +125,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
         }
       );
     } catch (error) {
-      console.error('Error sending first publication:', error);
+      logger.error('Error sending first publication:', error);
       // Continue even if first publication fails
     }
 
@@ -151,7 +152,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     });
 
   } catch (error) {
-    console.error('Помилка в applyChannelBranding:', error);
+    logger.error('Помилка в applyChannelBranding:', error);
     await bot.api.sendMessage(chatId, '😅 Щось пішло не так при налаштуванні каналу. Спробуйте ще раз!');
   }
 }

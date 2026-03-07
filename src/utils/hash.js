@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 // Обчислити хеш для даних графіка конкретної черги
 // NOTE: This hash is used for COARSE change detection in scheduler.js
@@ -29,7 +30,7 @@ function calculateHash(data, queueKey, todayTimestamp, tomorrowTimestamp) {
 
     return crypto.createHash('sha256').update(JSON.stringify(hashData)).digest('hex');
   } catch (error) {
-    console.error('Помилка обчислення хешу:', error.message);
+    logger.error('Помилка обчислення хешу:', error.message);
     return null;
   }
 }

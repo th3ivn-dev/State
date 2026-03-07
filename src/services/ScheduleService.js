@@ -15,6 +15,7 @@ const { fetchScheduleData } = require('../api');
 const { parseScheduleForQueue, findNextEvent } = require('../parser');
 const { calculateHash } = require('../utils');
 const { getLastSchedule, addScheduleToHistory } = require('../database/scheduleHistory');
+const logger = require('../utils/logger');
 
 class ScheduleService {
   /**
@@ -130,7 +131,7 @@ class ScheduleService {
         const data = await fetchScheduleData(region);
         return { region, data, success: true };
       } catch (error) {
-        console.error(`Error fetching schedule for ${region}:`, error.message);
+        logger.error('Error fetching schedule for', { region, message: error.message });
         return { region, data: null, success: false, error: error.message };
       }
     });
@@ -143,7 +144,7 @@ class ScheduleService {
         const { region, data } = result.value;
         resultMap[region] = data;
       } else {
-        console.error('Unexpected promise rejection in batchFetchSchedules:', result.reason);
+        logger.error('Unexpected promise rejection in batchFetchSchedules:', result.reason);
       }
     }
 

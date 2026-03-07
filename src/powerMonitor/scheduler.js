@@ -8,6 +8,7 @@ async function getNextScheduledTime(user) {
   try {
     const { fetchScheduleData } = require('../api');
     const { parseScheduleForQueue, findNextEvent } = require('../parser');
+const logger = require('../utils/logger');
 
     const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
@@ -15,7 +16,7 @@ async function getNextScheduledTime(user) {
 
     return nextEvent;
   } catch (error) {
-    console.error('Error getting next scheduled time:', error);
+    logger.error('Error getting next scheduled time:', error);
     return null;
   }
 }

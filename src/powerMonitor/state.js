@@ -4,6 +4,7 @@
  */
 
 const { pool } = require('../database/db');
+const logger = require('../utils/logger');
 
 // In-memory state store for all monitored users
 const userStates = new Map();
@@ -100,7 +101,7 @@ async function saveUserStateToDb(userId, state) {
       state.lastNotificationAt
     ]);
   } catch (error) {
-    console.error(`Помилка збереження стану користувача ${userId}:`, error.message);
+    logger.error('Помилка збереження стану користувача', { userId, message: error.message });
   }
 }
 
@@ -114,7 +115,7 @@ async function saveAllUserStates() {
       await saveUserStateToDb(userId, state);
       savedCount++;
     }
-    console.log(`💾 Збережено ${savedCount} станів користувачів`);
+    logger.info('💾 Збережено станів користувачів', { savedCount });
     return savedCount;
   })();
 
@@ -127,7 +128,7 @@ async function saveAllUserStates() {
     ]);
   } catch (error) {
     const isTimeout = error.message.includes('timed out');
-    console.error(isTimeout
+    logger.error(isTimeout
       ? `⏱️ Збереження станів перевищило таймаут (${SAVE_TIMEOUT_MS}мс)`
       : `Помилка збереження станів: ${error.message}`);
     return 0;
@@ -158,10 +159,10 @@ async function restoreUserStates() {
       });
     }
 
-    console.log(`🔄 Відновлено ${result.rows.length} станів користувачів`);
+    logger.info(`🔄 Відновлено ${result.rows.length} станів користувачів`);
     return result.rows.length;
   } catch (error) {
-    console.error('Помилка відновлення станів:', error.message);
+    logger.error('Помилка відновлення станів:', error.message);
     return 0;
   }
 }

@@ -1,6 +1,7 @@
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
 const { monitoringManager } = require('../../monitoring/monitoringManager');
+const logger = require('../../utils/logger');
 
 // Обробник команди /monitoring
 async function handleMonitoring(bot, msg) {
@@ -66,7 +67,7 @@ async function handleMonitoring(bot, msg) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    console.error('Помилка в handleMonitoring:', error);
+    logger.error('Помилка в handleMonitoring:', error);
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
   }
 }
@@ -127,7 +128,7 @@ async function handleSetAlertChannel(bot, msg, match) {
     );
 
   } catch (error) {
-    console.error('Помилка в handleSetAlertChannel:', error);
+    logger.error('Помилка в handleSetAlertChannel:', error);
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
   }
 }
