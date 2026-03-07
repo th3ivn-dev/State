@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+require('dotenv').config();
+const { validateEnv } = require('./utils/envValidator');
+validateEnv(); // Will throw and stop the process if critical vars are missing
+
 const bot = require('./bot');
 const { restorePendingChannels, stopBotCleanup } = require('./bot');
 const { initScheduler, schedulerManager } = require('./scheduler');

@@ -61,6 +61,7 @@ async function handleSchedule(bot, msg) {
       sentMsg = await safeSendPhoto(bot, chatId, imageBuffer, {
         caption: fullCaption,
         caption_entities: timestampEntities,
+        parse_mode: undefined, // Override global parseMode — entities handle formatting
         reply_markup: scheduleKeyboard,
       }, { filename: 'schedule.png', contentType: 'image/png' });
     } catch (imgError) {
@@ -68,6 +69,7 @@ async function handleSchedule(bot, msg) {
       logger.info('Зображення графіка недоступне', { imgError.message });
       sentMsg = await safeSendMessage(bot, chatId, fullCaption, {
         entities: timestampEntities,
+        parse_mode: undefined, // Override global parseMode — entities handle formatting
         reply_markup: scheduleKeyboard,
       });
     }

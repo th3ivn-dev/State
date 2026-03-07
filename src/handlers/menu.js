@@ -115,6 +115,7 @@ async function handleMenuSchedule(bot, query) {
             media: photoInput,
             caption: fullCaption,
             caption_entities: timestampEntities,
+            parse_mode: undefined, // Override global parseMode — entities handle formatting
           },
           { reply_markup: scheduleKeyboard }
         );
@@ -132,6 +133,7 @@ async function handleMenuSchedule(bot, query) {
           await bot.api.sendPhoto(query.message.chat.id, photoInput, {
             caption: fullCaption,
             caption_entities: timestampEntities,
+            parse_mode: undefined, // Override global parseMode — entities handle formatting
             reply_markup: scheduleKeyboard
           });
           return;
@@ -146,6 +148,7 @@ async function handleMenuSchedule(bot, query) {
     if (messageDeleted) {
       await bot.api.sendMessage(query.message.chat.id, fullCaption, {
         entities: timestampEntities,
+        parse_mode: undefined, // Override global parseMode — entities handle formatting
         reply_markup: scheduleKeyboard
       });
     } else {
@@ -155,6 +158,7 @@ async function handleMenuSchedule(bot, query) {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
           entities: timestampEntities,
+          parse_mode: undefined, // Override global parseMode — entities handle formatting
           reply_markup: scheduleKeyboard
         }
       );
@@ -552,6 +556,7 @@ async function handleScheduleRefresh(bot, query) {
             media: photoInput,
             caption: fullCaption,
             caption_entities: timestampEntities,
+            parse_mode: undefined, // Override global parseMode — entities handle formatting
           },
           { reply_markup: scheduleKeyboard }
         );
@@ -578,6 +583,7 @@ async function handleScheduleRefresh(bot, query) {
         await bot.api.sendPhoto(chatId, photoInput, {
           caption: fullCaption,
           caption_entities: timestampEntities,
+          parse_mode: undefined, // Override global parseMode — entities handle formatting
           reply_markup: scheduleKeyboard
         });
         return;
@@ -588,6 +594,7 @@ async function handleScheduleRefresh(bot, query) {
 
     await bot.api.sendMessage(chatId, fullCaption, {
       entities: timestampEntities,
+      parse_mode: undefined, // Override global parseMode — entities handle formatting
       reply_markup: scheduleKeyboard
     });
   } catch (error) {
