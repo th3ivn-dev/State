@@ -4,7 +4,6 @@ const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/er
 const { checkPauseForChannelActions } = require('../../utils/guards');
 const { getSetting } = require('../../database/db');
 const { getSupportButton } = require('../feedback');
-const logger = require('../../utils/logger');
 const {
   setConversationState,
   CHANNEL_NAME_PREFIX,
@@ -84,6 +83,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: keyboard
         }
       );
@@ -97,6 +97,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '✅ Перевірити', callback_data: 'channel_connect' }],
@@ -156,6 +157,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '← Назад', callback_data: 'settings_channel' }]
@@ -184,6 +186,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
           {
             chat_id: chatId,
             message_id: query.message.message_id,
+            parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [
                 [{ text: '← Назад', callback_data: 'settings_channel' }]
@@ -194,7 +197,7 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         return true;
       }
     } catch (error) {
-      logger.error('Error checking bot permissions', { error });
+      console.error('Error checking bot permissions:', error);
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '😅 Щось пішло не так при перевірці прав',
         show_alert: true
@@ -232,7 +235,8 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
       '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
       {
         chat_id: chatId,
-        message_id: query.message.message_id
+        message_id: query.message.message_id,
+        parse_mode: 'HTML'
       }
     );
 
@@ -251,7 +255,10 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          pauseCheck.message
+          pauseCheck.message,
+          {
+            parse_mode: 'HTML'
+          }
         );
         return true;
       }
@@ -262,7 +269,10 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          validation.message
+          validation.message,
+          {
+            parse_mode: 'HTML'
+          }
         );
         return true;
       }
@@ -286,7 +296,10 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1'
+        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
+        {
+          parse_mode: 'HTML'
+        }
       );
     } else {
       await bot.api.editMessageText(
@@ -312,7 +325,10 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          pauseCheck.message
+          pauseCheck.message,
+          {
+            parse_mode: 'HTML'
+          }
         );
         return true;
       }
@@ -323,7 +339,10 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         await bot.api.editMessageText(
           chatId,
           query.message.message_id,
-          validation.message
+          validation.message,
+          {
+            parse_mode: 'HTML'
+          }
         );
         return true;
       }
@@ -348,7 +367,10 @@ async function handleConnectCallbacks(bot, query, data, chatId, telegramId, _use
         '📝 <b>Введіть назву для каналу</b>\n\n' +
         `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
         '<b>Приклад:</b> Київ Черга 3.1\n' +
-        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1'
+        '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
+        {
+          parse_mode: 'HTML'
+        }
       );
     } else {
       await bot.api.editMessageText(

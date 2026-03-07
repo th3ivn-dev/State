@@ -4,7 +4,6 @@
  */
 
 const { pool } = require('./db');
-const logger = require('../utils/logger');
 
 /**
  * Add a pause event to the log
@@ -17,7 +16,7 @@ async function logPauseEvent(adminId, eventType, pauseType = null, message = nul
     `, [adminId, eventType, pauseType, message, reason]);
     return true;
   } catch (error) {
-    logger.error('Error logging pause event', { error });
+    console.error('Error logging pause event:', error);
     return false;
   }
 }
@@ -35,7 +34,7 @@ async function getPauseLog(limit = 20) {
 
     return result.rows;
   } catch (error) {
-    logger.error('Error getting pause log', { error });
+    console.error('Error getting pause log:', error);
     return [];
   }
 }
@@ -56,7 +55,7 @@ async function getPauseLogStats() {
 
     return result.rows[0] || { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   } catch (error) {
-    logger.error('Error getting pause log stats', { error });
+    console.error('Error getting pause log stats:', error);
     return { total_events: 0, pause_count: 0, resume_count: 0, last_event_at: null };
   }
 }
@@ -72,10 +71,10 @@ async function cleanOldPauseLog() {
     `);
 
     const deletedCount = result.rowCount || 0;
-    logger.info('🧹 Cleaned old pause log entries', { deletedCount });
+    console.log(`🧹 Cleaned ${deletedCount} old pause log entries`);
     return deletedCount;
   } catch (error) {
-    logger.error('Error cleaning pause log', { error });
+    console.error('Error cleaning pause log:', error);
     return 0;
   }
 }

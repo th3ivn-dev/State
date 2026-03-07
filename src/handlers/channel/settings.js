@@ -61,6 +61,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: confirmKeyboard
       }
     );
@@ -88,6 +89,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -114,6 +116,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getFormatSettingsKeyboard(user).reply_markup
       }
     );
@@ -135,6 +138,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getFormatSettingsKeyboard(user).reply_markup
       }
     );

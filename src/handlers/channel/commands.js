@@ -2,7 +2,6 @@ const usersDb = require('../../database/users');
 const { safeSendMessage } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { logChannelConnection } = require('../../growthMetrics');
-const logger = require('../../utils/logger');
 const {
   setConversationState,
   CHANNEL_NAME_PREFIX,
@@ -38,10 +37,10 @@ async function handleChannel(bot, msg) {
           `Для зміни каналу використайте меню налаштувань.`
         : `ℹ️ Канал ще не підключено.`);
 
-    await safeSendMessage(bot, chatId, message);
+    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error('Помилка в handleChannel', { error });
+    console.error('Помилка в handleChannel:', error);
     await safeSendMessage(bot, chatId, '😅 Щось пішло не так. Спробуйте ще раз!');
   }
 }
@@ -77,6 +76,7 @@ async function handleSetChannel(bot, msg, match) {
         chatId,
         '❌ Вкажіть канал.\n\nПриклад: <code>/setchannel @mychannel</code>\n\nОберіть наступну дію:',
         {
+          parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
       );
@@ -192,7 +192,7 @@ async function handleSetChannel(bot, msg, match) {
       }
 
     } catch (error) {
-      logger.error('Помилка перевірки прав бота', { error });
+      console.error('Помилка перевірки прав бота:', error);
       let botStatus = 'active';
       if (!user.channel_id) {
         botStatus = 'no_channel';
@@ -229,11 +229,12 @@ async function handleSetChannel(bot, msg, match) {
       '📝 <b>Введіть назву для каналу</b>\n\n' +
       `Вона буде додана після префіксу "${CHANNEL_NAME_PREFIX}"\n\n` +
       '<b>Приклад:</b> Київ Черга 3.1\n' +
-      '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1'
+      '<b>Результат:</b> СвітлоБот ⚡️ Київ Черга 3.1',
+      { parse_mode: 'HTML' }
     );
 
   } catch (error) {
-    logger.error('Помилка в handleSetChannel', { error });
+    console.error('Помилка в handleSetChannel:', error);
 
     const user = await usersDb.getUserByTelegramId(String(msg.from.id));
 
@@ -303,7 +304,8 @@ async function handleForwardedMessage(bot, msg) {
   await bot.api.sendMessage(
     chatId,
     '📺 Тепер для підключення каналу використовуйте команду:\n\n' +
-    '<code>/setchannel @your_channel</code>'
+    '<code>/setchannel @your_channel</code>',
+    { parse_mode: 'HTML' }
   );
 }
 

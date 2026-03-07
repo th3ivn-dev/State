@@ -2,7 +2,6 @@ const usersDb = require('../../database/users');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
-const logger = require('../../utils/logger');
 
 // Handle pause-related callbacks
 async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user) {
@@ -15,6 +14,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -38,10 +38,11 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
     if (updatedUser.channel_id) {
       try {
         await bot.api.sendMessage(updatedUser.channel_id,
-          '<tg-emoji emoji-id="5458603043203327669">⚠</tg-emoji> <b>Канал зупинено на технічну перерву!</b>'
+          '<tg-emoji emoji-id="5458603043203327669">⚠</tg-emoji> <b>Канал зупинено на технічну перерву!</b>',
+          { parse_mode: 'HTML' }
         );
       } catch (error) {
-        logger.error('Помилка відправки повідомлення про паузу в канал', { error });
+        console.error('Помилка відправки повідомлення про паузу в канал:', error);
       }
     }
 
@@ -69,6 +70,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getMainMenu(botStatus, true).reply_markup,
       }
     );
@@ -83,6 +85,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [
@@ -106,10 +109,11 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
     if (updatedUser.channel_id) {
       try {
         await bot.api.sendMessage(updatedUser.channel_id,
-          '<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> <b>Роботу каналу відновлено!</b>'
+          '<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> <b>Роботу каналу відновлено!</b>',
+          { parse_mode: 'HTML' }
         );
       } catch (error) {
-        logger.error('Помилка відправки повідомлення про відновлення в канал', { error });
+        console.error('Помилка відправки повідомлення про відновлення в канал:', error);
       }
     }
 
@@ -137,6 +141,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getMainMenu(botStatus, false).reply_markup,
       }
     );

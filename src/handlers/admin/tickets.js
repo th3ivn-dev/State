@@ -1,7 +1,6 @@
 const ticketsDb = require('../../database/tickets');
 const { getAdminTicketKeyboard, getAdminTicketsListKeyboard } = require('../../keyboards/inline');
 const { safeSendMessage, safeEditMessageText, safeDeleteMessage, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
-const logger = require('../../utils/logger');
 
 // Local Map for admin reply states
 // key: telegramId адміна
@@ -64,6 +63,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [
@@ -82,6 +82,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getAdminTicketsListKeyboard(openTickets, page),
         }
       );
@@ -104,6 +105,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       await safeEditMessageText(bot, result.message, {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
       });
     } catch (_editError) {
@@ -111,9 +113,10 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
       } catch (e) {
-        logger.error('Помилка при видаленні повідомлення', { error: e.message });
+        console.error('Помилка при видаленні повідомлення:', e.message);
       }
       await safeSendMessage(bot, chatId, result.message, {
+        parse_mode: 'HTML',
         reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
       });
     }
@@ -138,7 +141,8 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       bot,
       ticket.telegram_id,
       `✅ <b>Ваше звернення #${ticketId} закрито</b>\n\n` +
-      'Дякуємо за звернення!'
+      'Дякуємо за звернення!',
+      { parse_mode: 'HTML' }
     );
 
     await safeAnswerCallbackQuery(bot, query.id, { text: '✅ Тикет закрито' });
@@ -150,6 +154,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         await safeEditMessageText(bot, result.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       } catch (_editError) {
@@ -157,9 +162,10 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error('Помилка при видаленні повідомлення', { error: e.message });
+          console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
+          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       }
@@ -182,6 +188,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         await safeEditMessageText(bot, result.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       } catch (_editError) {
@@ -189,9 +196,10 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error('Помилка при видаленні повідомлення', { error: e.message });
+          console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
+          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       }
@@ -225,6 +233,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       await safeEditMessageText(bot, replyMessage, {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: replyMarkup,
       });
     } catch (_editError) {
@@ -232,9 +241,10 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
       try {
         await safeDeleteMessage(bot, chatId, query.message.message_id);
       } catch (e) {
-        logger.error('Помилка при видаленні повідомлення', { error: e.message });
+        console.error('Помилка при видаленні повідомлення:', e.message);
       }
       await safeSendMessage(bot, chatId, replyMessage, {
+        parse_mode: 'HTML',
         reply_markup: replyMarkup,
       });
     }
@@ -256,6 +266,7 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         await safeEditMessageText(bot, result.message, {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       } catch (_editError) {
@@ -263,9 +274,10 @@ async function handleTicketsCallback(bot, query, chatId, userId, data) {
         try {
           await safeDeleteMessage(bot, chatId, query.message.message_id);
         } catch (e) {
-          logger.error('Помилка при видаленні повідомлення', { error: e.message });
+          console.error('Помилка при видаленні повідомлення:', e.message);
         }
         await safeSendMessage(bot, chatId, result.message, {
+          parse_mode: 'HTML',
           reply_markup: getAdminTicketKeyboard(ticketId, result.ticket.status),
         });
       }
@@ -312,6 +324,7 @@ async function handleAdminReply(bot, msg) {
       `💬 <b>Відповідь на ваше звернення #${ticketId}</b>\n\n` +
       `${msg.text}`,
       {
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
@@ -338,7 +351,7 @@ async function handleAdminReply(bot, msg) {
 
     return true;
   } catch (error) {
-    logger.error('Помилка handleAdminReply', { error });
+    console.error('Помилка handleAdminReply:', error);
     adminReplyStates.delete(telegramId);
     await safeSendMessage(bot, chatId, '❌ Помилка при надсиланні відповіді.');
     return true;

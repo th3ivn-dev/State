@@ -48,7 +48,8 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
           `Спробуйте пізніше або зв'яжіться з підтримкою.`,
           {
             chat_id: chatId,
-            message_id: query.message.message_id
+            message_id: query.message.message_id,
+            parse_mode: 'HTML'
           }
         );
         await clearWizardState(telegramId);
@@ -82,6 +83,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
@@ -130,7 +132,8 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
           `Спробуйте пізніше або зв'яжіться з підтримкою.`,
           {
             chat_id: chatId,
-            message_id: query.message.message_id
+            message_id: query.message.message_id,
+            parse_mode: 'HTML'
           }
         );
         await clearWizardState(telegramId);
@@ -178,6 +181,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [
@@ -198,6 +202,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
         {
           chat_id: chatId,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '✅ Перевірити', callback_data: 'wizard_notify_channel' }],
@@ -231,6 +236,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getWizardNotifyTargetKeyboard().reply_markup,
       }
     );
@@ -316,7 +322,8 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       '<b>Результат:</b> СвітлоБот ⚡ Київ Черга 3.1',
       {
         chat_id: chatId,
-        message_id: query.message.message_id
+        message_id: query.message.message_id,
+        parse_mode: 'HTML'
       }
     );
 
@@ -342,6 +349,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getWizardNotifyTargetKeyboard().reply_markup
       }
     );

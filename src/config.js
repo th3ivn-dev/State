@@ -1,4 +1,3 @@
-const logger = require('./utils/logger');
 require('dotenv').config();
 
 function normalizeWebhookUrl(url) {
@@ -51,27 +50,27 @@ const config = {
 
 // Валідація обов'язкових параметрів
 if (!config.botToken) {
-  logger.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
+  console.error('❌ Помилка: BOT_TOKEN не встановлений в .env файлі');
   process.exit(1);
 }
 
 if (!config.ownerId) {
-  logger.warn('⚠️  Попередження: OWNER_ID не встановлений - функції власника будуть недоступні');
+  console.warn('⚠️  Попередження: OWNER_ID не встановлений - функції власника будуть недоступні');
 }
 
 if (config.adminIds.length === 0) {
-  logger.warn('⚠️  Попередження: ADMIN_IDS не встановлений - адмін команди будуть недоступні');
+  console.warn('⚠️  Попередження: ADMIN_IDS не встановлений - адмін команди будуть недоступні');
 }
 
 if (config.USE_WEBHOOK && !config.WEBHOOK_URL) {
-  logger.error('❌ Помилка: WEBHOOK_URL не встановлений. Вкажіть домен вашого сервера (наприклад: your-app.railway.app)');
+  console.error('❌ Помилка: WEBHOOK_URL не встановлений. Вкажіть домен вашого сервера (наприклад: your-app.railway.app)');
   process.exit(1);
 }
 
 // Validate numeric values
 for (const [key, value] of Object.entries(config)) {
   if (typeof value === 'number' && (isNaN(value) || value < 0)) {
-    logger.error('❌ Invalid config value for', { key, value });
+    console.error(`❌ Invalid config value for ${key}: ${value}`);
     process.exit(1);
   }
 }

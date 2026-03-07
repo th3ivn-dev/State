@@ -105,7 +105,7 @@ async function checkUserPower(user) {
           userState.lastStableAt = new Date(user.power_changed_at).toISOString();
         }
         userState.isFirstCheck = false;
-        logger.info(`User ${user.id}: Відновлено стан з БД: ${user.power_state} з ${user.power_changed_at}`);
+        console.log(`User ${user.id}: Відновлено стан з БД: ${user.power_state} з ${user.power_changed_at}`);
       } else {
         userState.currentState = newState;
         userState.lastStableState = newState;
@@ -123,7 +123,7 @@ async function checkUserPower(user) {
       userState.consecutiveChecks = 0;
 
       if (userState.pendingState !== null && userState.pendingState !== newState) {
-        logger.info(`User ${user.id}: Скасування pending стану ${userState.pendingState} -> повернення до ${newState}`);
+        console.log(`User ${user.id}: Скасування pending стану ${userState.pendingState} -> повернення до ${newState}`);
 
         if (userState.debounceTimer) {
           clearTimeout(userState.debounceTimer);
@@ -155,10 +155,10 @@ async function checkUserPower(user) {
     if (userState.pendingState === null) {
       userState.instabilityStart = new Date().toISOString();
       userState.switchCount = 1;
-      logger.info(`User ${user.id}: Початок нестабільності, перемикання з ${userState.currentState} на ${newState}`);
+      console.log(`User ${user.id}: Початок нестабільності, перемикання з ${userState.currentState} на ${newState}`);
     } else {
       userState.switchCount++;
-      logger.info(`User ${user.id}: Перемикання #${userState.switchCount} на ${newState}`);
+      console.log(`User ${user.id}: Перемикання #${userState.switchCount} на ${newState}`);
     }
 
     userState.pendingState = newState;
@@ -170,14 +170,14 @@ async function checkUserPower(user) {
     let debounceMs;
     if (debounceMinutes === 0) {
       debounceMs = MIN_STABILIZATION_MS;
-      logger.info(`User ${user.id}: Debounce=0, використання мінімальної затримки 30с для захисту від флаппінгу`);
+      console.log(`User ${user.id}: Debounce=0, використання мінімальної затримки 30с для захисту від флаппінгу`);
     } else {
       debounceMs = debounceMinutes * 60 * 1000;
-      logger.info(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
+      console.log(`User ${user.id}: Очікування стабільності ${newState} протягом ${debounceMinutes} хв`);
     }
 
     userState.debounceTimer = setTimeout(async () => {
-      logger.info(`User ${user.id}: Debounce завершено, підтвердження стану ${newState}`);
+      console.log(`User ${user.id}: Debounce завершено, підтвердження стану ${newState}`);
 
       const oldState = userState.currentState;
 
@@ -191,7 +191,7 @@ async function checkUserPower(user) {
     }, debounceMs);
 
   } catch (error) {
-    logger.error(`Помилка перевірки живлення для користувача ${user.telegram_id}:`, { message: error.message });
+    console.error(`Помилка перевірки живлення для користувача ${user.telegram_id}:`, error.message);
   }
 }
 

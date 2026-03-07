@@ -3,7 +3,6 @@ const { getTestPublicationKeyboard } = require('../../keyboards/inline');
 const { formatTemplate, getCurrentDateTimeForTemplate } = require('../../formatter');
 const { publishScheduleWithPhoto } = require('../../publisher');
 const { setConversationState } = require('./helpers');
-const logger = require('../../utils/logger');
 
 // Handle test-related callbacks
 async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
@@ -23,6 +22,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getTestPublicationKeyboard().reply_markup
       }
     );
@@ -47,7 +47,7 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         show_alert: true
       });
     } catch (error) {
-      logger.error('Error publishing test schedule', { error });
+      console.error('Error publishing test schedule:', error);
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації графіка',
         show_alert: true
@@ -77,14 +77,14 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         schedule: '18:00 - 20:00'
       });
 
-      await bot.api.sendMessage(user.channel_id, text);
+      await bot.api.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
 
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '✅ Тестове повідомлення опубліковано!',
         show_alert: true
       });
     } catch (error) {
-      logger.error('Error publishing test power on', { error });
+      console.error('Error publishing test power on:', error);
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації',
         show_alert: true
@@ -114,14 +114,14 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
         schedule: '16:00'
       });
 
-      await bot.api.sendMessage(user.channel_id, text);
+      await bot.api.sendMessage(user.channel_id, text, { parse_mode: 'HTML' });
 
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '✅ Тестове повідомлення опубліковано!',
         show_alert: true
       });
     } catch (error) {
-      logger.error('Error publishing test power off', { error });
+      console.error('Error publishing test power off:', error);
       await safeAnswerCallbackQuery(bot, query.id, {
         text: '❌ Помилка публікації',
         show_alert: true
@@ -151,7 +151,8 @@ async function handleTestCallbacks(bot, query, data, chatId, telegramId, user) {
       'Можна використовувати HTML форматування.',
       {
         chat_id: chatId,
-        message_id: query.message.message_id
+        message_id: query.message.message_id,
+        parse_mode: 'HTML'
       }
     );
     return true;

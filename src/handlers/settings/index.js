@@ -12,7 +12,6 @@ const { handleIpCallback, handleIpConversation } = require('./ip');
 const { handleChannelCallback } = require('./channel');
 const { handleCleanupCallback } = require('./cleanup');
 const { restoreIpSetupStates, clearIpSetupState, isValidIPorDomain } = require('./helpers');
-const logger = require('../../utils/logger');
 
 // Обробник команди /settings
 async function handleSettings(bot, msg) {
@@ -39,6 +38,7 @@ async function handleSettings(bot, msg) {
     const message = generateLiveStatusMessage(user, regionName);
 
     const sentMessage = await safeSendMessage(bot, chatId, message, {
+      parse_mode: 'HTML',
       ...getSettingsKeyboard(userIsAdmin),
     });
 
@@ -47,9 +47,10 @@ async function handleSettings(bot, msg) {
     }
 
   } catch (error) {
-    logger.error('Помилка в handleSettings', { error });
+    console.error('Помилка в handleSettings:', error);
     const errorKeyboard = await getErrorKeyboard();
     await safeSendMessage(bot, chatId, formatErrorMessage(), {
+      parse_mode: 'HTML',
       ...errorKeyboard
     });
   }
@@ -87,7 +88,7 @@ async function handleSettingsCallback(bot, query) {
     }
 
   } catch (error) {
-    logger.error('Помилка в handleSettingsCallback', { error });
+    console.error('Помилка в handleSettingsCallback:', error);
     await safeAnswerCallbackQuery(bot, query.id, { text: '😅 Щось пішло не так. Спробуйте ще раз!' });
   }
 }

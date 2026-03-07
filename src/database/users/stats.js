@@ -1,5 +1,4 @@
 const { pool } = require('../db');
-const logger = require('../../utils/logger');
 
 // Отримати статистику користувачів
 async function getUserStats() {
@@ -25,7 +24,7 @@ async function getUserStats() {
       byRegion: byRegionResult.rows,
     };
   } catch (error) {
-    logger.error('Error in getUserStats', { error: error.message });
+    console.error('Error in getUserStats:', error.message);
     return { total: 0, active: 0, withChannels: 0, byRegion: [] };
   }
 }
@@ -36,7 +35,7 @@ async function getUserCount() {
     const result = await pool.query('SELECT COUNT(*) as count FROM users WHERE is_active = TRUE');
     return parseInt(result.rows[0].count, 10);
   } catch (error) {
-    logger.error('Error in getUserCount', { error: error.message });
+    console.error('Error in getUserCount:', error.message);
     return 0;
   }
 }

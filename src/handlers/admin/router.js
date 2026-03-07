@@ -6,7 +6,6 @@ const { forceCheckAdminRouter } = require('../../adminRouterMonitor');
 const adminRoutersDb = require('../../database/adminRouters');
 const { clearState, getState, setState } = require('../../state/stateManager');
 const { isValidIPorDomain } = require('../settings');
-const logger = require('../../utils/logger');
 
 // Callback handler for router monitoring callbacks
 async function handleRouterCallback(bot, query, chatId, userId, data) {
@@ -55,6 +54,7 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       ...getAdminRouterKeyboard(routerData),
     });
     return;
@@ -77,6 +77,7 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         ...getAdminRouterSetIpKeyboard(),
       }
     );
@@ -127,6 +128,7 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         ...getAdminRouterKeyboard(routerData),
       });
     }
@@ -175,6 +177,7 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       ...getAdminRouterStatsKeyboard(),
     });
     return;
@@ -220,6 +223,7 @@ async function handleRouterCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       ...getAdminRouterKeyboard(routerData),
     });
 
@@ -294,17 +298,19 @@ async function handleAdminRouterIpConversation(bot, msg) {
       await safeEditMessageText(bot, message, {
         chat_id: chatId,
         message_id: state.messageId,
+        parse_mode: 'HTML',
         ...getAdminRouterKeyboard(routerData),
       });
     } else {
       await safeSendMessage(bot, chatId, message, {
+        parse_mode: 'HTML',
         ...getAdminRouterKeyboard(routerData),
       });
     }
 
     return true;
   } catch (error) {
-    logger.error('Помилка в handleAdminRouterIpConversation', { error });
+    console.error('Помилка в handleAdminRouterIpConversation:', error);
     // Don't clear state on error - let user retry
     await safeSendMessage(bot, chatId, '❌ Виникла помилка при збереженні IP адреси. Спробуйте ще раз:');
     return true;

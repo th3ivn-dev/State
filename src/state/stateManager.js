@@ -12,7 +12,6 @@
  */
 
 const { saveUserState, deleteUserState, getAllUserStates } = require('../database/db');
-const logger = require('../utils/logger');
 
 // State stores by type
 const states = {
@@ -61,7 +60,7 @@ let cleanupInterval = null;
  * Starts automatic cleanup and restores persisted states
  */
 async function initStateManager() {
-  logger.info('🔄 Initializing state manager...');
+  console.log('🔄 Initializing state manager...');
 
   // Start automatic cleanup
   startCleanup();
@@ -69,7 +68,7 @@ async function initStateManager() {
   // Restore persisted states
   await restoreStates();
 
-  logger.info('✅ State manager initialized');
+  console.log('✅ State manager initialized');
 }
 
 /**
@@ -125,7 +124,7 @@ async function cleanupExpiredStates() {
   }
 
   if (cleanedCount > 0) {
-    logger.info('🧹 Cleaned up expired states', { cleanedCount });
+    console.log(`🧹 Cleaned up ${cleanedCount} expired states`);
   }
 }
 
@@ -141,7 +140,7 @@ async function restoreStates() {
 
     // Safety check: ensure stateRecords is an array
     if (!stateRecords || !Array.isArray(stateRecords)) {
-      logger.warn('⚠️ No valid state records found for', { stateType });
+      console.warn(`⚠️ No valid state records found for ${stateType}`);
       continue;
     }
 
@@ -155,12 +154,12 @@ async function restoreStates() {
         states[stateType].set(telegram_id, data);
         totalRestored++;
       } catch (error) {
-        logger.error('Error restoring state for', { stateType, telegram_id, error });
+        console.error(`Error restoring ${stateType} state for ${telegram_id}:`, error);
       }
     }
   }
 
-  logger.info('✅ Restored persisted states', { totalRestored });
+  console.log(`✅ Restored ${totalRestored} persisted states`);
 }
 
 /**

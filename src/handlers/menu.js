@@ -12,7 +12,6 @@ const { getWeeklyStats, formatStatsPopup } = require('../statistics');
 const { getUpdateTypeV2 } = require('../publisher');
 const { appendTimestamp } = require('../utils/timestamp');
 const { getScheduleCheckTime } = require('../database/scheduleChecks');
-const logger = require('../utils/logger');
 
 // Константа для FAQ popup
 const help_faq = `❓ Чому не приходять сповіщення?\n→ Перевірте налаштування\n\n❓ Як працює IP моніторинг?\n→ Бот пінгує роутер для визначення наявності світла`;
@@ -44,12 +43,8 @@ async function handleMenuSchedule(bot, query) {
     // Answer Telegram immediately to avoid timeout (after user validation)
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
-    // Fetch data, image, and check time in parallel
-    const [data, imageResult, lastCheck] = await Promise.all([
-      fetchScheduleData(user.region),
-      fetchScheduleImage(user.region, user.queue).catch(() => null),
-      getScheduleCheckTime(user.region, user.queue).catch(() => Math.floor(Date.now() / 1000)),
-    ]);
+    // Get schedule data
+    const data = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
@@ -68,6 +63,7 @@ async function handleMenuSchedule(bot, query) {
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [{ text: '🔄 Оновити', callback_data: 'schedule_refresh' }],
@@ -87,13 +83,26 @@ async function handleMenuSchedule(bot, query) {
     };
     const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
 
+    let lastCheck;
+    try {
+      lastCheck = await getScheduleCheckTime(user.region, user.queue);
+    } catch (dbError) {
+      console.error('Failed to get schedule check time:', dbError.message);
+      lastCheck = Math.floor(Date.now() / 1000);
+    }
     const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
-    const photoInput = imageResult
-      ? (Buffer.isBuffer(imageResult) ? new InputFile(imageResult, 'schedule.png') : imageResult)
-      : null;
+    // Fetch schedule image
+    let imageBuffer;
+    let photoInput;
+    try {
+      imageBuffer = await fetchScheduleImage(user.region, user.queue);
+      photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+    } catch (_fetchError) {
+      // Image unavailable — will fall back to text-only path below
+    }
 
     if (photoInput) {
       // Try editMessageMedia first to avoid delete+send flicker
@@ -106,7 +115,6 @@ async function handleMenuSchedule(bot, query) {
             media: photoInput,
             caption: fullCaption,
             caption_entities: timestampEntities,
-            parse_mode: undefined, // Override global parseMode — entities handle formatting
           },
           { reply_markup: scheduleKeyboard }
         );
@@ -117,20 +125,19 @@ async function handleMenuSchedule(bot, query) {
           return; // Nothing changed, keep current message as-is
         }
         // Fallback: delete + send new if edit fails for other reasons
-        logger.info('editMessageMedia failed, falling back to delete+send', { error: editError.message });
+        console.log('editMessageMedia failed, falling back to delete+send:', editError.message);
         try { await bot.api.deleteMessage(query.message.chat.id, query.message.message_id); } catch (_e) {}
         messageDeleted = true;
         try {
           await bot.api.sendPhoto(query.message.chat.id, photoInput, {
             caption: fullCaption,
             caption_entities: timestampEntities,
-            parse_mode: undefined, // Override global parseMode — entities handle formatting
             reply_markup: scheduleKeyboard
           });
           return;
         } catch (imgError) {
           // Fall through to text-only
-          logger.info('sendPhoto failed after delete, falling back to text', { error: imgError.message });
+          console.log('sendPhoto failed after delete, falling back to text:', imgError.message);
         }
       }
     }
@@ -139,7 +146,6 @@ async function handleMenuSchedule(bot, query) {
     if (messageDeleted) {
       await bot.api.sendMessage(query.message.chat.id, fullCaption, {
         entities: timestampEntities,
-        parse_mode: undefined, // Override global parseMode — entities handle formatting
         reply_markup: scheduleKeyboard
       });
     } else {
@@ -149,19 +155,19 @@ async function handleMenuSchedule(bot, query) {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
           entities: timestampEntities,
-          parse_mode: undefined, // Override global parseMode — entities handle formatting
           reply_markup: scheduleKeyboard
         }
       );
     }
   } catch (error) {
-    logger.error('Помилка отримання графіка', { error });
+    console.error('Помилка отримання графіка:', error);
 
     const errorKeyboard = await getErrorKeyboard();
     if (messageDeleted) {
       await bot.api.sendMessage(query.message.chat.id,
         formatErrorMessage(),
         {
+          parse_mode: 'HTML',
           reply_markup: errorKeyboard.reply_markup
         }
       );
@@ -171,6 +177,7 @@ async function handleMenuSchedule(bot, query) {
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: errorKeyboard.reply_markup
         }
       );
@@ -211,7 +218,7 @@ async function handleMenuTimer(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка отримання таймера', { error });
+    console.error('Помилка отримання таймера:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -242,7 +249,7 @@ async function handleMenuStats(bot, query) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка отримання статистики', { error });
+    console.error('Помилка отримання статистики:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -263,6 +270,7 @@ async function handleMenuHelp(bot, query) {
     {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: helpKeyboard.reply_markup,
     }
   );
@@ -292,6 +300,7 @@ async function handleMenuSettings(bot, query) {
     {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: getSettingsKeyboard(isAdmin).reply_markup,
     }
   );
@@ -343,6 +352,7 @@ async function handleBackToMain(bot, query) {
         {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
+          parse_mode: 'HTML',
           reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
         }
       );
@@ -359,6 +369,7 @@ async function handleBackToMain(bot, query) {
         query.message.chat.id,
         message,
         {
+          parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
       ).catch(() => null);
@@ -387,6 +398,7 @@ async function handleHelpHowto(bot, query) {
     {
       chat_id: query.message.chat.id,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
@@ -432,7 +444,7 @@ async function handleTimerCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка обробки timer callback', { error });
+    console.error('Помилка обробки timer callback:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -475,7 +487,7 @@ async function handleStatsCallback(bot, query, data) {
       show_alert: true
     });
   } catch (error) {
-    logger.error('Помилка обробки stats callback', { error });
+    console.error('Помилка обробки stats callback:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true
@@ -501,14 +513,18 @@ async function handleScheduleRefresh(bot, query) {
     // Answer Telegram immediately to avoid timeout
     await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
-    // Fetch data, image, and check time in parallel
-    const [apiData, imageResult, lastCheck] = await Promise.all([
-      fetchScheduleData(user.region),
-      fetchScheduleImage(user.region, user.queue).catch(() => null),
-      getScheduleCheckTime(user.region, user.queue).catch(() => Math.floor(Date.now() / 1000)),
-    ]);
+    const apiData = await fetchScheduleData(user.region);
     const scheduleData = parseScheduleForQueue(apiData, user.queue);
     const nextEvent = findNextEvent(scheduleData);
+
+    // Читаємо час останньої перевірки ботом та отримуємо точний timestamp
+    let lastCheck;
+    try {
+      lastCheck = await getScheduleCheckTime(user.region, user.queue);
+    } catch (dbError) {
+      console.error('Failed to get schedule check time:', dbError.message);
+      lastCheck = Math.floor(Date.now() / 1000);
+    }
 
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
     const updateType = {
@@ -522,10 +538,15 @@ async function handleScheduleRefresh(bot, query) {
 
     const scheduleKeyboard = getScheduleViewKeyboard();
 
-    // Build photoInput from parallel result
-    const photoInput = imageResult
-      ? (Buffer.isBuffer(imageResult) ? new InputFile(imageResult, 'schedule.png') : imageResult)
-      : null;
+    // Fetch image once, then try editMessageMedia; fall back to delete+send on failure
+    let imageBuffer;
+    let photoInput;
+    try {
+      imageBuffer = await fetchScheduleImage(user.region, user.queue);
+      photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+    } catch (_fetchError) {
+      // Image unavailable — will fall back to text-only path below
+    }
 
     // Оновлюємо фото і caption існуючого повідомлення через editMessageMedia
     if (photoInput) {
@@ -538,7 +559,6 @@ async function handleScheduleRefresh(bot, query) {
             media: photoInput,
             caption: fullCaption,
             caption_entities: timestampEntities,
-            parse_mode: undefined, // Override global parseMode — entities handle formatting
           },
           { reply_markup: scheduleKeyboard }
         );
@@ -549,7 +569,7 @@ async function handleScheduleRefresh(bot, query) {
           return; // Nothing changed, keep current message as-is
         }
         // Якщо edit не вдалося з іншої причини — fallback на delete+send
-        logger.info('editMessageMedia failed, falling back to delete+send', { error: editError.message });
+        console.log('editMessageMedia failed, falling back to delete+send:', editError.message);
       }
     }
 
@@ -565,7 +585,6 @@ async function handleScheduleRefresh(bot, query) {
         await bot.api.sendPhoto(chatId, photoInput, {
           caption: fullCaption,
           caption_entities: timestampEntities,
-          parse_mode: undefined, // Override global parseMode — entities handle formatting
           reply_markup: scheduleKeyboard
         });
         return;
@@ -576,11 +595,10 @@ async function handleScheduleRefresh(bot, query) {
 
     await bot.api.sendMessage(chatId, fullCaption, {
       entities: timestampEntities,
-      parse_mode: undefined, // Override global parseMode — entities handle formatting
       reply_markup: scheduleKeyboard
     });
   } catch (error) {
-    logger.error('Помилка handleScheduleRefresh', { error });
+    console.error('Помилка handleScheduleRefresh:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
       text: '😅 Щось пішло не так. Спробуйте ще раз!',
       show_alert: true

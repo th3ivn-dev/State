@@ -18,7 +18,6 @@ const { REGIONS } = require('./constants/regions');
 const usersDb = require('./database/users');
 const { safeSendMessage } = require('./utils/errorHandler');
 const { MAX_SENT_REMINDERS_MAP_SIZE } = require('./constants/timeouts');
-const logger = require('./utils/logger');
 
 // In-memory tracking of already-sent reminders (cleared daily, bounded)
 // Key: `${telegramId}:${eventType}:${eventTimeIso}`
@@ -123,11 +122,11 @@ async function sendNotification(bot, user, text) {
   const target = user.notify_remind_target || 'bot';
 
   if (target === 'bot' || target === 'both') {
-    await safeSendMessage(bot, user.telegram_id, text);
+    await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {
-    await safeSendMessage(bot, user.channel_id, text);
+    await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
   }
 }
 
@@ -239,7 +238,7 @@ async function checkReminders(bot) {
       }
     }
   } catch (error) {
-    logger.error('❌ scheduleReminder error', { error: error.message });
+    console.error('❌ scheduleReminder error:', error.message);
   }
 }
 
@@ -256,7 +255,7 @@ function clearOldReminders() {
     const excess = sentReminders.size - MAX_SENT_REMINDERS_MAP_SIZE;
     const keys = Array.from(sentReminders.keys()).slice(0, excess);
     keys.forEach(k => sentReminders.delete(k));
-    logger.info('🧹 Очищено старих записів sentReminders (ліміт )', { excess, MAX_SENT_REMINDERS_MAP_SIZE });
+    console.log(`🧹 Очищено ${excess} старих записів sentReminders (ліміт ${MAX_SENT_REMINDERS_MAP_SIZE})`);
   }
 }
 
@@ -273,7 +272,7 @@ function startReminderScheduler(bot) {
 
   cleanupReminderInterval = setInterval(clearOldReminders, 86400000);
 
-  logger.info('✅ Schedule reminder scheduler started');
+  console.log('✅ Schedule reminder scheduler started');
 }
 
 /**
@@ -288,7 +287,7 @@ function stopReminderScheduler() {
     clearInterval(cleanupReminderInterval);
     cleanupReminderInterval = null;
   }
-  logger.info('✅ Schedule reminder scheduler stopped');
+  console.log('✅ Schedule reminder scheduler stopped');
 }
 
 module.exports = {

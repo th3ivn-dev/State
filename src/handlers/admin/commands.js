@@ -7,7 +7,6 @@ const { REGIONS } = require('../../constants/regions');
 const { getSetting, setSetting } = require('../../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../../utils/errorHandler');
 const { formatAnalytics } = require('../../analytics');
-const logger = require('../../utils/logger');
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -27,11 +26,12 @@ async function handleAdmin(bot, msg) {
       chatId,
       '👨‍💼 <b>Адмін панель</b>\n\nОберіть опцію:',
       {
+        parse_mode: 'HTML',
         ...getAdminKeyboard(openTicketsCount),
       }
     );
   } catch (error) {
-    logger.error('Помилка в handleAdmin', { error });
+    console.error('Помилка в handleAdmin:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -50,10 +50,10 @@ async function handleStats(bot, msg) {
     // Use new analytics module
     const message = await formatAnalytics();
 
-    await safeSendMessage(bot, chatId, message);
+    await safeSendMessage(bot, chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error('Помилка в handleStats', { error });
+    console.error('Помилка в handleStats:', error);
     await safeSendMessage(bot, chatId, '❌ Виникла помилка.');
   }
 }
@@ -88,10 +88,10 @@ async function handleUsers(bot, msg) {
       message += `   ID: <code>${user.telegram_id}</code>\n\n`;
     });
 
-    await bot.api.sendMessage(chatId, message);
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error('Помилка в handleUsers', { error });
+    console.error('Помилка в handleUsers:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -139,12 +139,13 @@ async function handleBroadcast(bot, msg) {
       for (const user of page) {
         try {
           await bot.api.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
+            parse_mode: 'HTML',
           });
           sent++;
           await new Promise(resolve => setTimeout(resolve, 40));
         } catch (error) {
           if (!error.message?.includes('bot was blocked') && !error.message?.includes('chat not found')) {
-            logger.error(`Помилка відправки користувачу ${user.telegram_id}:`, { message: error.message });
+            console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
           }
           failed++;
         }
@@ -159,7 +160,7 @@ async function handleBroadcast(bot, msg) {
     );
 
   } catch (error) {
-    logger.error('Помилка в handleBroadcast', { error });
+    console.error('Помилка в handleBroadcast:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка при розсилці.\n\nОберіть наступну дію:',
@@ -197,10 +198,10 @@ async function handleSystem(bot, msg) {
       message += `Service: ${process.env.RAILWAY_SERVICE_NAME || 'N/A'}\n`;
     }
 
-    await bot.api.sendMessage(chatId, message);
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error('Помилка в handleSystem', { error });
+    console.error('Помилка в handleSystem:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -284,7 +285,7 @@ async function handleSetInterval(bot, msg, match) {
     );
 
   } catch (error) {
-    logger.error('Помилка в handleSetInterval', { error });
+    console.error('Помилка в handleSetInterval:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -346,7 +347,7 @@ async function handleSetDebounce(bot, msg, match) {
     await bot.api.sendMessage(chatId, message);
 
   } catch (error) {
-    logger.error('Помилка в handleSetDebounce', { error });
+    console.error('Помилка в handleSetDebounce:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -374,11 +375,12 @@ async function handleGetDebounce(bot, msg) {
       'Зміни стану світла публікуються після ' +
       `${value} хвилин стабільного стану.\n\n` +
       'Для зміни використайте:\n' +
-      '/setdebounce <хвилини>'
+      '/setdebounce <хвилини>',
+      { parse_mode: 'HTML' }
     );
 
   } catch (error) {
-    logger.error('Помилка в handleGetDebounce', { error });
+    console.error('Помилка в handleGetDebounce:', error);
     await bot.api.sendMessage(
       chatId,
       '❌ Виникла помилка.\n\nОберіть наступну дію:',
@@ -396,6 +398,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
@@ -420,6 +423,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getUsersMenuKeyboard().reply_markup,
       }
     );
@@ -445,6 +449,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [{ text: '← Назад', callback_data: 'admin_users' }],
@@ -500,6 +505,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: { inline_keyboard: keyboard }
     });
     return;
@@ -520,6 +526,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getAdminKeyboard().reply_markup,
       }
     );
@@ -545,6 +552,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     await safeEditMessageText(bot, message, {
       chat_id: chatId,
       message_id: query.message.message_id,
+      parse_mode: 'HTML',
       reply_markup: {
         inline_keyboard: [
           [
@@ -563,6 +571,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getAdminAnalyticsKeyboard().reply_markup,
       }
     );
@@ -575,6 +584,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getAdminSettingsMenuKeyboard().reply_markup,
       }
     );
@@ -590,6 +600,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       {
         chat_id: chatId,
         message_id: query.message.message_id,
+        parse_mode: 'HTML',
         reply_markup: getAdminKeyboard(openTicketsCount).reply_markup,
       }
     );

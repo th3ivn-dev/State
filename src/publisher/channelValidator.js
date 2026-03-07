@@ -1,6 +1,5 @@
 const usersDb = require('../database/users');
 const { isTelegramUserInactiveError } = require('../utils/errorHandler');
-const logger = require('../utils/logger');
 
 // Helper function to get bot ID (cached in bot.options.id)
 async function ensureBotId(bot) {
@@ -30,6 +29,7 @@ async function notifyChannelBlocked(bot, user, reason) {
       user.telegram_id,
       message,
       {
+        parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
             [{ text: '⚙️ Налаштування', callback_data: 'menu_settings' }]
@@ -40,9 +40,9 @@ async function notifyChannelBlocked(bot, user, reason) {
   } catch (notifyError) {
     // User has blocked the bot or deleted their account — skip silently
     if (isTelegramUserInactiveError(notifyError)) {
-      logger.info(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
+      console.log(`ℹ️ Користувач ${user.telegram_id} недоступний — сповіщення про канал пропущено`);
     } else {
-      logger.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, { message: notifyError.message });
+      console.error(`Не вдалося повідомити користувача ${user.telegram_id}:`, notifyError.message);
     }
   }
 }
@@ -60,7 +60,7 @@ async function validateChannel(bot, user) {
     const botMember = await bot.api.getChatMember(user.channel_id, botId);
 
     if (botMember.status !== 'administrator' || !botMember.can_post_messages) {
-      logger.info(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
+      console.log(`Бот не має прав на публікацію в канал ${user.channel_id}, оновлюємо статус`);
       await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
 
       // Notify user about the issue
@@ -70,7 +70,7 @@ async function validateChannel(bot, user) {
     }
   } catch (validationError) {
     // Channel not found or not accessible
-    logger.info(`ℹ️ Канал ${user.channel_id} недоступний: ${validationError.message}`);
+    console.log(`ℹ️ Канал ${user.channel_id} недоступний: ${validationError.message}`);
     await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
 
     // Notify user about the issue

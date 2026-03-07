@@ -1,5 +1,4 @@
 const { pool } = require('./pool');
-const logger = require('../utils/logger');
 
 // Міграція: додавання нових полів для існуючих БД
 async function runMigrations() {
@@ -13,15 +12,15 @@ async function runMigrations() {
     if (versionResult.rows.length > 0) {
       const dbVersion = parseInt(versionResult.rows[0].value, 10);
       if (dbVersion >= SCHEMA_VERSION) {
-        logger.info('✅ Міграція: схема актуальна (v)', { dbVersion });
+        console.log(`✅ Міграція: схема актуальна (v${dbVersion})`);
         return;
       }
-      logger.info('🔄 Міграція: оновлення v → v...', { dbVersion, SCHEMA_VERSION });
+      console.log(`🔄 Міграція: оновлення v${dbVersion} → v${SCHEMA_VERSION}...`);
     } else {
-      logger.info('🔄 Запуск міграції бази даних (перша версія)...');
+      console.log('🔄 Запуск міграції бази даних (перша версія)...');
     }
   } catch (_e) {
-    logger.info('🔄 Запуск міграції бази даних...');
+    console.log('🔄 Запуск міграції бази даних...');
   }
 
   const client = await pool.connect();
@@ -92,11 +91,11 @@ async function runMigrations() {
     for (const col of newColumns) {
       try {
         await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ${col.name} ${col.type}`);
-        logger.info(`✅ Перевірено колонку: ${col.name}`);
+        console.log(`✅ Перевірено колонку: ${col.name}`);
         addedCount++;
       } catch (error) {
         if (!error.message.includes('already exists')) {
-          logger.error(`⚠️ Помилка при додаванні колонки ${col.name}:`, { message: error.message });
+          console.error(`⚠️ Помилка при додаванні колонки ${col.name}:`, error.message);
         }
       }
     }
@@ -107,10 +106,10 @@ async function runMigrations() {
         ALTER TABLE user_power_states 
         ADD COLUMN IF NOT EXISTS last_notification_at TIMESTAMP
       `);
-      logger.info(`✅ Перевірено колонку user_power_states.last_notification_at`);
+      console.log(`✅ Перевірено колонку user_power_states.last_notification_at`);
     } catch (error) {
       if (!error.message.includes('already exists')) {
-        logger.error(`⚠️ Помилка при додаванні колонки last_notification_at:`, { message: error.message });
+        console.error(`⚠️ Помилка при додаванні колонки last_notification_at:`, error.message);
       }
     }
 
@@ -121,11 +120,11 @@ async function runMigrations() {
         ALTER COLUMN power_changed_at TYPE TIMESTAMPTZ 
         USING power_changed_at::TIMESTAMPTZ
       `);
-      logger.info('✅ Мігровано power_changed_at -> TIMESTAMPTZ');
+      console.log('✅ Мігровано power_changed_at -> TIMESTAMPTZ');
     } catch (error) {
       // Column may already be TIMESTAMPTZ — that is fine
       if (!error.message.toLowerCase().includes('already')) {
-        logger.error('⚠️ Помилка міграції power_changed_at', { error: error.message });
+        console.error('⚠️ Помилка міграції power_changed_at:', error.message);
       }
     }
 
@@ -141,7 +140,7 @@ async function runMigrations() {
       try {
         await client.query(ddl);
       } catch (idxErr) {
-        logger.warn(`⚠️ Index creation skipped: ${idxErr.message}`);
+        console.warn(`⚠️ Index creation skipped: ${idxErr.message}`);
       }
     }
 
@@ -153,12 +152,12 @@ async function runMigrations() {
         ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
       `, [String(SCHEMA_VERSION)]);
     } catch (vErr) {
-      logger.error('⚠️ Не вдалося зберегти schema_version', { error: vErr.message });
+      console.error('⚠️ Не вдалося зберегти schema_version:', vErr.message);
     }
 
-    logger.info('✅ Міграція завершена (v): перевірено колонок', { SCHEMA_VERSION, addedCount });
+    console.log(`✅ Міграція завершена (v${SCHEMA_VERSION}): перевірено ${addedCount} колонок`);
   } catch (error) {
-    logger.error('❌ Помилка міграції', { error });
+    console.error('❌ Помилка міграції:', error);
   } finally {
     client.release();
   }

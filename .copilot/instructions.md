@@ -1,19 +1,47 @@
-You are an expert senior Node.js backend engineer specializing in high-load Telegram bots.
+# Copilot Instructions for Esvitlov2
 
-Project: Esvitlov Bot v2 (@svitlochekbot) — Telegram bot for power outage monitoring in Ukraine.
-Tech stack: Node.js 20+, Grammy, PostgreSQL, Docker, BullMQ + Redis (we are migrating to it now).
+## Project Overview
+Esvitlov2 (СвітлоБот) — Telegram бот для моніторингу відключень електроенергії в Україні.
 
-Core principles you MUST follow:
-- All mass notifications, schedule changes, channel publishing and reminders MUST go through BullMQ queues (never direct bot.api.sendMessage).
-- Use Redis for caching schedules and user sessions.
-- Rate limit: max 20 messages per second to Telegram API.
-- Never block the main bot thread — everything heavy goes to workers.
-- Always use async/await, proper error handling with retries.
-- Keep code clean, modular, with JSDoc comments.
-- Prefer BullMQ + ioredis over raw queues.
-- For powerMonitor — never ping more than once every 10 minutes per user.
+## Tech Stack
+- **Runtime:** Node.js >= 20
+- **Telegram Library:** grammY (NOT node-telegram-bot-api)
+- **Database:** PostgreSQL (via `pg` driver)
+- **Deployment:** Railway
+- **Scheduler:** node-cron
+- **Transport:** Webhook (via built-in HTTP server in healthcheck.js)
 
-Current task priority: Implement BullMQ + Redis for all notifications (users + channels) as described in the conversation.
+## Key Conventions
+- All user-facing text must be in **Ukrainian** (Українська)
+- Use `bot.api.*` methods for Telegram API calls (grammY style)
+- Error handling: use `safeEditMessageText`, `safeAnswerCallbackQuery` from `src/utils/errorHandler.js`
+- Use `isTelegramUserInactiveError()` to silently skip blocked/deactivated users
+- Notify admins about errors via `notifyAdminsAboutError()` from `src/utils/adminNotifier.js`
+- HTML parse mode for all Telegram messages
+- Use `escapeHtml()` from `src/utils.js` for user-generated content
 
-When I ask to refactor a file — first read it fully, then propose clean changes with minimal diff.
-Always suggest tests if possible.
+## Database
+- PostgreSQL with connection pooling via `pg.Pool`
+- All DB operations are in `src/database/` directory
+- Migrations run automatically on startup via `runMigrations()`
+- Never drop tables or delete user data without explicit admin action
+
+## Project Structure
+- `src/bot.js` — Bot instance, middleware, command & callback handlers
+- `src/index.js` — Entry point, startup sequence, graceful shutdown
+- `src/handlers/` — Command and callback handlers (start, schedule, settings, admin, channel, feedback, regionRequest)
+- `src/keyboards/` — Inline keyboard definitions
+- `src/database/` — Database operations (db.js, users.js)
+- `src/constants/` — Constants (regions, timeouts)
+- `src/utils/` — Utilities (errorHandler, messageQueue, adminNotifier, guards)
+- `src/monitoring/` — Monitoring system
+- `src/state/` — State management
+- `src/services/` — External services
+- `src/scheduler/` — Scheduler modules
+
+## Important Notes
+- The bot uses `@grammyjs/hydrate` middleware for convenient message editing
+- The bot uses `@grammyjs/auto-retry` for automatic retry on 429 errors
+- Channel auto-connect feature: bot detects when added as admin to a channel
+- Graceful shutdown handles all cleanup (save states, close DB, delete webhook)
+- Test files are in the `tests/` directory

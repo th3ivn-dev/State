@@ -2,7 +2,6 @@ const http = require('http');
 const config = require('./config');
 const { pool } = require('./database/db');
 const { getUserCount } = require('./database/users');
-const logger = require('./utils/logger');
 
 let server = null;
 let botRef = null;
@@ -60,13 +59,13 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
 
           // Fire-and-forget with error isolation — a bad update must never crash the server
           Promise.resolve(bot.handleUpdate(update)).catch((err) => {
-            logger.error('Webhook handleUpdate error (isolated)', { message: err.message });
+            console.error('Webhook handleUpdate error (isolated):', err.message);
           });
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: true }));
         } catch (error) {
-          logger.error('Webhook processing error', { message: error.message });
+          console.error('Webhook processing error:', error.message);
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ ok: false, error: 'Invalid JSON' }));
         }
@@ -95,7 +94,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         }
 
         const dbCheck = await pool.query('SELECT 1').then(() => true).catch((err) => {
-          logger.error('Health check DB error', { message: err.message });
+          console.error('Health check DB error:', err.message);
           return false;
         });
         const userCount = await getUserCount();
@@ -130,7 +129,7 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   });
 
   server.listen(port, () => {
-    logger.info('🏥 Health check server running on port', { port });
+    console.log(`🏥 Health check server running on port ${port}`);
 
     if (useWebhook && config.WEBHOOK_URL) {
       // Set webhook with Telegram
@@ -140,9 +139,9 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         secret_token: webhookSecret,
         allowed_updates: ['message', 'callback_query', 'my_chat_member', 'chat_member', 'channel_post'],
       }).then(() => {
-        logger.info('🔗 Webhook встановлено', { fullWebhookUrl });
+        console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
       }).catch((error) => {
-        logger.error('❌ Помилка встановлення webhook', { message: error.message });
+        console.error('❌ Помилка встановлення webhook:', error.message);
         process.exit(1); // Let Railway restart the service
       });
     }
@@ -154,11 +153,11 @@ function stopHealthCheck() {
     // If using webhook, delete it before stopping
     if (botRef && config.USE_WEBHOOK) {
       botRef.api.deleteWebhook().catch((error) => {
-        logger.error('⚠️  Помилка при видаленні webhook', { message: error.message });
+        console.error('⚠️  Помилка при видаленні webhook:', error.message);
       });
     }
     server.close();
-    logger.info('✅ Health check server stopped');
+    console.log('✅ Health check server stopped');
   }
 }
 

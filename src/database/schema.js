@@ -1,5 +1,4 @@
 const { pool } = require('./pool');
-const logger = require('../utils/logger');
 
 // Створення таблиць при ініціалізації
 async function initializeDatabase() {
@@ -240,9 +239,9 @@ async function initializeDatabase() {
       );
     `);
 
-    logger.info('✅ База даних ініціалізована');
+    console.log('✅ База даних ініціалізована');
   } catch (error) {
-    logger.error('❌ Помилка ініціалізації бази даних', { error });
+    console.error('❌ Помилка ініціалізації бази даних:', error);
     throw error;
   } finally {
     client.release();

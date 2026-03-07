@@ -3,7 +3,6 @@ const { REGIONS } = require('../../constants/regions');
 const { getState, setState, clearState } = require('../../state/stateManager');
 const { getSupportButton } = require('../feedback');
 const config = require('../../config');
-const logger = require('../../utils/logger');
 
 // Constants imported from channel.js for consistency
 const PENDING_CHANNEL_EXPIRATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -13,6 +12,7 @@ const CHANNEL_NAME_PREFIX = 'СвітлоБот ⚡️ ';
 const NEWS_CHANNEL_MESSAGE = {
   text: '📢 <b>Підпишіться на канал оновлень</b>\nЩоб не пропустити нові функції та важливі зміни:',
   options: {
+    parse_mode: 'HTML',
     reply_markup: {
       inline_keyboard: [
         [{ text: '📢 Новини/Оновлення', url: 'https://t.me/Voltyk_news' }]
@@ -54,7 +54,7 @@ async function clearWizardState(telegramId) {
  */
 function restoreWizardStates() {
   // State restoration is now handled by initStateManager()
-  logger.info('✅ Wizard states restored by centralized state manager');
+  console.log('✅ Wizard states restored by centralized state manager');
 }
 
 // Helper function to create pause mode keyboard
@@ -94,13 +94,13 @@ async function notifyAdminsAboutNewUser(bot, telegramId, username, region, queue
 
     for (const adminId of allAdmins) {
       try {
-        await bot.api.sendMessage(adminId, message);
+        await bot.api.sendMessage(adminId, message, { parse_mode: 'HTML' });
       } catch (_error) {
         // Ігноруємо помилки (адмін може мати заблоковані повідомлення)
       }
     }
   } catch (error) {
-    logger.error('Помилка сповіщення адмінів про нового користувача', { error });
+    console.error('Помилка сповіщення адмінів про нового користувача:', error);
   }
 }
 

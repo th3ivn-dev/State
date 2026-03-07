@@ -5,20 +5,19 @@
  */
 
 const { pool, runMigrations } = require('./db');
-const logger = require('../utils/logger');
 
-logger.info('🔄 Starting v2 snapshot migration...');
+console.log('🔄 Starting v2 snapshot migration...');
 
 async function main() {
   try {
     // The columns are already in the initializeDatabase() and runMigrations() in db.js
     // So this just runs the migrations
     await runMigrations();
-    logger.info('\n✅ v2 snapshot migration completed!');
+    console.log('\n✅ v2 snapshot migration completed!');
     await pool.end();
     process.exit(0);
   } catch (error) {
-    logger.error('❌ Migration failed', { error });
+    console.error('❌ Migration failed:', error);
     await pool.end();
     process.exit(1);
   }

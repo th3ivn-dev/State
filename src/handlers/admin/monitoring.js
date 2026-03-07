@@ -1,7 +1,6 @@
 const { isAdmin } = require('../../utils');
 const config = require('../../config');
 const { monitoringManager } = require('../../monitoring/monitoringManager');
-const logger = require('../../utils/logger');
 
 // Обробник команди /monitoring
 async function handleMonitoring(bot, msg) {
@@ -64,10 +63,10 @@ async function handleMonitoring(bot, msg) {
     message += '\n\nДля налаштування канала:\n';
     message += '/setalertchannel <channel_id>';
 
-    await bot.api.sendMessage(chatId, message);
+    await bot.api.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
   } catch (error) {
-    logger.error('Помилка в handleMonitoring', { error });
+    console.error('Помилка в handleMonitoring:', error);
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при отриманні статусу моніторингу.');
   }
 }
@@ -103,7 +102,8 @@ async function handleSetAlertChannel(bot, msg, match) {
       await bot.api.sendMessage(
         channelId,
         '✅ Канал для алертів налаштовано успішно!\n\n' +
-        'Тут будуть публікуватися алерти системи моніторингу.'
+        'Тут будуть публікуватися алерти системи моніторингу.',
+        { parse_mode: 'HTML' }
       );
     } catch (error) {
       await bot.api.sendMessage(
@@ -124,11 +124,12 @@ async function handleSetAlertChannel(bot, msg, match) {
     await bot.api.sendMessage(
       chatId,
       `✅ Канал для алертів налаштовано: ${channelId}\n\n` +
-      'Тепер усі алерти системи моніторингу будуть публікуватися в цьому каналі.'
+      'Тепер усі алерти системи моніторингу будуть публікуватися в цьому каналі.',
+      { parse_mode: 'HTML' }
     );
 
   } catch (error) {
-    logger.error('Помилка в handleSetAlertChannel', { error });
+    console.error('Помилка в handleSetAlertChannel:', error);
     await bot.api.sendMessage(chatId, '❌ Виникла помилка при налаштуванні каналу.');
   }
 }
