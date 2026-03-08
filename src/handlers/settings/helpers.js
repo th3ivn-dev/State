@@ -25,6 +25,15 @@ async function clearIpSetupState(telegramId) {
   await clearState('ipSetup', telegramId);
 }
 
+// Helper function to check if any individual notification toggle is enabled
+function hasAnyNotificationEnabled(user) {
+  return (user.notify_schedule_changes !== false) ||
+         (user.remind_15m !== false) ||
+         (user.remind_30m === true) ||
+         (user.remind_1h === true) ||
+         (user.notify_fact_off !== false);
+}
+
 // Helper function to send main menu
 async function sendMainMenu(bot, chatId, telegramId) {
   const user = await usersDb.getUserByTelegramId(telegramId);
@@ -53,7 +62,7 @@ async function sendMainMenu(bot, chatId, telegramId) {
   message += '🏠 <b>Головне меню</b>\n\n';
   message += `📍 Регіон: ${region} • ${user.queue}\n`;
   message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
-  message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
+  message += `🔔 Сповіщення: ${hasAnyNotificationEnabled(user) ? 'увімкнено ✅' : 'вимкнено'}\n`;
   message += '\n💬 Допоможіть нам стати краще — скористайтеся ❓ Допомога\n';
 
   const sentMessage = await bot.api.sendMessage(
@@ -198,4 +207,5 @@ module.exports = {
   buildNotificationSettingsMessage,
   buildChannelNotificationMessage,
   isValidIPorDomain,
+  hasAnyNotificationEnabled,
 };

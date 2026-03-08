@@ -5,6 +5,7 @@ const { setWizardState } = require('./start/helpers');
 const { REGIONS } = require('../constants/regions');
 const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTimerPopup } = require('../formatter');
 const { generateLiveStatusMessage } = require('../utils');
+const { hasAnyNotificationEnabled } = require('./settings/helpers');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const usersDb = require('../database/users');
 const { fetchScheduleData, fetchScheduleImage } = require('../api');
@@ -314,7 +315,7 @@ async function handleBackToMain(bot, query) {
     let message = '🏠 <b>Головне меню</b>\n\n';
     message += `📍 Регіон: ${region} • ${user.queue}\n`;
     message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
-    message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
+    message += `🔔 Сповіщення: ${hasAnyNotificationEnabled(user) ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
     // Try editMessageText first (works even on media messages in some cases)
     try {

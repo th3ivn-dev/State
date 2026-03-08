@@ -1,3 +1,5 @@
+const { hasAnyNotificationEnabled } = require('../handlers/settings/helpers');
+
 // Generate Live Status message for settings screen
 function generateLiveStatusMessage(user, regionName) {
   let message = '';
@@ -6,8 +8,8 @@ function generateLiveStatusMessage(user, regionName) {
   const hasPowerState = user.power_state !== null && user.power_state !== undefined;
   const hasIp = user.router_ip !== null && user.router_ip !== undefined;
   const hasChannel = user.channel_id !== null && user.channel_id !== undefined;
-  // Notifications are enabled if is_active (master switch) is true AND alerts_off is enabled
-  const notificationsEnabled = user.is_active && user.alerts_off_enabled;
+  // Notifications are enabled if any individual toggle is on
+  const notificationsEnabled = hasAnyNotificationEnabled(user);
 
   if (!hasIp) {
     // Не показуємо статус світла якщо IP не налаштовано

@@ -11,7 +11,7 @@ const { handleDataCallback } = require('./data');
 const { handleIpCallback, handleIpConversation } = require('./ip');
 const { handleChannelCallback } = require('./channel');
 const { handleCleanupCallback } = require('./cleanup');
-const { restoreIpSetupStates, clearIpSetupState, isValidIPorDomain } = require('./helpers');
+const { restoreIpSetupStates, clearIpSetupState, isValidIPorDomain, hasAnyNotificationEnabled } = require('./helpers');
 
 // Обробник команди /settings
 async function handleSettings(bot, msg) {
@@ -100,4 +100,5 @@ module.exports = {
   restoreIpSetupStates,
   clearIpSetupState, // Export for /start cleanup
   isValidIPorDomain, // Export for admin router IP validation
+  hasAnyNotificationEnabled, // Export for notification status display
 };
