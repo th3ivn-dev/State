@@ -65,12 +65,7 @@ async function handleMenuSchedule(bot, query) {
           chat_id: query.message.chat.id,
           message_id: query.message.message_id,
           parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '🔄 Оновити', callback_data: 'schedule_refresh' }],
-              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
-            ]
-          }
+          reply_markup: getScheduleViewKeyboard()
         }
       );
       return;
@@ -623,14 +618,27 @@ async function handleChangeRegion(bot, query) {
 
     await setWizardState(telegramId, { step: 'region', mode: 'edit_from_schedule' });
 
-    await safeEditMessageText(bot,
-      'Оберіть свій регіон:',
-      {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        reply_markup: getRegionKeyboard().reply_markup,
+    // Try editMessageText first (works when current message is text)
+    try {
+      await safeEditMessageText(bot,
+        'Оберіть свій регіон:',
+        {
+          chat_id: chatId,
+          message_id: query.message.message_id,
+          reply_markup: getRegionKeyboard().reply_markup,
+        }
+      );
+    } catch (_editError) {
+      // If edit fails (e.g. current message is a photo), delete and send new
+      try {
+        await bot.api.deleteMessage(chatId, query.message.message_id);
+      } catch (_deleteError) {
+        // Ignore delete errors
       }
-    );
+      await bot.api.sendMessage(chatId, 'Оберіть свій регіон:', {
+        reply_markup: getRegionKeyboard().reply_markup,
+      });
+    }
   } catch (error) {
     console.error('Помилка handleChangeRegion:', error);
     await safeAnswerCallbackQuery(bot, query.id, {
