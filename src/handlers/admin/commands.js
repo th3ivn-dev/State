@@ -8,7 +8,7 @@ const { getSetting, setSetting } = require('../../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../../utils/errorHandler');
 const { formatAnalytics } = require('../../analytics');
 const { startBroadcastWizard } = require('./broadcast');
-const { runBroadcast } = require('../../queue/broadcastQueue');
+const { runBroadcast, isBroadcastRunning } = require('../../queue/broadcastQueue');
 
 const BROADCAST_HEADER = '📢 <b>Повідомлення від адміністрації:</b>\n\n';
 
@@ -126,6 +126,12 @@ async function handleBroadcast(bot, msg) {
       return;
     }
 
+    // Prevent concurrent broadcasts
+    if (isBroadcastRunning()) {
+      await bot.api.sendMessage(chatId, '⚠️ Розсилка вже виконується! Дочекайтесь завершення.');
+      return;
+    }
+
     const stats = await usersDb.getUserStats();
 
     if (stats.active === 0) {
@@ -158,32 +164,70 @@ async function handleBroadcast(bot, msg) {
     if (!usedBullMQ) {
       let sent = 0;
       let failed = 0;
+      let lastProgressUpdate = Date.now();
+      const startTime = Date.now();
 
-      // Paginated broadcast — loads 500 users at a time instead of all at once
-      for await (const page of usersDb.paginateActiveUsers(500)) {
+      // Paginated broadcast — loads 1000 users at a time instead of all at once
+      for await (const page of usersDb.paginateActiveUsers(1000)) {
         for (const user of page) {
           try {
             await bot.api.sendMessage(user.telegram_id, broadcastText, msgOptions);
             sent++;
             await new Promise(resolve => setTimeout(resolve, 40));
           } catch (error) {
-            if (!error.message?.includes('bot was blocked') && !error.message?.includes('chat not found')) {
-              console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
+            const errMsg = error.message || '';
+            // Handle 429 flood control
+            if (error.error_code === 429 || errMsg.includes('Too Many Requests')) {
+              const retryAfter = error.parameters?.retry_after || 5;
+              await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+              // Retry once after waiting
+              try {
+                await bot.api.sendMessage(user.telegram_id, broadcastText, msgOptions);
+                sent++;
+                continue;
+              } catch (retryErr) {
+                const retryMsg = retryErr.message || '';
+                if (retryMsg.includes('bot was blocked') || retryMsg.includes('chat not found') || retryMsg.includes('user is deactivated')) {
+                  usersDb.setUserActive(user.telegram_id, false).catch(() => {});
+                }
+                failed++;
+                continue;
+              }
+            }
+            // Mark blocked/deactivated users inactive
+            if (errMsg.includes('bot was blocked') || errMsg.includes('chat not found') || errMsg.includes('user is deactivated')) {
+              usersDb.setUserActive(user.telegram_id, false).catch(() => {});
+            } else {
+              console.error(`Помилка відправки користувачу ${user.telegram_id}:`, errMsg);
             }
             failed++;
+          }
+
+          // Update progress periodically
+          if (progressMsg && Date.now() - lastProgressUpdate > 5000) {
+            lastProgressUpdate = Date.now();
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            const speed = elapsed > 0 ? Math.round(sent / elapsed) : 0;
+            bot.api.editMessageText(chatId, progressMsg.message_id,
+              `📤 Відправлено: ${sent}/${total} (помилок: ${failed})\n⚡ ${speed} msg/s`
+            ).catch(() => {});
           }
         }
       }
 
+      const elapsed = Math.round((Date.now() - startTime) / 1000);
+      const speed = elapsed > 0 ? Math.round(sent / elapsed) : 0;
+
       const summary =
-        `✅ Розсилка завершена!\n\n` +
-        `Відправлено: ${sent}\n` +
-        `Помилок: ${failed}`;
+        `✅ <b>Розсилка завершена!</b>\n\n` +
+        `📤 Відправлено: ${sent}\n` +
+        `❌ Помилок: ${failed}\n` +
+        `⏱ Час: ${elapsed}с | ⚡ ${speed} msg/s`;
 
       if (progressMsg) {
-        await bot.api.editMessageText(chatId, progressMsg.message_id, summary).catch(() => {});
+        await bot.api.editMessageText(chatId, progressMsg.message_id, summary, { parse_mode: 'HTML' }).catch(() => {});
       } else {
-        await bot.api.sendMessage(chatId, summary);
+        await bot.api.sendMessage(chatId, summary, { parse_mode: 'HTML' });
       }
     }
 

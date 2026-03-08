@@ -18,7 +18,7 @@ const {
   getBroadcastCommandButtonsKeyboard,
   getBroadcastPreviewKeyboard,
 } = require('../../keyboards/inline');
-const { runBroadcast } = require('../../queue/broadcastQueue');
+const { runBroadcast, isBroadcastRunning } = require('../../queue/broadcastQueue');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -568,6 +568,19 @@ async function showPreview(bot, chatId, messageId, userId, broadcastState) {
 // ─── Helper: send broadcast ───────────────────────────────────────────────────
 
 async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) {
+  // Prevent concurrent broadcasts
+  if (isBroadcastRunning()) {
+    await safeEditMessageText(bot,
+      '⚠️ <b>Розсилка вже виконується!</b>\n\nДочекайтесь завершення поточної розсилки.',
+      {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+      }
+    );
+    return;
+  }
+
   await clearBroadcastState(userId);
 
   const stats = await usersDb.getUserStats();
@@ -611,11 +624,12 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
     let sent = 0;
     let failed = 0;
     let lastProgressUpdate = Date.now();
+    const startTime = Date.now();
 
-    for await (const page of usersDb.paginateActiveUsers(500)) {
+    for await (const page of usersDb.paginateActiveUsers(1000)) {
       for (const user of page) {
-        const success = await sendWithRetry(bot, user.telegram_id, broadcastText, msgOptions);
-        if (success) {
+        const result = await sendWithRetry(bot, user.telegram_id, broadcastText, msgOptions);
+        if (result === true) {
           sent++;
         } else {
           failed++;
@@ -623,8 +637,12 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
 
         if (progressMsg && Date.now() - lastProgressUpdate > 5000) {
           lastProgressUpdate = Date.now();
+          const elapsed = Math.round((Date.now() - startTime) / 1000);
+          const speed = elapsed > 0 ? Math.round(sent / elapsed) : 0;
+          const percent = total > 0 ? Math.round(((sent + failed) / total) * 100) : 0;
           bot.api.editMessageText(chatId, progressMsg.message_id,
-            `📤 Відправлено: ${sent}/${total} (помилок: ${failed})`
+            `📤 Відправлено: ${sent}/${total} (помилок: ${failed})\n` +
+            `📊 Прогрес: ${percent}% | ⚡ ${speed} msg/s`
           ).catch(() => {});
         }
 
@@ -632,10 +650,14 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
       }
     }
 
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
+    const speed = elapsed > 0 ? Math.round(sent / elapsed) : 0;
+
     const summary =
       `✅ <b>Розсилка завершена!</b>\n\n` +
       `📤 Відправлено: ${sent}\n` +
-      `❌ Помилок: ${failed}`;
+      `❌ Помилок: ${failed}\n` +
+      `⏱ Час: ${elapsed}с | ⚡ ${speed} msg/s`;
 
     if (progressMsg) {
       await bot.api.editMessageText(chatId, progressMsg.message_id, summary, { parse_mode: 'HTML' }).catch(() => {});
@@ -647,18 +669,37 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
 
 /**
  * Send a message with exponential-backoff retry on non-fatal errors.
+ * Handles Telegram 429 flood control by respecting retry_after.
+ * Marks users as inactive when bot is blocked / user deactivated.
  * Returns true if sent successfully, false if it ultimately failed.
  */
 async function sendWithRetry(bot, telegramId, text, options, maxRetries = 3) {
+  let floodRetries = 0;
+  const maxFloodRetries = 5;
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       await bot.api.sendMessage(telegramId, text, options);
       return true;
     } catch (error) {
       const msg = error.message || '';
-      // Terminal errors — no point retrying
+      // Terminal errors — no point retrying; mark user inactive
       if (msg.includes('bot was blocked') || msg.includes('chat not found') || msg.includes('user is deactivated')) {
+        usersDb.setUserActive(telegramId, false).catch(() => {});
         return false;
+      }
+      // Telegram 429 flood control — wait for retry_after
+      if (error.error_code === 429 || msg.includes('Too Many Requests')) {
+        floodRetries++;
+        if (floodRetries > maxFloodRetries) {
+          console.error(`Broadcast: too many 429 retries for ${telegramId}, giving up`);
+          return false;
+        }
+        const retryAfter = error.parameters?.retry_after || 5;
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        // Don't count this as a regular attempt — retry after waiting
+        attempt--;
+        continue;
       }
       if (attempt < maxRetries) {
         // Exponential backoff: 1s, 2s, 4s
