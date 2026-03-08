@@ -121,8 +121,16 @@ async function handleStart(bot, msg) {
     if (isInWizard(telegramId)) {
       await safeSendMessage(bot, chatId,
         '⚠️ Спочатку завершіть налаштування!\n\n' +
-        'Продовжіть з того місця, де зупинились.',
-        { parse_mode: 'HTML' }
+        'Оберіть дію:',
+        {
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '▶️ Продовжити налаштування', callback_data: 'wizard_resume' }],
+              [{ text: '🔄 Почати заново', callback_data: 'wizard_restart' }]
+            ]
+          }
+        }
       );
       return;
     }
