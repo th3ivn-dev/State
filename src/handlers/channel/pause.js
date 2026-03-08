@@ -2,6 +2,7 @@ const usersDb = require('../../database/users');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getMainMenu } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
+const { hasAnyNotificationEnabled } = require('../settings/helpers');
 
 // Handle pause-related callbacks
 async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user) {
@@ -63,7 +64,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
     message += '🏠 <b>Головне меню</b>\n\n';
     message += `📍 Регіон: ${region} • ${updatedUser.queue}\n`;
     message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
-    message += `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
+    message += `🔔 Сповіщення: ${hasAnyNotificationEnabled(updatedUser) ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
     await safeEditMessageText(bot,
       message,
@@ -134,7 +135,7 @@ async function handlePauseCallbacks(bot, query, data, chatId, telegramId, _user)
     message += '🏠 <b>Головне меню</b>\n\n';
     message += `📍 Регіон: ${region} • ${updatedUser.queue}\n`;
     message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
-    message += `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
+    message += `🔔 Сповіщення: ${hasAnyNotificationEnabled(updatedUser) ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
     await safeEditMessageText(bot,
       message,

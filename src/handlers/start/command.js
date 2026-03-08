@@ -8,7 +8,7 @@ const { clearConversationState } = require('../channel');
 const { notifyAdminsAboutError } = require('../../utils/adminNotifier');
 const { clearFeedbackState } = require('../feedback');
 const { clearRegionRequestState } = require('../regionRequest');
-const { clearIpSetupState } = require('../settings');
+const { clearIpSetupState, hasAnyNotificationEnabled } = require('../settings');
 const { isInWizard, setWizardState, getWizardState, clearWizardState } = require('./helpers');
 
 // Запустити wizard для нового або існуючого користувача
@@ -180,7 +180,7 @@ async function handleStart(bot, msg) {
       let message = '🏠 <b>Головне меню</b>\n\n';
       message += `📍 Регіон: ${region} • ${user.queue}\n`;
       message += `📺 Канал: ${user.channel_id ? user.channel_id + ' ✅' : 'не підключено'}\n`;
-      message += `🔔 Сповіщення: ${user.is_active ? 'увімкнено ✅' : 'вимкнено'}\n`;
+      message += `🔔 Сповіщення: ${hasAnyNotificationEnabled(user) ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
       const sentMessage = await safeSendMessage(
         bot,

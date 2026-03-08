@@ -5,6 +5,7 @@ const config = require('../../config');
 const { safeEditMessageText } = require('../../utils/errorHandler');
 const { getSettingsKeyboard, getRegionKeyboard } = require('../../keyboards/inline');
 const { setWizardState, DEVELOPMENT_WARNING } = require('../start/helpers');
+const { hasAnyNotificationEnabled } = require('./helpers');
 
 async function handleRegionCallback(bot, query, user) {
   const chatId = query.message.chat.id;
@@ -69,7 +70,7 @@ async function handleRegionCallback(bot, query, user) {
     message += `📍 Регіон: ${region} • ${updatedUser.queue}\n`;
     message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
     message += `📡 IP: ${updatedUser.router_ip ? updatedUser.router_ip + ' ✅' : 'не підключено'}\n`;
-    message += `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено ✅' : 'вимкнено'}\n\n`;
+    message += `🔔 Сповіщення: ${hasAnyNotificationEnabled(updatedUser) ? 'увімкнено ✅' : 'вимкнено'}\n\n`;
     message += 'Керування:\n';
 
     await safeEditMessageText(bot, message, {
