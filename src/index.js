@@ -146,10 +146,11 @@ const shutdown = async (signal) => {
 
   try {
     // 1. Зупиняємо прийом повідомлень
-    await bot.api.deleteWebhook().catch((error) => {
-      console.error('⚠️  Помилка при видаленні webhook:', error.message);
-    });
-    console.log('✅ Webhook видалено');
+    // NOTE: Do NOT delete webhook during shutdown — the new container has already
+    // registered its own webhook via setWebhook(). Deleting it here would cause
+    // a race condition where the old container removes the new container's webhook,
+    // leaving the bot unable to receive updates.
+    console.log('ℹ️ Webhook залишено (новий інстанс перереєструє автоматично)');
 
     // 2. Drain message queue (wait for pending messages)
     await messageQueue.drain();
