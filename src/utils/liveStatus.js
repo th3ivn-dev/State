@@ -16,8 +16,6 @@ function generateLiveStatusMessage(user, regionName) {
     const powerOn = user.power_state === 'on';
     message += powerOn ? '🟢 Світло зараз: Є\n' : '🔴 Світло зараз: Немає\n';
 
-    // Add update time if available
-    // power_changed_at is expected to be an ISO 8601 datetime string (e.g., "2026-02-02T14:30:00.000Z")
     if (user.power_changed_at) {
       const updateDate = new Date(user.power_changed_at);
       const hours = String(updateDate.getHours()).padStart(2, '0');
@@ -31,25 +29,23 @@ function generateLiveStatusMessage(user, regionName) {
     message += '⚪ Світло зараз: Невідомо\n\n';
   }
 
-  // Settings section — регіон та черга жирним
+  // Settings section
   message += `📍 <b>${regionName} · ${user.queue}</b>\n`;
+  message += '│\n';
 
   if (!hasIp) {
-    message += '\n📡 Моніторинг світла: ще не підключено 😕\n';
-    message += '<i>💡 Підключіть IP роутера — тоді я буду повідомляти точно, коли у вас зникне/з&#39;явиться світло</i>\n';
+    message += '├─ 📡 IP: не підключено 😕\n';
   } else {
-    message += `📡 IP: підключено ✅\n`;
+    message += '├─ 📡 IP: підключено ✅\n';
   }
 
-  message += `\n📺 Канал: ${hasChannel ? 'підключено ✅' : 'не підключено'}\n`;
+  message += `├─ 📺 Канал: ${hasChannel ? 'підключено ✅' : 'не підключено'}\n`;
+  message += `╰─ 🔔 Сповіщення: ${notificationsEnabled ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
-  if (!hasChannel && hasIp) {
-    message += 'ℹ️ Сповіщення приходитимуть лише в бот\n';
+  if (!hasIp) {
+    message += '\n<i>💡 Додайте IP для точного моніторингу світла</i>';
   }
 
-  message += `🔔 Сповіщення: ${notificationsEnabled ? 'увімкнено ✅' : 'вимкнено'}\n`;
-
-  // Monitoring active message
   if (hasIp && notificationsEnabled) {
     message += '\n✅ Моніторинг активний';
   }
