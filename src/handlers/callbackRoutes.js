@@ -81,12 +81,13 @@ function createCallbackRouter() {
       (bot, query) => handleAdminCallback(bot, query)
     )
 
-    // Channel callbacks (including auto-connect, test, and format)
+    // Channel callbacks (including auto-connect, test, format, and channel notifications)
     .on(
       (d) => d.startsWith('channel_') ||
              d.startsWith('brand_') ||
              d.startsWith('test_') ||
              d.startsWith('format_') ||
+             d.startsWith('ch_notif_') ||
              d.startsWith('connect_channel_') ||
              d.startsWith('replace_channel_') ||
              d === 'cancel_channel_connect' ||

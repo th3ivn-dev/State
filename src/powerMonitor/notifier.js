@@ -192,7 +192,11 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
 
       // Send to the user's channel if configured and different from their private chat
       if (user.channel_id && user.channel_id !== user.telegram_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
-        if (user.channel_paused) {
+        const shouldNotifyChannel = (newState === 'off' && user.ch_notify_fact_off !== false) ||
+                                    (newState === 'on' && user.ch_notify_fact_on !== false);
+        if (!shouldNotifyChannel) {
+          console.log(`📺 Канальні сповіщення факту вимкнено для ${user.telegram_id}, пропускаємо`);
+        } else if (user.channel_paused) {
           console.log(`Канал користувача ${user.telegram_id} зупинено, пропускаємо публікацію в канал`);
         } else {
           try {

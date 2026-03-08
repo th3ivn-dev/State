@@ -254,6 +254,41 @@ async function updateNotificationSettings(telegramId, updates) {
   }
 }
 
+// Update channel notification settings for a user (independent from bot settings)
+async function updateChannelNotificationSettings(telegramId, updates) {
+  try {
+    const allowedFields = [
+      'ch_notify_schedule', 'ch_notify_remind_off', 'ch_notify_remind_on',
+      'ch_notify_fact_off', 'ch_notify_fact_on',
+      'ch_remind_15m', 'ch_remind_30m', 'ch_remind_1h',
+    ];
+
+    const fields = [];
+    const values = [];
+
+    for (const field of allowedFields) {
+      if (updates[field] !== undefined) {
+        values.push(updates[field]);
+        fields.push(`${field} = $${values.length}`);
+      }
+    }
+
+    if (fields.length === 0) return false;
+
+    fields.push('updated_at = NOW()');
+    values.push(telegramId);
+
+    const result = await pool.query(
+      `UPDATE users SET ${fields.join(', ')} WHERE telegram_id = $${values.length}`,
+      values
+    );
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error in updateChannelNotificationSettings:', error.message);
+    return false;
+  }
+}
+
 // Update auto-cleanup settings for a user
 async function updateCleanupSettings(telegramId, updates) {
   try {
@@ -294,5 +329,6 @@ module.exports = {
   updateScheduleAlertTarget,
   updateUserScheduleAlertSettings,
   updateNotificationSettings,
+  updateChannelNotificationSettings,
   updateCleanupSettings,
 };

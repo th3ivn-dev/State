@@ -119,7 +119,7 @@ function buildNotificationText(type, event, scheduleData, regionName, queue, min
  * Send a notification to user (bot and/or channel depending on target setting)
  * Deletes the previous reminder message in bot chat and tracks the new one.
  */
-async function sendNotification(bot, user, text) {
+async function sendNotification(bot, user, text, type = 'remind_off') {
   const target = user.notify_remind_target || 'bot';
 
   if (target === 'bot' || target === 'both') {
@@ -137,7 +137,13 @@ async function sendNotification(bot, user, text) {
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {
-    await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
+    // Check channel-specific remind settings before sending to channel
+    const chEnabled = type === 'remind_on'
+      ? user.ch_notify_remind_on !== false
+      : user.ch_notify_remind_off !== false;
+    if (chEnabled) {
+      await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
+    }
   }
 }
 
@@ -179,11 +185,20 @@ async function checkReminders(bot) {
       for (const user of groupUsers) {
         const telegramId = user.telegram_id;
 
-        // Determine which reminder times are enabled
+        // Determine which reminder times are enabled (bot settings)
         const reminderMinutes = [];
         if (user.remind_15m !== false) reminderMinutes.push(15);
         if (user.remind_30m === true) reminderMinutes.push(30);
         if (user.remind_1h === true) reminderMinutes.push(60);
+
+        // Determine which reminder times are enabled (channel settings)
+        const chReminderMinutes = [];
+        if (user.ch_remind_15m !== false) chReminderMinutes.push(15);
+        if (user.ch_remind_30m === true) chReminderMinutes.push(30);
+        if (user.ch_remind_1h === true) chReminderMinutes.push(60);
+
+        // Union of all minutes that need checking (bot or channel)
+        const allReminderMinutes = [...new Set([...reminderMinutes, ...chReminderMinutes])];
 
         const events = scheduleData.events || [];
 
@@ -194,14 +209,24 @@ async function checkReminders(bot) {
           const onKey = `${event.end.toISOString()}`;
 
           // Reminder before power-off
-          if (user.notify_remind_off !== false) {
-            for (const mins of reminderMinutes) {
-              if (nowMin === offMin - mins && event.start > now) {
+          for (const mins of allReminderMinutes) {
+            if (nowMin === offMin - mins && event.start > now) {
+              // Bot: fire if bot has this interval and bot remind_off is enabled
+              if (reminderMinutes.includes(mins) && user.notify_remind_off !== false) {
                 const rKey = `${telegramId}:remind_off:${offKey}:${mins}`;
                 if (!sentReminders.has(rKey)) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_off', event, scheduleData, regionName, queue, mins);
-                  await sendNotification(bot, user, text);
+                  await sendNotification(bot, user, text, 'remind_off');
+                }
+              } else if (!reminderMinutes.includes(mins) && chReminderMinutes.includes(mins) &&
+                         user.ch_notify_remind_off !== false && user.channel_id) {
+                // Channel-only interval (not in bot intervals): send directly to channel
+                const rKey = `${telegramId}:ch_remind_off:${offKey}:${mins}`;
+                if (!sentReminders.has(rKey)) {
+                  sentReminders.set(rKey, Date.now());
+                  const text = buildNotificationText('remind_off', event, scheduleData, regionName, queue, mins);
+                  await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
                 }
               }
             }
@@ -210,25 +235,34 @@ async function checkReminders(bot) {
           // Fact: power went off
           if (user.notify_fact_off !== false) {
             if (nowMin === offMin) {
-              // Check if we're at the exact minute of the outage start
               const factKey = `${telegramId}:fact_off:${offKey}`;
               if (!sentReminders.has(factKey)) {
                 sentReminders.set(factKey, Date.now());
                 const text = buildNotificationText('fact_off', event, scheduleData, regionName, queue, 0);
-                await sendNotification(bot, user, text);
+                await sendNotification(bot, user, text, 'fact_off');
               }
             }
           }
 
           // Reminder before power-on
-          if (user.notify_remind_on !== false) {
-            for (const mins of reminderMinutes) {
-              if (nowMin === onMin - mins && event.end > now) {
+          for (const mins of allReminderMinutes) {
+            if (nowMin === onMin - mins && event.end > now) {
+              // Bot: fire if bot has this interval and bot remind_on is enabled
+              if (reminderMinutes.includes(mins) && user.notify_remind_on !== false) {
                 const rKey = `${telegramId}:remind_on:${onKey}:${mins}`;
                 if (!sentReminders.has(rKey)) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_on', event, scheduleData, regionName, queue, mins);
-                  await sendNotification(bot, user, text);
+                  await sendNotification(bot, user, text, 'remind_on');
+                }
+              } else if (!reminderMinutes.includes(mins) && chReminderMinutes.includes(mins) &&
+                         user.ch_notify_remind_on !== false && user.channel_id) {
+                // Channel-only interval (not in bot intervals): send directly to channel
+                const rKey = `${telegramId}:ch_remind_on:${onKey}:${mins}`;
+                if (!sentReminders.has(rKey)) {
+                  sentReminders.set(rKey, Date.now());
+                  const text = buildNotificationText('remind_on', event, scheduleData, regionName, queue, mins);
+                  await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
                 }
               }
             }
@@ -241,7 +275,7 @@ async function checkReminders(bot) {
               if (!sentReminders.has(factKey)) {
                 sentReminders.set(factKey, Date.now());
                 const text = buildNotificationText('fact_on', event, scheduleData, regionName, queue, 0);
-                await sendNotification(bot, user, text);
+                await sendNotification(bot, user, text, 'fact_on');
               }
             }
           }
