@@ -14,7 +14,7 @@ const {
 const { getMinutesDifference, parseTime, getCurrentTime } = require('./time');
 const { isAdmin } = require('./auth');
 const { escapeHtml } = require('./html');
-const { getBotUsername, getChannelConnectionInstructions, clearPreviousButtonsMarkup } = require('./botHelpers');
+const { getBotUsername, getChannelConnectionInstructions } = require('./botHelpers');
 const { generateLiveStatusMessage } = require('./liveStatus');
 
 module.exports = {
@@ -36,6 +36,5 @@ module.exports = {
   escapeHtml,
   getBotUsername,
   getChannelConnectionInstructions,
-  clearPreviousButtonsMarkup,
   generateLiveStatusMessage,
 };

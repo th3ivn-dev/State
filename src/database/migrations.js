@@ -84,10 +84,7 @@ async function runMigrations() {
       { name: 'notify_power_target', type: "TEXT DEFAULT 'bot'" },
       // Auto-cleanup
       { name: 'auto_delete_commands', type: 'BOOLEAN DEFAULT FALSE' },
-      { name: 'auto_delete_bot_messages', type: 'BOOLEAN DEFAULT FALSE' },
-      // Message tracking
-      { name: 'last_bot_message_with_buttons_id', type: 'INTEGER DEFAULT NULL' },
-      { name: 'last_reminder_message_id', type: 'INTEGER DEFAULT NULL' }
+      { name: 'auto_delete_bot_messages', type: 'BOOLEAN DEFAULT FALSE' }
     ];
 
     let addedCount = 0;

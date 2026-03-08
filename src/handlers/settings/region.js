@@ -1,6 +1,6 @@
 const usersDb = require('../../database/users');
 const { REGIONS } = require('../../constants/regions');
-const { isAdmin, generateLiveStatusMessage } = require('../../utils');
+const { isAdmin } = require('../../utils');
 const config = require('../../config');
 const { safeEditMessageText } = require('../../utils/errorHandler');
 const { getSettingsKeyboard, getRegionKeyboard } = require('../../keyboards/inline');
@@ -63,7 +63,14 @@ async function handleRegionCallback(bot, query, user) {
     const userIsAdmin = isAdmin(telegramId, config.adminIds, config.ownerId);
     const region = REGIONS[updatedUser.region]?.name || updatedUser.region;
 
-    const message = generateLiveStatusMessage(updatedUser, region);
+    // Build settings message according to new format
+    let message = '⚙️ <b>Налаштування</b>\n\n';
+    message += 'Поточні параметри:\n\n';
+    message += `📍 Регіон: ${region} • ${updatedUser.queue}\n`;
+    message += `📺 Канал: ${updatedUser.channel_id ? updatedUser.channel_id + ' ✅' : 'не підключено'}\n`;
+    message += `📡 IP: ${updatedUser.router_ip ? updatedUser.router_ip + ' ✅' : 'не підключено'}\n`;
+    message += `🔔 Сповіщення: ${updatedUser.is_active ? 'увімкнено ✅' : 'вимкнено'}\n\n`;
+    message += 'Керування:\n';
 
     await safeEditMessageText(bot, message, {
       chat_id: chatId,

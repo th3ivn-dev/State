@@ -3,7 +3,7 @@ const config = require('../config');
 const { getMainMenu, getHelpKeyboard, getSettingsKeyboard, getErrorKeyboard, getScheduleViewKeyboard } = require('../keyboards/inline');
 const { REGIONS } = require('../constants/regions');
 const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTimerPopup } = require('../formatter');
-const { generateLiveStatusMessage, clearPreviousButtonsMarkup } = require('../utils');
+const { generateLiveStatusMessage } = require('../utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../utils/errorHandler');
 const usersDb = require('../database/users');
 const { fetchScheduleData, fetchScheduleImage } = require('../api');
@@ -312,19 +312,13 @@ async function handleBackToMain(bot, query) {
   await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
   const telegramId = String(query.from.id);
-  const chatId = query.message.chat.id;
   const user = await usersDb.getUserByTelegramId(telegramId);
 
   if (user) {
-    // Clear buttons from last message with buttons (if different from current)
-    if (user.last_bot_message_with_buttons_id && user.last_bot_message_with_buttons_id !== query.message.message_id) {
-      await clearPreviousButtonsMarkup(bot, chatId, user.last_bot_message_with_buttons_id);
-    }
-
     // Delete previous main menu message if it exists AND is different from current
     if (user.last_start_message_id && user.last_start_message_id !== query.message.message_id) {
       try {
-        await bot.api.deleteMessage(chatId, user.last_start_message_id);
+        await bot.api.deleteMessage(query.message.chat.id, user.last_start_message_id);
       } catch (_e) {
         // Ignore - message might already be deleted
       }
@@ -353,34 +347,32 @@ async function handleBackToMain(bot, query) {
       await safeEditMessageText(bot,
         message,
         {
-          chat_id: chatId,
+          chat_id: query.message.chat.id,
           message_id: query.message.message_id,
           parse_mode: 'HTML',
           reply_markup: getMainMenu(botStatus, channelPaused).reply_markup,
         }
       );
-      // Update last_start_message_id and last_bot_message_with_buttons_id to current message
+      // Update last_start_message_id to current message
       await usersDb.updateUser(telegramId, { last_start_message_id: query.message.message_id });
-      await usersDb.updateLastBotMessageWithButtonsId(telegramId, query.message.message_id);
     } catch (_error) {
       // If edit fails (e.g., media→text not supported, message deleted), delete and send new
       try {
-        await bot.api.deleteMessage(chatId, query.message.message_id);
+        await bot.api.deleteMessage(query.message.chat.id, query.message.message_id);
       } catch (_deleteError) {
         // Ignore delete errors
       }
       const sentMessage = await bot.api.sendMessage(
-        chatId,
+        query.message.chat.id,
         message,
         {
           parse_mode: 'HTML',
           ...getMainMenu(botStatus, channelPaused)
         }
       ).catch(() => null);
-      // Update last_start_message_id and last_bot_message_with_buttons_id to new message
+      // Update last_start_message_id to new message
       if (sentMessage) {
         await usersDb.updateUser(telegramId, { last_start_message_id: sentMessage.message_id });
-        await usersDb.updateLastBotMessageWithButtonsId(telegramId, sentMessage.message_id);
       }
     }
   }
@@ -611,52 +603,12 @@ async function handleScheduleRefresh(bot, query) {
   }
 }
 
-// Обробник callback schedule_change_queue — змінити чергу з екрану графіка
-async function handleScheduleChangeQueue(bot, query) {
-  const chatId = query.message.chat.id;
-  const telegramId = String(query.from.id);
-
-  try {
-    const user = await usersDb.getUserByTelegramId(telegramId);
-    if (!user) {
-      await safeAnswerCallbackQuery(bot, query.id, {
-        text: '❌ Користувач не знайдений',
-        show_alert: true
-      });
-      return;
-    }
-
-    await bot.api.answerCallbackQuery(query.id).catch(() => {});
-
-    const confirmKeyboard = {
-      inline_keyboard: [
-        [
-          { text: 'Так, змінити', callback_data: 'schedule_region_confirm' },
-          { text: 'Скасувати', callback_data: 'menu_schedule' }
-        ]
-      ]
-    };
-
-    await safeEditMessageText(bot,
-      '⚠️ <b>Зміна регіону/черги</b>\n\n' +
-      'Поточні налаштування:\n' +
-      `📍 Регіон: ${REGIONS[user.region]?.name || user.region}\n` +
-      `🔢 Черга: ${user.queue}\n\n` +
-      'Ви впевнені, що хочете змінити регіон або чергу?',
-      {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: confirmKeyboard,
-      }
-    );
-  } catch (error) {
-    console.error('Помилка handleScheduleChangeQueue:', error);
-    await safeAnswerCallbackQuery(bot, query.id, {
-      text: '😅 Щось пішло не так. Спробуйте ще раз!',
-      show_alert: true
-    });
-  }
+// Обробник callback my_queues
+async function handleMyQueues(bot, query) {
+  await safeAnswerCallbackQuery(bot, query.id, {
+    text: '🚧 Функціонал "Мої черги" в розробці',
+    show_alert: true
+  });
 }
 
 module.exports = {
@@ -671,5 +623,5 @@ module.exports = {
   handleTimerCallback,
   handleStatsCallback,
   handleScheduleRefresh,
-  handleScheduleChangeQueue,
+  handleMyQueues,
 };
