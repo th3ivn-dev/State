@@ -32,6 +32,15 @@ function appendTimestamp(htmlMessage, checkTime) {
   const fullText = plainMessage + prefix + timestampStr;
   const offset = plainMessage.length + prefix.length;
 
+  // Add custom_emoji entity for the 🔄 in the prefix (animated refresh icon)
+  // '🔄' (U+1F504) is a supplementary character = 2 UTF-16 code units
+  entities.push({
+    type: 'custom_emoji',
+    offset: plainMessage.length + 2, // after '\n\n'
+    length: 2,
+    custom_emoji_id: '5017470156276761427',
+  });
+
   // Bot API 9.5: date_time entity requires unix_time AND date_time_format
   // Format "dT" = date + time with seconds (e.g. "4 бер. 2026, 20:15:00")
   // Format "r" = relative time (e.g. "5 хвилин тому")

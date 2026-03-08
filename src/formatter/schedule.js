@@ -18,7 +18,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   if (!scheduleData.hasData) {
     lines.push(`<i>💡 Графік відключень для черги ${queue}</i>`);
     lines.push('');
-    lines.push('ℹ️ Немає даних про відключення');
+    lines.push('<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> Відключень не заплановано');
     return lines.join('\n');
   }
 
@@ -166,7 +166,7 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   } else {
     lines.push(`<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`);
     lines.push('');
-    lines.push('✅ Відключень не заплановано');
+    lines.push('<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> Відключень не заплановано');
   }
 
   return lines.join('\n');
@@ -187,7 +187,7 @@ function formatScheduleForChannel(region, queue, scheduleData, todayDate) {
   lines.push('');
 
   if (!scheduleData.hasData || scheduleData.events.length === 0) {
-    lines.push('✅ Відключень не заплановано');
+    lines.push('<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> Відключень не заплановано');
     return lines.join('\n');
   }
 

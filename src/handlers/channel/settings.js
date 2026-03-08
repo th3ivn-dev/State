@@ -92,7 +92,7 @@ async function handleSettingsCallbacks(bot, query, data, chatId, telegramId, use
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+            [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
           ]
         }
       }

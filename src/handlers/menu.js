@@ -59,7 +59,7 @@ async function handleMenuSchedule(bot, query) {
         'для вашої черги не опублікований.\n\n' +
         'Це означає, що відключення не заплановані\n' +
         'або дані ще не оновлені.\n\n' +
-        '🔄 Бот перевіряє графік автоматично —\n' +
+        '<tg-emoji emoji-id="5017470156276761427">🔄</tg-emoji> Бот перевіряє графік автоматично —\n' +
         'ви отримаєте сповіщення, щойно він з\'явиться.',
         {
           chat_id: query.message.chat.id,
@@ -68,7 +68,7 @@ async function handleMenuSchedule(bot, query) {
           reply_markup: {
             inline_keyboard: [
               [{ text: '🔄 Оновити', callback_data: 'schedule_refresh' }],
-              [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
             ]
           }
         }
@@ -401,7 +401,7 @@ async function handleHelpHowto(bot, query) {
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'menu_help' },
-            { text: '⤵ Меню', callback_data: 'back_to_main' }
+            { text: '⤴ Меню', callback_data: 'back_to_main' }
           ]
         ]
       }
