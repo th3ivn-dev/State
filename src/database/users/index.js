@@ -1,9 +1,9 @@
-const { createUser, saveUser, getUserByTelegramId, getUserById, getUserByChannelId, deleteUser, setUserActive, updateUser } = require('./core');
+const { createUser, saveUser, getUserByTelegramId, getUserById, getUserByChannelId, deleteUser, setUserActive, updateUser, batchSetUsersInactive, batchSetUsersActive } = require('./core');
 const { getUsersByRegion, getUsersByRegionForScheduler, getAllActiveUsers, getAllUsers, getRecentUsers, getUsersWithRouterIp, getUsersWithActiveChannels, getUsersWithChannelsForVerification, getActiveUsersByRegionQueue, getActiveUsersWithReminders, paginateActiveUsers } = require('./queries');
 const { updateUserPowerState, changePowerStateAndGetDuration, setPendingPowerChange, clearPendingPowerChange } = require('./power');
 const { updateUserChannel, resetUserChannel, updateChannelBranding, updateChannelBrandingPartial, updateChannelStatus, updateUserChannelPaused } = require('./channel');
 const { updateUserAlertSettings, updateUserFormatSettings, getUserFormatSettings, updateUserPowerNotifyTarget, updateScheduleAlertEnabled, updateScheduleAlertMinutes, updateScheduleAlertTarget, updateUserScheduleAlertSettings, updateNotificationSettings, updateChannelNotificationSettings, updateCleanupSettings } = require('./settings');
-const { updateUserHash, updateUserPublishedHash, updateUserHashes, updateSnapshotHashes, getSnapshotHashes, batchUpdateHashes } = require('./hashes');
+const { updateUserHash, updateUserPublishedHash, updateUserHashes, updateSnapshotHashes, getSnapshotHashes, batchUpdateHashes, batchUpdateSnapshotHashes, batchUpdatePublishedHashes } = require('./hashes');
 const { updateUserRegionQueue, updateUserRegionAndQueue, updateUserPostId, updateUserRouterIp, updateLastScheduleMessageId, updateLastBotKeyboardMessageId, updateLastReminderMessageId } = require('./updates');
 const { getUserStats, getUserCount } = require('./stats');
 const { getUserFullProfile, getUserWithNotifications, getUserWithChannel, getUserWithPowerState, getUserWithMessages } = require('./joins');
@@ -69,4 +69,8 @@ module.exports = {
   getUserWithChannel,
   getUserWithPowerState,
   getUserWithMessages,
+  batchUpdateSnapshotHashes,
+  batchUpdatePublishedHashes,
+  batchSetUsersInactive,
+  batchSetUsersActive,
 };
