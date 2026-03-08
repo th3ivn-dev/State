@@ -29,18 +29,12 @@ function generateLiveStatusMessage(user, regionName) {
     message += '⚪ Світло зараз: Невідомо\n\n';
   }
 
-  // Settings section
-  message += `📍 <b>${regionName} · ${user.queue}</b>\n`;
-  message += '│\n';
+  // Settings section — регіон та черга жирним
+  message += `📍 <b>${regionName} · ${user.queue}</b>\n\n`;
 
-  if (!hasIp) {
-    message += '├─ 📡 IP: не підключено 😕\n';
-  } else {
-    message += '├─ 📡 IP: підключено ✅\n';
-  }
-
-  message += `├─ 📺 Канал: ${hasChannel ? 'підключено ✅' : 'не підключено'}\n`;
-  message += `╰─ 🔔 Сповіщення: ${notificationsEnabled ? 'увімкнено ✅' : 'вимкнено'}\n`;
+  message += `📡 IP: ${hasIp ? 'підключено ✅' : 'не підключено 😕'}\n`;
+  message += `📺 Канал: ${hasChannel ? 'підключено ✅' : 'не підключено'}\n`;
+  message += `🔔 Сповіщення: ${notificationsEnabled ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
   if (!hasIp) {
     message += '\n<i>💡 Додайте IP для точного моніторингу світла</i>';
