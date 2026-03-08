@@ -15,7 +15,6 @@ const {
   getBroadcastEmojiPromptKeyboard,
   getBroadcastButtonsMenuKeyboard,
   getBroadcastBotButtonsKeyboard,
-  getBroadcastCommandButtonsKeyboard,
   getBroadcastPreviewKeyboard,
 } = require('../../keyboards/inline');
 const { runBroadcast, isBroadcastRunning } = require('../../queue/broadcastQueue');
@@ -133,13 +132,6 @@ const BOT_BUTTONS = [
 ];
 
 const BOT_BUTTONS_PER_PAGE = 5;
-
-/** Command buttons that trigger bot commands when clicked */
-const COMMAND_BUTTONS = [
-  { text: '🏠 Головне меню', command: '/start', callback_data: 'broadcast_cmd_start', description: 'Перейти до головного меню' },
-  { text: '📊 Графік', command: '/schedule', callback_data: 'broadcast_cmd_schedule', description: 'Показати графік' },
-  { text: '❓ Допомога', command: '/help', callback_data: 'broadcast_cmd_help', description: 'Показати допомогу' },
-];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -343,58 +335,6 @@ async function handleBroadcastCallback(bot, query, chatId, userId, data) {
 
     await safeEditMessageText(bot,
       '🔗 <b>URL кнопка</b>\n\nВведіть текст кнопки:',
-      {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '❌ Скасувати', callback_data: 'broadcast_show_buttons' }]
-          ]
-        }
-      }
-    );
-    return;
-  }
-
-  // ── Add command button — show list of commands ────────────────────────────
-  if (data === 'broadcast_add_btn_cmd') {
-    if (!broadcastState) return;
-    const items = COMMAND_BUTTONS.map((b) => ({ text: b.text, description: b.description }));
-
-    await safeEditMessageText(bot,
-      '⌨️ <b>Кнопка команди</b>\n\nОберіть команду:',
-      {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        ...getBroadcastCommandButtonsKeyboard(items),
-      }
-    );
-    return;
-  }
-
-  // ── Select a command button from list ─────────────────────────────────────
-  if (data.startsWith('broadcast_cmd_btn_')) {
-    if (!broadcastState) return;
-    const idx = parseInt(data.replace('broadcast_cmd_btn_', ''), 10);
-    const cmdDef = COMMAND_BUTTONS[idx];
-    if (!cmdDef) return;
-
-    await setBroadcastState(userId, {
-      ...broadcastState,
-      state: 'waiting_for_cmd_button_text',
-      pendingButton: {
-        type: 'command',
-        command: cmdDef.command,
-        callback_data: cmdDef.callback_data,
-        defaultText: cmdDef.text,
-      },
-      wizardMessageId: query.message.message_id,
-    });
-
-    await safeEditMessageText(bot,
-      `⌨️ <b>Кнопка команди: ${cmdDef.text}</b>\n\nВведіть текст кнопки або надішліть <code>.</code> щоб використати стандартний текст (<i>${cmdDef.text}</i>):`,
       {
         chat_id: chatId,
         message_id: query.message.message_id,
@@ -902,43 +842,6 @@ async function handleBroadcastConversation(bot, msg) {
 
     const newMsg = await safeSendMessage(bot, chatId,
       `✅ <b>URL кнопка додана!</b>`,
-      {
-        parse_mode: 'HTML',
-        ...getBroadcastButtonsMenuKeyboard(updatedState.buttons),
-      }
-    );
-    if (newMsg) {
-      await setBroadcastState(telegramId, { ...updatedState, wizardMessageId: newMsg.message_id });
-    }
-    return true;
-  }
-
-  // ── Waiting for command button text ───────────────────────────────────────
-  if (wizardStep === 'waiting_for_cmd_button_text') {
-    const pending = broadcastState.pendingButton;
-
-    // "." means use default text
-    const buttonText = (text && text.trim() === '.') ? pending.defaultText : (text || '').trim();
-    if (!buttonText) {
-      await safeSendMessage(bot, chatId, '❌ Текст кнопки не може бути порожнім. Введіть текст або надішліть <code>.</code>:', { parse_mode: 'HTML' });
-      return true;
-    }
-
-    const newButton = { type: 'command', text: buttonText, command: pending.command, callback_data: pending.callback_data };
-    const updatedState = {
-      ...broadcastState,
-      state: null,
-      pendingButton: null,
-      buttons: [...(broadcastState.buttons || []), newButton],
-    };
-    await setBroadcastState(telegramId, updatedState);
-
-    if (wizardMessageId) {
-      await safeDeleteMessage(bot, chatId, wizardMessageId);
-    }
-
-    const newMsg = await safeSendMessage(bot, chatId,
-      `✅ <b>Кнопка команди додана!</b>`,
       {
         parse_mode: 'HTML',
         ...getBroadcastButtonsMenuKeyboard(updatedState.buttons),

@@ -1447,7 +1447,6 @@ function getBroadcastButtonsMenuKeyboard(currentButtons = []) {
 
   keyboard.push([{ text: '➕ Кнопка бота (callback)', callback_data: 'broadcast_add_btn_callback' }]);
   keyboard.push([{ text: '🔗 URL кнопка', callback_data: 'broadcast_add_btn_url' }]);
-  keyboard.push([{ text: '⌨️ Кнопка команди', callback_data: 'broadcast_add_btn_cmd' }]);
   keyboard.push([{ text: '👁 Попередній перегляд', callback_data: 'broadcast_preview' }]);
   keyboard.push([{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }]);
 
@@ -1468,19 +1467,6 @@ function getBroadcastBotButtonsKeyboard(items, page, totalPages) {
   nav.push({ text: `${page}/${totalPages}`, callback_data: 'noop' });
   if (page < totalPages) nav.push({ text: 'Вперед →', callback_data: `broadcast_bot_page_${page + 1}` });
   if (nav.length > 1) keyboard.push(nav);
-
-  keyboard.push([{ text: '← До кнопок', callback_data: 'broadcast_show_buttons' }]);
-
-  return {
-    reply_markup: { inline_keyboard: keyboard }
-  };
-}
-
-// Step 3b: Command buttons list
-function getBroadcastCommandButtonsKeyboard(items) {
-  const keyboard = items.map((btn, idx) => [
-    { text: btn.text, callback_data: `broadcast_cmd_btn_${idx}` }
-  ]);
 
   keyboard.push([{ text: '← До кнопок', callback_data: 'broadcast_show_buttons' }]);
 
@@ -1565,6 +1551,5 @@ module.exports = {
   getBroadcastEmojiPromptKeyboard,
   getBroadcastButtonsMenuKeyboard,
   getBroadcastBotButtonsKeyboard,
-  getBroadcastCommandButtonsKeyboard,
   getBroadcastPreviewKeyboard,
 };
