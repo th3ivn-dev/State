@@ -674,6 +674,9 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
  * Returns true if sent successfully, false if it ultimately failed.
  */
 async function sendWithRetry(bot, telegramId, text, options, maxRetries = 3) {
+  let floodRetries = 0;
+  const maxFloodRetries = 5;
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       await bot.api.sendMessage(telegramId, text, options);
@@ -687,9 +690,15 @@ async function sendWithRetry(bot, telegramId, text, options, maxRetries = 3) {
       }
       // Telegram 429 flood control — wait for retry_after
       if (error.error_code === 429 || msg.includes('Too Many Requests')) {
+        floodRetries++;
+        if (floodRetries > maxFloodRetries) {
+          console.error(`Broadcast: too many 429 retries for ${telegramId}, giving up`);
+          return false;
+        }
         const retryAfter = error.parameters?.retry_after || 5;
         await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-        // Don't count this as an attempt — retry immediately after waiting
+        // Don't count this as a regular attempt — retry after waiting
+        attempt--;
         continue;
       }
       if (attempt < maxRetries) {

@@ -185,7 +185,11 @@ async function handleBroadcast(bot, msg) {
                 await bot.api.sendMessage(user.telegram_id, broadcastText, msgOptions);
                 sent++;
                 continue;
-              } catch {
+              } catch (retryErr) {
+                const retryMsg = retryErr.message || '';
+                if (retryMsg.includes('bot was blocked') || retryMsg.includes('chat not found') || retryMsg.includes('user is deactivated')) {
+                  usersDb.setUserActive(user.telegram_id, false).catch(() => {});
+                }
                 failed++;
                 continue;
               }

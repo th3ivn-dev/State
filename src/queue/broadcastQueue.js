@@ -242,7 +242,7 @@ function initBroadcastWorker(botInstance) {
       if (redisKey) {
         await workerConnection.incr(redisKey.failed).catch(() => {});
       }
-      if (isTelegramUserInactiveError(err) || (err.message && err.message.includes('inactive'))) {
+      if (err instanceof UnrecoverableError) {
         logger.info(`Broadcast: користувач ${telegramId} заблокував бота — пропущено`);
       } else {
         logger.error(`Broadcast: помилка відправки для ${telegramId}: ${err?.message}`);
