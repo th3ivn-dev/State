@@ -166,11 +166,11 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       }
     }
 
-    const notifyTarget = user.power_notify_target || 'both';
-
     if (shouldNotify) {
       // Send to the user's private chat
-      if (notifyTarget === 'bot' || notifyTarget === 'both') {
+      const shouldNotifyBot = (newState === 'off' && user.notify_fact_off !== false) ||
+                              (newState === 'on' && user.notify_fact_on !== false);
+      if (shouldNotifyBot) {
         try {
           await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
           console.log(`📱 Повідомлення про зміну стану відправлено користувачу ${user.telegram_id}`);
@@ -191,7 +191,7 @@ async function handlePowerStateChange(user, newState, oldState, userState, _orig
       }
 
       // Send to the user's channel if configured and different from their private chat
-      if (user.channel_id && user.channel_id !== user.telegram_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
+      if (user.channel_id && user.channel_id !== user.telegram_id) {
         const shouldNotifyChannel = (newState === 'off' && user.ch_notify_fact_off !== false) ||
                                     (newState === 'on' && user.ch_notify_fact_on !== false);
         if (!shouldNotifyChannel) {
