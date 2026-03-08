@@ -130,8 +130,8 @@ async function closeQueue() {
     }
     await notificationsQueue.close();
     logger.info('Queue closed');
-    await queueConnection.disconnect().catch(() => {});
-    await workerConnection.disconnect().catch(() => {});
+    try { await queueConnection?.disconnect?.(); } catch (_) { /* already closed */ }
+    try { await workerConnection?.disconnect?.(); } catch (_) { /* already closed */ }
     logger.success('Notifications queue та Redis з\'єднання закрито');
   } catch (err) {
     logger.error('Помилка закриття queue:', { error: err.message });
