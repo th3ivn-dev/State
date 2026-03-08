@@ -89,16 +89,16 @@ try {
   assert(scheduleButton.text === 'Графік', 'Schedule button should have correct text');
 
   const timerButton = allButtons.find(btn => btn.callback_data === 'menu_timer');
-  assert(timerButton.text === '⏱ Таймер', 'Timer button should have correct text');
+  assert(timerButton.text === 'Таймер', 'Timer button should have correct text');
 
   const statsButton = allButtons.find(btn => btn.callback_data === 'menu_stats');
-  assert(statsButton.text === '📈 Статистика', 'Stats button should have correct text');
+  assert(statsButton.text === 'Статистика', 'Stats button should have correct text');
 
   const helpButton = allButtons.find(btn => btn.callback_data === 'menu_help');
-  assert(helpButton.text === '❓ Допомога', 'Help button should have correct text');
+  assert(helpButton.text === 'Допомога', 'Help button should have correct text');
 
   const settingsButton = allButtons.find(btn => btn.callback_data === 'menu_settings');
-  assert(settingsButton.text === '⚙️ Налаштування', 'Settings button should have correct text');
+  assert(settingsButton.text === 'Налаштування', 'Settings button should have correct text');
 
   console.log('✅ Main menu callback_data test passed\n');
 } catch (error) {
