@@ -130,35 +130,60 @@ async function handleBroadcast(bot, msg) {
       return;
     }
 
-    await bot.api.sendMessage(chatId, `📤 Розсилка повідомлення ~${stats.active} користувачам...`);
+    const broadcastText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`;
+    const msgOptions = { parse_mode: 'HTML' };
+    const total = stats.active;
 
-    let sent = 0;
-    let failed = 0;
-
-    // Paginated broadcast — loads 500 users at a time instead of all at once
-    for await (const page of usersDb.paginateActiveUsers(500)) {
-      for (const user of page) {
-        try {
-          await bot.api.sendMessage(user.telegram_id, `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`, {
-            parse_mode: 'HTML',
-          });
-          sent++;
-          await new Promise(resolve => setTimeout(resolve, 40));
-        } catch (error) {
-          if (!error.message?.includes('bot was blocked') && !error.message?.includes('chat not found')) {
-            console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
-          }
-          failed++;
-        }
-      }
+    let progressMsg;
+    try {
+      progressMsg = await bot.api.sendMessage(
+        chatId,
+        `📤 Розсилка розпочата через BullMQ...\nВсього користувачів: ~${total}\n\n📤 Відправлено: 0/${total} (помилок: 0)`
+      );
+    } catch {
+      progressMsg = null;
     }
 
-    await bot.api.sendMessage(
-      chatId,
-      `✅ Розсилка завершена!\n\n` +
-      `Відправлено: ${sent}\n` +
-      `Помилок: ${failed}`
-    );
+    let usedBullMQ = false;
+    try {
+      const { runBroadcast } = require('../queue/broadcastQueue');
+      await runBroadcast(bot, chatId, progressMsg ? progressMsg.message_id : null, broadcastText, msgOptions, total);
+      usedBullMQ = true;
+    } catch (err) {
+      console.error('BullMQ broadcast unavailable, falling back to direct send:', err.message);
+    }
+
+    if (!usedBullMQ) {
+      let sent = 0;
+      let failed = 0;
+
+      // Paginated broadcast — loads 500 users at a time instead of all at once
+      for await (const page of usersDb.paginateActiveUsers(500)) {
+        for (const user of page) {
+          try {
+            await bot.api.sendMessage(user.telegram_id, broadcastText, msgOptions);
+            sent++;
+            await new Promise(resolve => setTimeout(resolve, 40));
+          } catch (error) {
+            if (!error.message?.includes('bot was blocked') && !error.message?.includes('chat not found')) {
+              console.error(`Помилка відправки користувачу ${user.telegram_id}:`, error.message);
+            }
+            failed++;
+          }
+        }
+      }
+
+      const summary =
+        `✅ Розсилка завершена!\n\n` +
+        `Відправлено: ${sent}\n` +
+        `Помилок: ${failed}`;
+
+      if (progressMsg) {
+        await bot.api.editMessageText(chatId, progressMsg.message_id, summary).catch(() => {});
+      } else {
+        await bot.api.sendMessage(chatId, summary);
+      }
+    }
 
   } catch (error) {
     console.error('Помилка в handleBroadcast:', error);

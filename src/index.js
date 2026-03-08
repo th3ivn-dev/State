@@ -16,6 +16,7 @@ const { startHealthCheck, stopHealthCheck } = require('./healthcheck');
 const messageQueue = require('./utils/messageQueue');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 const { initWorker, closeQueue } = require('./queue/notificationsQueue');
+const { initBroadcastWorker, closeBroadcastQueue } = require('./queue/broadcastQueue');
 const { closePhotoCache } = require('./queue/photoCache');
 const { startMetricsLogging, stopMetricsLogging } = require('./monitoring/systemMetrics');
 
@@ -55,6 +56,7 @@ async function main() {
 
   messageQueue.init(bot);
   initWorker(bot);
+  initBroadcastWorker(bot);
 
   // State restoration — initStateManager handles wizard/conversation/ipSetup
   await Promise.all([
@@ -157,7 +159,11 @@ const shutdown = async (signal) => {
     await closeQueue();
     console.log('✅ Notifications queue закрито');
 
-    // 2.2 Закриваємо photo cache
+    // 2.2 Закриваємо broadcast queue (BullMQ)
+    await closeBroadcastQueue();
+    console.log('✅ Broadcast queue закрито');
+
+    // 2.3 Закриваємо photo cache
     try {
       await closePhotoCache();
     } catch (_e) { /* ignore */ }

@@ -19,6 +19,60 @@ const {
   getBroadcastPreviewKeyboard,
 } = require('../../keyboards/inline');
 
+// ─── HTML helpers ─────────────────────────────────────────────────────────────
+
+/**
+ * Sanitize common HTML issues in broadcast text:
+ * - Trim whitespace inside closing tags (e.g. `</i >` → `</i>`)
+ * - Close any unclosed tags in order
+ */
+function sanitizeBroadcastHtml(text) {
+  if (!text) return text;
+  // Trim whitespace inside closing tags
+  let result = text.replace(/<\/\s*(\w+)\s*>/g, '</$1>');
+  // Close unclosed tags (track opened tags and close them in reverse)
+  const selfClosing = new Set(['br', 'hr', 'img', 'input']);
+  const opened = [];
+  const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+  let m;
+  while ((m = tagRe.exec(result)) !== null) {
+    const full = m[0];
+    const name = m[1].toLowerCase();
+    if (selfClosing.has(name)) continue;
+    if (full.startsWith('</')) {
+      // closing tag — pop from stack
+      const idx = opened.lastIndexOf(name);
+      if (idx !== -1) opened.splice(idx, 1);
+    } else if (!full.endsWith('/>')) {
+      opened.push(name);
+    }
+  }
+  // Append closing tags in reverse order
+  for (let i = opened.length - 1; i >= 0; i--) {
+    result += `</${opened[i]}>`;
+  }
+  return result;
+}
+
+/**
+ * Validate HTML by test-sending to the admin and immediately deleting.
+ * Returns null on success, or an error message string on failure.
+ */
+async function validateHtml(bot, chatId, text) {
+  let testMsg = null;
+  try {
+    testMsg = await bot.api.sendMessage(chatId, text, { parse_mode: 'HTML' });
+    return null; // valid
+  } catch (err) {
+    const desc = err.description || err.message || String(err);
+    return desc;
+  } finally {
+    if (testMsg) {
+      bot.api.deleteMessage(chatId, testMsg.message_id).catch(() => {});
+    }
+  }
+}
+
 // ─── Static data ──────────────────────────────────────────────────────────────
 
 /** Rate-limit delay between individual message sends (Telegram allows ~30 msg/s per chat) */
@@ -371,6 +425,53 @@ async function handleBroadcastCallback(bot, query, chatId, userId, data) {
     await executeBroadcast(bot, chatId, query.message.message_id, userId, broadcastState);
     return;
   }
+
+  // ── Auto-fix HTML in preview (text already saved) ─────────────────────────
+  if (data === 'broadcast_fix_html') {
+    if (!broadcastState || !broadcastState.text) return;
+    const fixed = sanitizeBroadcastHtml(broadcastState.text);
+    const updatedState = { ...broadcastState, text: fixed };
+    await setBroadcastState(userId, updatedState);
+    await showPreview(bot, chatId, query.message.message_id, userId, updatedState);
+    return;
+  }
+
+  // ── Auto-fix HTML during text input ──────────────────────────────────────
+  if (data === 'broadcast_fix_html_text') {
+    if (!broadcastState || !broadcastState.pendingText) return;
+    const fixed = sanitizeBroadcastHtml(broadcastState.pendingText);
+    const updatedState = { ...broadcastState, text: fixed, pendingText: null, state: null };
+    await setBroadcastState(userId, updatedState);
+
+    if (broadcastState.wizardMessageId) {
+      await safeDeleteMessage(bot, chatId, broadcastState.wizardMessageId);
+    }
+
+    const snippet = truncateText(fixed, 80);
+    const newMsg = await safeSendMessage(bot, chatId,
+      `✅ <b>Текст виправлено та збережено!</b>\n\n<i>${snippet}</i>\n\nБажаєте додати custom emoji до тексту?`,
+      {
+        parse_mode: 'HTML',
+        ...getBroadcastAfterTextKeyboard(),
+      }
+    );
+    if (newMsg) {
+      await setBroadcastState(userId, { ...updatedState, wizardMessageId: newMsg.message_id });
+    }
+    return;
+  }
+
+  // ── Cancel text input (keep wizard open at text input step) ──────────────
+  if (data === 'broadcast_cancel_text_input') {
+    if (!broadcastState) return;
+    const cleanState = { ...broadcastState, pendingText: null, state: 'waiting_for_broadcast_text' };
+    await setBroadcastState(userId, cleanState);
+    await safeSendMessage(bot, chatId,
+      '✏️ Введіть новий текст повідомлення:',
+      getBroadcastTextPromptKeyboard()
+    );
+    return;
+  }
 }
 
 // ─── Helper: paginated bot buttons page ───────────────────────────────────────
@@ -396,6 +497,42 @@ async function showBotButtonsPage(bot, chatId, messageId, page) {
 
 async function showPreview(bot, chatId, messageId, userId, broadcastState) {
   const buttons = broadcastState.buttons || [];
+  const broadcastText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${broadcastState.text}`;
+
+  // Validate the full broadcast text (as it will be sent to users) before showing preview
+  const htmlError = await validateHtml(bot, chatId, broadcastText);
+  if (htmlError) {
+    const sanitized = sanitizeBroadcastHtml(broadcastState.text);
+    const canFix = sanitized !== broadcastState.text;
+
+    const errMsg = await safeSendMessage(bot, chatId,
+      `❌ <b>Помилка HTML у тексті розсилки:</b>\n<code>${htmlError}</code>\n\n` +
+      (canFix
+        ? '⚠️ HTML може мати проблеми. Бажаєте автоматично виправити?'
+        : 'Будь ласка, виправте HTML вручну та спробуйте знову.'),
+      {
+        parse_mode: 'HTML',
+        reply_markup: canFix
+          ? {
+            inline_keyboard: [
+              [{ text: '🔧 Виправити автоматично', callback_data: 'broadcast_fix_html' }],
+              [{ text: '✏️ Редагувати вручну', callback_data: 'broadcast_edit_text' }],
+              [{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }],
+            ]
+          }
+          : {
+            inline_keyboard: [
+              [{ text: '✏️ Редагувати текст', callback_data: 'broadcast_edit_text' }],
+              [{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }],
+            ]
+          },
+      }
+    );
+    if (errMsg) {
+      await setBroadcastState(userId, { ...broadcastState, wizardMessageId: errMsg.message_id });
+    }
+    return;
+  }
 
   const previewHeader =
     '📢 <b>Попередній перегляд розсилки</b>\n' +
@@ -425,12 +562,12 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
   const stats = await usersDb.getUserStats();
   const total = stats.active || 0;
 
-  // Update the wizard message to show progress
+  // Send initial progress message
   let progressMsg;
   try {
     progressMsg = await bot.api.sendMessage(
       chatId,
-      `📤 Розсилка розпочата...\nВсього користувачів: ~${total}\n\n📤 Відправлено: 0/${total} (помилок: 0)`
+      `📤 Розсилка розпочата через BullMQ...\nВсього користувачів: ~${total}\n\n📤 Відправлено: 0/${total} (помилок: 0)`
     );
   } catch {
     progressMsg = null;
@@ -449,41 +586,52 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
 
   const broadcastText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${broadcastState.text}`;
 
-  let sent = 0;
-  let failed = 0;
-  let lastProgressUpdate = Date.now();
-
-  for await (const page of usersDb.paginateActiveUsers(500)) {
-    for (const user of page) {
-      const success = await sendWithRetry(bot, user.telegram_id, broadcastText, msgOptions);
-      if (success) {
-        sent++;
-      } else {
-        failed++;
-      }
-
-      // Throttle progress updates (every 5 seconds)
-      if (progressMsg && Date.now() - lastProgressUpdate > 5000) {
-        lastProgressUpdate = Date.now();
-        bot.api.editMessageText(chatId, progressMsg.message_id,
-          `📤 Відправлено: ${sent}/${total} (помилок: ${failed})`
-        ).catch(() => {});
-      }
-
-      await new Promise(resolve => setTimeout(resolve, BROADCAST_THROTTLE_MS));
-    }
+  let usedBullMQ = false;
+  try {
+    const { runBroadcast } = require('../../queue/broadcastQueue');
+    await runBroadcast(bot, chatId, progressMsg ? progressMsg.message_id : null, broadcastText, msgOptions, total);
+    usedBullMQ = true;
+  } catch (err) {
+    // Redis/BullMQ unavailable — fall back to direct sending
+    console.error('BullMQ broadcast unavailable, falling back to direct send:', err.message);
   }
 
-  // Final summary
-  const summary =
-    `✅ <b>Розсилка завершена!</b>\n\n` +
-    `📤 Відправлено: ${sent}\n` +
-    `❌ Помилок: ${failed}`;
+  if (!usedBullMQ) {
+    // Graceful degradation: direct send
+    let sent = 0;
+    let failed = 0;
+    let lastProgressUpdate = Date.now();
 
-  if (progressMsg) {
-    await bot.api.editMessageText(chatId, progressMsg.message_id, summary, { parse_mode: 'HTML' }).catch(() => {});
-  } else {
-    await safeSendMessage(bot, chatId, summary, { parse_mode: 'HTML' });
+    for await (const page of usersDb.paginateActiveUsers(500)) {
+      for (const user of page) {
+        const success = await sendWithRetry(bot, user.telegram_id, broadcastText, msgOptions);
+        if (success) {
+          sent++;
+        } else {
+          failed++;
+        }
+
+        if (progressMsg && Date.now() - lastProgressUpdate > 5000) {
+          lastProgressUpdate = Date.now();
+          bot.api.editMessageText(chatId, progressMsg.message_id,
+            `📤 Відправлено: ${sent}/${total} (помилок: ${failed})`
+          ).catch(() => {});
+        }
+
+        await new Promise(resolve => setTimeout(resolve, BROADCAST_THROTTLE_MS));
+      }
+    }
+
+    const summary =
+      `✅ <b>Розсилка завершена!</b>\n\n` +
+      `📤 Відправлено: ${sent}\n` +
+      `❌ Помилок: ${failed}`;
+
+    if (progressMsg) {
+      await bot.api.editMessageText(chatId, progressMsg.message_id, summary, { parse_mode: 'HTML' }).catch(() => {});
+    } else {
+      await safeSendMessage(bot, chatId, summary, { parse_mode: 'HTML' });
+    }
   }
 }
 
@@ -538,6 +686,43 @@ async function handleBroadcastConversation(bot, msg) {
   if (wizardStep === 'waiting_for_broadcast_text') {
     if (!text || text.trim() === '') {
       await safeSendMessage(bot, chatId, '❌ Текст повідомлення не може бути порожнім. Введіть текст:');
+      return true;
+    }
+
+    // Validate HTML before saving
+    const testText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${text.trim()}`;
+    const htmlError = await validateHtml(bot, chatId, testText);
+    if (htmlError) {
+      const sanitized = sanitizeBroadcastHtml(text.trim());
+      const canFix = sanitized !== text.trim();
+      await safeSendMessage(bot, chatId,
+        `❌ <b>Помилка HTML:</b>\n<code>${htmlError}</code>\n\n` +
+        (canFix
+          ? '⚠️ HTML може мати проблеми. Бажаєте автоматично виправити?'
+          : 'Будь ласка, виправте HTML та введіть текст знову.'),
+        {
+          parse_mode: 'HTML',
+          reply_markup: canFix
+            ? {
+              inline_keyboard: [
+                [{ text: '🔧 Виправити та зберегти', callback_data: 'broadcast_fix_html_text' }],
+                [{ text: '✏️ Ввести інший текст', callback_data: 'broadcast_cancel_text_input' }],
+                [{ text: '❌ Скасувати розсилку', callback_data: 'broadcast_cancel' }],
+              ]
+            }
+            : {
+              inline_keyboard: [
+                [{ text: '✏️ Ввести інший текст', callback_data: 'broadcast_cancel_text_input' }],
+                [{ text: '❌ Скасувати розсилку', callback_data: 'broadcast_cancel' }],
+              ]
+            },
+        }
+      );
+      // Temporarily save the raw (invalid) text so fix callback can access it
+      await setBroadcastState(telegramId, {
+        ...broadcastState,
+        pendingText: text.trim(),
+      });
       return true;
     }
 
