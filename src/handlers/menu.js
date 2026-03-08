@@ -1,7 +1,7 @@
 const { InputFile } = require('grammy');
 const config = require('../config');
 const { getMainMenu, getHelpKeyboard, getSettingsKeyboard, getErrorKeyboard, getScheduleViewKeyboard, getRegionKeyboard } = require('../keyboards/inline');
-const { setWizardState } = require('./start/helpers');
+const { setWizardState, getWizardState, clearWizardState, notifyAdminsAboutNewUser } = require('./start/helpers');
 const { REGIONS } = require('../constants/regions');
 const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTimerPopup } = require('../formatter');
 const { generateLiveStatusMessage } = require('../utils');
@@ -287,6 +287,15 @@ async function handleBackToMain(bot, query) {
   await bot.api.answerCallbackQuery(query.id).catch(() => {});
 
   const telegramId = String(query.from.id);
+
+  // Check if wizard flow is pending admin notification
+  const wizardState = getWizardState(telegramId);
+  if (wizardState && wizardState.pendingAdminNotification) {
+    const username = wizardState.pendingUsername;
+    await notifyAdminsAboutNewUser(bot, telegramId, username, wizardState.region, wizardState.queue);
+    await clearWizardState(telegramId);
+  }
+
   const user = await usersDb.getUserByTelegramId(telegramId);
 
   if (user) {

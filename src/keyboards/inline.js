@@ -1390,6 +1390,113 @@ function getChannelNotificationKeyboard(user) {
   };
 }
 
+// Wizard: bot notification settings keyboard (with wizard navigation)
+function getWizardBotNotificationKeyboard(user) {
+  const scheduleOn = user.notify_schedule_changes !== false;
+  const t60 = user.remind_1h === true;
+  const t30 = user.remind_30m === true;
+  const t15 = user.remind_15m !== false;
+  const factOn = user.notify_fact_off !== false;
+
+  const scheduleBtn = {
+    text: 'Оновлення графіків',
+    callback_data: 'wizard_notif_toggle_schedule',
+    icon_custom_emoji_id: '5231200819986047254',
+    ...(scheduleOn ? { style: 'success' } : {}),
+  };
+
+  const btn60 = {
+    text: '1 год',
+    callback_data: 'wizard_notif_time_60',
+    ...(t60 ? { style: 'success' } : {}),
+  };
+  const btn30 = {
+    text: '30 хв',
+    callback_data: 'wizard_notif_time_30',
+    ...(t30 ? { style: 'success' } : {}),
+  };
+  const btn15 = {
+    text: '15 хв',
+    callback_data: 'wizard_notif_time_15',
+    ...(t15 ? { style: 'success' } : {}),
+  };
+
+  const hasIp = !!user.router_ip;
+  const factBtn = {
+    text: hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком',
+    callback_data: 'wizard_notif_toggle_fact',
+    icon_custom_emoji_id: '5382194935057372936',
+    ...(factOn ? { style: 'success' } : {}),
+  };
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [scheduleBtn],
+        [btn60, btn30, btn15],
+        [factBtn],
+        [
+          { text: '← Назад', callback_data: 'wizard_notify_back' },
+          { text: '✅ Готово!', callback_data: 'wizard_bot_done' },
+        ],
+      ],
+    },
+  };
+}
+
+// Wizard: channel notification settings keyboard (with wizard Done button)
+function getWizardChannelNotificationKeyboard(user) {
+  const scheduleOn = user.ch_notify_schedule !== false;
+  const t60 = user.ch_remind_1h === true;
+  const t30 = user.ch_remind_30m === true;
+  const t15 = user.ch_remind_15m !== false;
+  const factOn = user.ch_notify_fact_off !== false;
+
+  const scheduleBtn = {
+    text: 'Оновлення графіків',
+    callback_data: 'wizard_ch_notif_toggle_schedule',
+    icon_custom_emoji_id: '5231200819986047254',
+    ...(scheduleOn ? { style: 'success' } : {}),
+  };
+
+  const btn60 = {
+    text: '1 год',
+    callback_data: 'wizard_ch_notif_time_60',
+    ...(t60 ? { style: 'success' } : {}),
+  };
+  const btn30 = {
+    text: '30 хв',
+    callback_data: 'wizard_ch_notif_time_30',
+    ...(t30 ? { style: 'success' } : {}),
+  };
+  const btn15 = {
+    text: '15 хв',
+    callback_data: 'wizard_ch_notif_time_15',
+    ...(t15 ? { style: 'success' } : {}),
+  };
+
+  const hasIp = !!user.router_ip;
+  const factBtn = {
+    text: hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком',
+    callback_data: 'wizard_ch_notif_toggle_fact',
+    icon_custom_emoji_id: '5382194935057372936',
+    ...(factOn ? { style: 'success' } : {}),
+  };
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [scheduleBtn],
+        [btn60, btn30, btn15],
+        [factBtn],
+        [
+          { text: '✅ Готово!', callback_data: 'wizard_channel_done' },
+        ],
+      ],
+    },
+  };
+}
+
 // Auto-cleanup settings keyboard
 function getCleanupKeyboard(user) {
   const delCmds = user.auto_delete_commands === true;
@@ -1570,6 +1677,8 @@ module.exports = {
   getNotificationKeyboard,
   getChannelNotificationKeyboard,
   getNotificationSelectKeyboard,
+  getWizardBotNotificationKeyboard,
+  getWizardChannelNotificationKeyboard,
   getCleanupKeyboard,
   getScheduleViewKeyboard,
   getBroadcastTextPromptKeyboard,

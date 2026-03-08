@@ -36,6 +36,11 @@ function createCallbackRouter() {
     .prefix(['region_', 'queue_', 'wizard_channel_confirm_'], (bot, query) => handleWizardCallback(bot, query))
     .exact(['confirm_setup', 'back_to_region', 'restore_profile', 'create_new_profile',
             'wizard_notify_bot', 'wizard_notify_channel', 'wizard_notify_back',
+            'wizard_bot_done', 'wizard_channel_done',
+            'wizard_notif_toggle_schedule', 'wizard_notif_toggle_fact',
+            'wizard_notif_time_15', 'wizard_notif_time_30', 'wizard_notif_time_60',
+            'wizard_ch_notif_toggle_schedule', 'wizard_ch_notif_toggle_fact',
+            'wizard_ch_notif_time_15', 'wizard_ch_notif_time_30', 'wizard_ch_notif_time_60',
             'wizard_resume', 'wizard_restart'], (bot, query) => handleWizardCallback(bot, query))
 
     // Menu callbacks

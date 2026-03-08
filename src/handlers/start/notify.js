@@ -1,5 +1,9 @@
 const usersDb = require('../../database/users');
-const { getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
+const {
+  getWizardNotifyTargetKeyboard,
+  getWizardBotNotificationKeyboard,
+  getWizardChannelNotificationKeyboard,
+} = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { getBotUsername, getChannelConnectionInstructions, escapeHtml } = require('../../utils');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
@@ -7,6 +11,7 @@ const { getSetting } = require('../../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setConversationState } = require('../channel');
 const { pendingChannels, removePendingChannel } = require('../../state/pendingChannels');
+const { buildNotificationSettingsMessage, buildChannelNotificationMessage } = require('../settings/helpers');
 const {
   PENDING_CHANNEL_EXPIRATION_MS,
   CHANNEL_NAME_PREFIX,
@@ -66,32 +71,24 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'bot' });
       await logWizardCompletion(telegramId);
 
-      // Notify admins about new user
-      await notifyAdminsAboutNewUser(bot, telegramId, username, state.region, state.queue);
+      // Mark pending admin notification (will notify admins when user clicks "Меню")
+      state.pendingAdminNotification = true;
+      state.pendingUsername = username;
     }
-    await clearWizardState(telegramId);
 
-    const region = REGIONS[state.region]?.name || state.region;
+    // Save wizard state to bot_notifications step
+    state.step = 'bot_notifications';
+    await setWizardState(telegramId, state);
 
+    // Show bot notification settings screen
+    const user = await usersDb.getUserByTelegramId(telegramId);
     await safeEditMessageText(bot,
-      `✅ <b>Готово!</b>\n\n` +
-      `📍 Регіон: ${region}\n` +
-      `⚡ Черга: ${state.queue}\n` +
-      `🔔 Сповіщення: увімкнено ✅\n\n` +
-      `Я одразу повідомлю вас про наступне\n` +
-      `відключення або появу світла.\n\n` +
-      `⤵ Меню — перейти в головне меню\n` +
-      `📢 Новини бота — канал з оновленнями`,
+      buildNotificationSettingsMessage(user),
       {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
-            [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
-          ]
-        }
+        reply_markup: getWizardBotNotificationKeyboard(user).reply_markup,
       }
     );
 
@@ -152,8 +149,9 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       await logUserRegistration(telegramId, { region: state.region, queue: state.queue, username, notify_target: 'both' });
       await logWizardCompletion(telegramId);
 
-      // Notify admins about new user
-      await notifyAdminsAboutNewUser(bot, telegramId, username, state.region, state.queue);
+      // Mark pending admin notification (will notify admins when user clicks "Меню")
+      state.pendingAdminNotification = true;
+      state.pendingUsername = username;
     }
 
     // Зберігаємо wizard state для обробки підключення каналу
@@ -304,14 +302,16 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     // Видаляємо з pending
     removePendingChannel(channelId);
 
-    // Очищаємо wizard state (wizard завершено, далі channel conversation)
-    await clearWizardState(telegramId);
+    // Зберігаємо wizard step (не очищаємо — wizard завершиться при натисканні "Меню")
+    state.step = 'channel_notifications';
+    await setWizardState(telegramId, state);
 
     // Запускаємо channel branding flow (як у settings flow)
     await setConversationState(telegramId, {
       state: 'waiting_for_title',
       channelId: channelId,
       channelUsername: pending.channelUsername || pending.channelTitle,
+      fromWizard: true,
       timestamp: Date.now()
     });
 
@@ -356,6 +356,194 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
       }
     );
 
+    return true;
+  }
+
+  // Wizard: кнопка "Готово!" для бота — показати фінальне повідомлення
+  if (data === 'wizard_bot_done') {
+    const region = REGIONS[state.region]?.name || state.region;
+
+    await safeEditMessageText(bot,
+      `✅ <b>Готово!</b>\n\n` +
+      `📍 Регіон: ${region}\n` +
+      `⚡ Черга: ${state.queue}\n` +
+      `🔔 Сповіщення: увімкнено ✅\n\n` +
+      `Я одразу повідомлю вас про наступне\n` +
+      `відключення або появу світла.\n\n` +
+      `⤵ Меню — перейти в головне меню\n` +
+      `📢 Новини бота — канал з оновленнями`,
+      {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
+            [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
+          ]
+        }
+      }
+    );
+
+    return true;
+  }
+
+  // Wizard: кнопка "Готово!" для каналу — показати фінальне повідомлення
+  if (data === 'wizard_channel_done') {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    const channelTitle = user?.channel_title || '';
+
+    let successMessage = `✅ <b>Канал успішно налаштовано!</b>\n\n` +
+      `📺 Назва каналу: ${channelTitle}\n`;
+
+    successMessage += `\n⚠️ <b>Увага!</b>\n` +
+      `Не змінюйте назву, опис або фото каналу.\n\n` +
+      `Якщо ці дані буде змінено — бот припинить роботу,\n` +
+      `і канал потрібно буде налаштувати заново.\n\n` +
+      `⤵ Меню — перейти в головне меню\n` +
+      `📢 Новини бота — канал з оновленнями`;
+
+    await safeEditMessageText(bot,
+      successMessage,
+      {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
+            [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
+          ]
+        }
+      }
+    );
+
+    return true;
+  }
+
+  // Wizard: toggles для сповіщень бота
+  if (data === 'wizard_notif_toggle_schedule') {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) return false;
+    const newVal = !(user.notify_schedule_changes !== false);
+    await usersDb.updateNotificationSettings(telegramId, { notify_schedule_changes: newVal });
+    const fresh = await usersDb.getUserByTelegramId(telegramId);
+    await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML',
+      reply_markup: getWizardBotNotificationKeyboard(fresh).reply_markup,
+    });
+    return true;
+  }
+
+  if (data === 'wizard_notif_toggle_fact') {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) return false;
+    const currentVal = user.notify_fact_off !== false;
+    const newVal = !currentVal;
+    await usersDb.updateNotificationSettings(telegramId, { notify_fact_off: newVal, notify_fact_on: newVal });
+    const fresh = await usersDb.getUserByTelegramId(telegramId);
+    await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML',
+      reply_markup: getWizardBotNotificationKeyboard(fresh).reply_markup,
+    });
+    return true;
+  }
+
+  const wizardBotTimeToggles = {
+    wizard_notif_time_15: 'remind_15m',
+    wizard_notif_time_30: 'remind_30m',
+    wizard_notif_time_60: 'remind_1h',
+  };
+  if (wizardBotTimeToggles[data]) {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) return false;
+    const field = wizardBotTimeToggles[data];
+    const currentVal = field === 'remind_15m' ? user.remind_15m !== false : user[field] === true;
+    const newVal = !currentVal;
+    const updates = { [field]: newVal };
+
+    const t15 = field === 'remind_15m' ? newVal : (user.remind_15m !== false);
+    const t30 = field === 'remind_30m' ? newVal : (user.remind_30m === true);
+    const t60 = field === 'remind_1h' ? newVal : (user.remind_1h === true);
+    const anyOn = t15 || t30 || t60;
+    updates.notify_remind_off = anyOn;
+    updates.notify_remind_on = anyOn;
+
+    await usersDb.updateNotificationSettings(telegramId, updates);
+    const fresh = await usersDb.getUserByTelegramId(telegramId);
+    await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML',
+      reply_markup: getWizardBotNotificationKeyboard(fresh).reply_markup,
+    });
+    return true;
+  }
+
+  // Wizard: toggles для сповіщень каналу
+  if (data === 'wizard_ch_notif_toggle_schedule') {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) return false;
+    const newVal = !(user.ch_notify_schedule !== false);
+    await usersDb.updateChannelNotificationSettings(telegramId, { ch_notify_schedule: newVal });
+    const fresh = await usersDb.getUserByTelegramId(telegramId);
+    await safeEditMessageText(bot, buildChannelNotificationMessage(fresh), {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML',
+      reply_markup: getWizardChannelNotificationKeyboard(fresh).reply_markup,
+    });
+    return true;
+  }
+
+  if (data === 'wizard_ch_notif_toggle_fact') {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) return false;
+    const currentVal = user.ch_notify_fact_off !== false;
+    const newVal = !currentVal;
+    await usersDb.updateChannelNotificationSettings(telegramId, { ch_notify_fact_off: newVal, ch_notify_fact_on: newVal });
+    const fresh = await usersDb.getUserByTelegramId(telegramId);
+    await safeEditMessageText(bot, buildChannelNotificationMessage(fresh), {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML',
+      reply_markup: getWizardChannelNotificationKeyboard(fresh).reply_markup,
+    });
+    return true;
+  }
+
+  const wizardChTimeToggles = {
+    wizard_ch_notif_time_15: 'ch_remind_15m',
+    wizard_ch_notif_time_30: 'ch_remind_30m',
+    wizard_ch_notif_time_60: 'ch_remind_1h',
+  };
+  if (wizardChTimeToggles[data]) {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) return false;
+    const field = wizardChTimeToggles[data];
+    const currentVal = field === 'ch_remind_15m' ? user.ch_remind_15m !== false : user[field] === true;
+    const newVal = !currentVal;
+    const updates = { [field]: newVal };
+
+    const t15 = field === 'ch_remind_15m' ? newVal : (user.ch_remind_15m !== false);
+    const t30 = field === 'ch_remind_30m' ? newVal : (user.ch_remind_30m === true);
+    const t60 = field === 'ch_remind_1h' ? newVal : (user.ch_remind_1h === true);
+    const anyOn = t15 || t30 || t60;
+    updates.ch_notify_remind_off = anyOn;
+    updates.ch_notify_remind_on = anyOn;
+
+    await usersDb.updateChannelNotificationSettings(telegramId, updates);
+    const fresh = await usersDb.getUserByTelegramId(telegramId);
+    await safeEditMessageText(bot, buildChannelNotificationMessage(fresh), {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML',
+      reply_markup: getWizardChannelNotificationKeyboard(fresh).reply_markup,
+    });
     return true;
   }
 
