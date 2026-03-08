@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { fetchScheduleData } = require('./api');
+const { fetchScheduleData, fetchScheduleImage } = require('./api');
 const { parseScheduleForQueue, findNextEvent } = require('./parser');
 const { calculateHash } = require('./utils');
 const usersDb = require('./database/users');
@@ -45,9 +45,10 @@ async function initScheduler(botInstance) {
     console.log(`⏰ 06:00 — відправка відкладених сповіщень (${pendingNightNotifications.size})`);
     const entries = Array.from(pendingNightNotifications.entries());
     pendingNightNotifications.clear();
+    const nightImageCache = new Map();
     for (const [telegramId, { user, data }] of entries) {
       try {
-        await sendScheduleNotifications(user, data);
+        await sendScheduleNotifications(user, data, nightImageCache);
       } catch (error) {
         console.error(`Помилка відправки відкладеного сповіщення для ${telegramId}:`, error.message);
       }
@@ -86,6 +87,23 @@ async function checkAllSchedules() {
 const BATCH_SIZE = 50; // process up to 50 users concurrently
 const BATCH_STAGGER_MS = 200; // pause between batches to spread Telegram load
 
+async function prefetchQueueImage(region, queue, imageCache) {
+  const cacheKey = `${region}:${queue}`;
+  if (imageCache.has(cacheKey)) return imageCache.get(cacheKey);
+  try {
+    const imageBuffer = await fetchScheduleImage(region, queue);
+    const photoBase64 = Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : null;
+    const photoCacheKey = photoBase64 ? await cachePhoto(region, queue, photoBase64) : null;
+    const entry = { photoBase64, photoCacheKey };
+    imageCache.set(cacheKey, entry);
+    return entry;
+  } catch (_e) {
+    const entry = { photoBase64: null, photoCacheKey: null };
+    imageCache.set(cacheKey, entry);
+    return entry;
+  }
+}
+
 async function checkRegionSchedule(region) {
   try {
     const data = await fetchScheduleData(region);
@@ -105,6 +123,12 @@ async function checkRegionSchedule(region) {
 
     const queueHashCache = new Map();
 
+    // Collect hash updates for batch processing
+    const hashUpdates = [];
+
+    // Pre-fetch and cache images per queue
+    const imageCache = new Map();
+
     // Update schedule_checks once per unique region+queue
     const checkedQueues = new Set();
     for (const user of users) {
@@ -122,10 +146,19 @@ async function checkRegionSchedule(region) {
     for (let i = 0; i < users.length; i += BATCH_SIZE) {
       const batch = users.slice(i, i + BATCH_SIZE);
       await Promise.allSettled(
-        batch.map(user => processUser(user, data, queueHashCache.get(user.queue)))
+        batch.map(user => processUser(user, data, queueHashCache.get(user.queue), hashUpdates, imageCache))
       );
       if (i + BATCH_SIZE < users.length) {
         await new Promise(r => setTimeout(r, BATCH_STAGGER_MS));
+      }
+    }
+
+    // Batch update all hashes in one query
+    if (hashUpdates.length > 0) {
+      try {
+        await usersDb.batchUpdateHashes(hashUpdates);
+      } catch (batchError) {
+        console.error(`Batch hash update failed for ${region}:`, batchError.message);
       }
     }
 
@@ -134,7 +167,7 @@ async function checkRegionSchedule(region) {
   }
 }
 
-async function processUser(user, data, precomputedHash) {
+async function processUser(user, data, precomputedHash, hashUpdates, imageCache) {
   try {
     if (user.channel_status === 'blocked') return;
 
@@ -144,39 +177,39 @@ async function processUser(user, data, precomputedHash) {
     }
 
     if (precomputedHash !== user.last_hash) {
-      await handleScheduleChange(user, data, precomputedHash);
+      await handleScheduleChange(user, data, precomputedHash, hashUpdates, imageCache);
     }
   } catch (error) {
     console.error(`Помилка перевірки графіка для ${user.telegram_id}:`, error.message);
   }
 }
 
-async function handleScheduleChange(user, data, newHash) {
+async function handleScheduleChange(user, data, newHash, hashUpdates, imageCache) {
   if (user.last_hash === null || user.last_hash === undefined) {
-    await usersDb.updateUserHashes(user.id, newHash);
+    hashUpdates.push({ id: user.id, lastHash: newHash, lastPublishedHash: newHash });
     console.log(`[${user.telegram_id}] Перший запуск — зберігаємо хеш, публікацію пропускаємо`);
     return;
   }
 
   if (newHash === user.last_published_hash) {
-    await usersDb.updateUserHash(user.id, newHash);
+    hashUpdates.push({ id: user.id, lastHash: newHash, lastPublishedHash: user.last_published_hash });
     return;
   }
 
   if (isQuietHours()) {
     // Save hashes now so the scheduler won't re-trigger on the same change
-    await usersDb.updateUserHashes(user.id, newHash);
+    hashUpdates.push({ id: user.id, lastHash: newHash, lastPublishedHash: newHash });
     // Store the latest state for this user (overwrite if already pending)
     pendingNightNotifications.set(user.telegram_id, { user, data, newHash });
     console.log(`🌙 [${user.telegram_id}] Quiet hours — сповіщення відкладено до 06:00`);
     return;
   }
 
-  await sendScheduleNotifications(user, data);
-  await usersDb.updateUserHashes(user.id, newHash);
+  await sendScheduleNotifications(user, data, imageCache);
+  hashUpdates.push({ id: user.id, lastHash: newHash, lastPublishedHash: newHash });
 }
 
-async function sendScheduleNotifications(user, data) {
+async function sendScheduleNotifications(user, data, imageCache) {
   const scheduleData = parseScheduleForQueue(data, user.queue);
   const nextEvent = findNextEvent(scheduleData);
 
@@ -187,7 +220,6 @@ async function sendScheduleNotifications(user, data) {
   if (notifyTarget === 'bot' || notifyTarget === 'both') {
     try {
       const { formatScheduleMessage } = require('./formatter');
-      const { fetchScheduleImage } = require('./api');
       const { getUpdateTypeV2 } = require('./publisher');
       const { appendTimestamp } = require('./utils/timestamp');
       const { getScheduleViewKeyboard } = require('./keyboards/inline');
@@ -204,21 +236,19 @@ async function sendScheduleNotifications(user, data) {
       const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, Math.floor(Date.now() / 1000));
       const scheduleKeyboard = getScheduleViewKeyboard();
 
-      try {
-        const imageBuffer = await fetchScheduleImage(user.region, user.queue);
-        const photoBase64 = Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : null;
-        const photoCacheKey = photoBase64 ? await cachePhoto(user.region, user.queue, photoBase64) : null;
-        if (photoBase64 && !photoCacheKey) {
-          logger.warn(`[${user.telegram_id}] Photo cache недоступний, використовуємо inline base64`);
-        }
+      const { photoBase64, photoCacheKey } = await prefetchQueueImage(user.region, user.queue, imageCache);
+      if (photoBase64 && !photoCacheKey) {
+        logger.warn(`[${user.telegram_id}] Photo cache недоступний, використовуємо inline base64`);
+      }
 
-        // Clear keyboard from previous keyboard message before sending new one
-        if (user.last_bot_keyboard_message_id) {
-          await bot.api.editMessageReplyMarkup(user.telegram_id, user.last_bot_keyboard_message_id, {
-            reply_markup: { inline_keyboard: [] }
-          }).catch(() => {});
-        }
+      // Clear keyboard from previous keyboard message before sending new one (fire-and-forget)
+      if (user.last_bot_keyboard_message_id) {
+        bot.api.editMessageReplyMarkup(user.telegram_id, user.last_bot_keyboard_message_id, {
+          reply_markup: { inline_keyboard: [] }
+        }).catch(() => {});
+      }
 
+      if (photoBase64) {
         const jobData = {
           type: 'photo',
           chatId: user.telegram_id,
@@ -232,14 +262,7 @@ async function sendScheduleNotifications(user, data) {
           jobData.photo = photoBase64;
         }
         await notificationsQueue.add('photo', jobData);
-      } catch (_imgError) {
-        // Clear keyboard from previous keyboard message before sending new one
-        if (user.last_bot_keyboard_message_id) {
-          await bot.api.editMessageReplyMarkup(user.telegram_id, user.last_bot_keyboard_message_id, {
-            reply_markup: { inline_keyboard: [] }
-          }).catch(() => {});
-        }
-
+      } else {
         await notificationsQueue.add('user', {
           type: 'user',
           chatId: user.telegram_id,

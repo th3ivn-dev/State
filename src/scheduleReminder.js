@@ -16,8 +16,9 @@ const { fetchScheduleData } = require('./api');
 const { parseScheduleForQueue } = require('./parser');
 const { REGIONS } = require('./constants/regions');
 const usersDb = require('./database/users');
-const { safeSendMessage, safeDeleteMessage } = require('./utils/errorHandler');
+const { safeDeleteMessage } = require('./utils/errorHandler');
 const { MAX_SENT_REMINDERS_MAP_SIZE } = require('./constants/timeouts');
+const { notificationsQueue } = require('./queue/notificationsQueue');
 
 // In-memory tracking of already-sent reminders (cleared daily, bounded)
 // Key: `${telegramId}:${eventType}:${eventTimeIso}`
@@ -123,17 +124,18 @@ async function sendNotification(bot, user, text, type = 'remind_off') {
   const target = user.notify_remind_target || 'bot';
 
   if (target === 'bot' || target === 'both') {
-    // Delete previous reminder message to keep chat clean
+    // Delete previous reminder message to keep chat clean (fire-and-forget)
     if (user.last_reminder_message_id) {
-      await safeDeleteMessage(bot, user.telegram_id, user.last_reminder_message_id);
+      safeDeleteMessage(bot, user.telegram_id, user.last_reminder_message_id);
     }
 
-    const sentMsg = await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
-
-    // Track the new reminder message ID
-    if (sentMsg && sentMsg.message_id) {
-      await usersDb.updateLastReminderMessageId(user.telegram_id, sentMsg.message_id);
-    }
+    await notificationsQueue.add('user', {
+      type: 'user',
+      chatId: user.telegram_id,
+      text: text,
+      options: { parse_mode: 'HTML' },
+      meta: { telegramId: user.telegram_id, updateLastReminderMessageId: true },
+    });
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {
@@ -142,7 +144,12 @@ async function sendNotification(bot, user, text, type = 'remind_off') {
       ? user.ch_notify_remind_on !== false
       : user.ch_notify_remind_off !== false;
     if (chEnabled) {
-      await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
+      await notificationsQueue.add('user', {
+        type: 'user',
+        chatId: user.channel_id,
+        text: text,
+        options: { parse_mode: 'HTML' },
+      });
     }
   }
 }
@@ -226,7 +233,12 @@ async function checkReminders(bot) {
                 if (!sentReminders.has(rKey)) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_off', event, scheduleData, regionName, queue, mins);
-                  await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
+                  await notificationsQueue.add('user', {
+                    type: 'user',
+                    chatId: user.channel_id,
+                    text: text,
+                    options: { parse_mode: 'HTML' },
+                  });
                 }
               }
             }
@@ -262,7 +274,12 @@ async function checkReminders(bot) {
                 if (!sentReminders.has(rKey)) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_on', event, scheduleData, regionName, queue, mins);
-                  await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
+                  await notificationsQueue.add('user', {
+                    type: 'user',
+                    chatId: user.channel_id,
+                    text: text,
+                    options: { parse_mode: 'HTML' },
+                  });
                 }
               }
             }
