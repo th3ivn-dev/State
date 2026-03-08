@@ -1,6 +1,7 @@
 const usersDb = require('../../database/users');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getCleanupKeyboard } = require('../../keyboards/inline');
+const { invalidateAutoDeleteCache } = require('../../middleware/autoDeleteCommands');
 
 function getCleanupText(user) {
   const cmdStatus = user.auto_delete_commands ? '✅' : '❌';
@@ -33,6 +34,7 @@ async function handleCleanupCallback(bot, query, user) {
   if (data === 'cleanup_toggle_commands') {
     const newVal = !(user.auto_delete_commands === true);
     await usersDb.updateCleanupSettings(telegramId, { auto_delete_commands: newVal });
+    invalidateAutoDeleteCache(telegramId);
     const fresh = await usersDb.getUserByTelegramId(telegramId) || user;
 
     try {

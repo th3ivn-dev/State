@@ -1,4 +1,4 @@
 const { maintenanceMiddleware } = require('./maintenance');
-const { autoDeleteCommandsMiddleware } = require('./autoDeleteCommands');
+const { autoDeleteCommandsMiddleware, invalidateAutoDeleteCache } = require('./autoDeleteCommands');
 
-module.exports = { maintenanceMiddleware, autoDeleteCommandsMiddleware };
+module.exports = { maintenanceMiddleware, autoDeleteCommandsMiddleware, invalidateAutoDeleteCache };
