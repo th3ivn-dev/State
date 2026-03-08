@@ -49,28 +49,6 @@ async function handleMenuSchedule(bot, query) {
     const scheduleData = parseScheduleForQueue(data, user.queue);
     const nextEvent = findNextEvent(scheduleData);
 
-    // Check if data exists
-    if (!scheduleData || !scheduleData.events || scheduleData.events.length === 0) {
-      const regionName = REGIONS[user.region]?.name || user.region;
-      await safeEditMessageText(bot,
-        '📊 <b>Графік відключень</b>\n\n' +
-        `📍 ${regionName} · Черга ${user.queue}\n\n` +
-        'На даний момент графік відключень\n' +
-        'для вашої черги не опублікований.\n\n' +
-        'Це означає, що відключення не заплановані\n' +
-        'або дані ще не оновлені.\n\n' +
-        '<tg-emoji emoji-id="5017470156276761427">🔄</tg-emoji> Бот перевіряє графік автоматично —\n' +
-        'ви отримаєте сповіщення, щойно він з\'явиться.',
-        {
-          chat_id: query.message.chat.id,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: getScheduleViewKeyboard()
-        }
-      );
-      return;
-    }
-
     const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
     const updateType = {
       tomorrowAppeared: updateTypeV2.tomorrowAppeared,
