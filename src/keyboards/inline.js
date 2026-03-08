@@ -1267,6 +1267,7 @@ function getNotificationTargetSelectKeyboard(type, currentTarget) {
 
 // Single-screen notification settings keyboard
 function getNotificationKeyboard(user) {
+  const hasChannel = !!user.channel_id;
   const scheduleOn = user.notify_schedule_changes !== false;
   const t60 = user.remind_1h === true;
   const t30 = user.remind_30m === true;
@@ -1310,6 +1311,22 @@ function getNotificationKeyboard(user) {
         [scheduleBtn],
         [btn60, btn30, btn15],
         [factBtn],
+        [
+          { text: '← Назад', callback_data: hasChannel ? 'notif_main' : 'back_to_settings' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' },
+        ],
+      ],
+    },
+  };
+}
+
+// Selection keyboard: choose between bot or channel notification settings
+function getNotificationSelectKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'Сповіщення бота', callback_data: 'notif_select_bot', icon_custom_emoji_id: '5372981976804366741' }],
+        [{ text: 'Сповіщення каналу', callback_data: 'notif_select_channel', icon_custom_emoji_id: '5424818078833715060' }],
         [
           { text: '← Назад', callback_data: 'back_to_settings' },
           { text: '⤴ Меню', callback_data: 'back_to_main' },
@@ -1365,7 +1382,7 @@ function getChannelNotificationKeyboard(user) {
         [btn60, btn30, btn15],
         [factBtn],
         [
-          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '← Назад', callback_data: 'notif_main' },
           { text: '⤴ Меню', callback_data: 'back_to_main' },
         ],
       ],
@@ -1552,6 +1569,7 @@ module.exports = {
   getNotificationTargetSelectKeyboard,
   getNotificationKeyboard,
   getChannelNotificationKeyboard,
+  getNotificationSelectKeyboard,
   getCleanupKeyboard,
   getScheduleViewKeyboard,
   getBroadcastTextPromptKeyboard,

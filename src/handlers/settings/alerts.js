@@ -6,8 +6,10 @@ const {
   getUnifiedAlertsKeyboard,
   getAdminKeyboard,
   getNotificationKeyboard,
+  getNotificationSelectKeyboard,
+  getChannelNotificationKeyboard,
 } = require('../../keyboards/inline');
-const { buildAlertsMessage, buildNotificationSettingsMessage } = require('./helpers');
+const { buildAlertsMessage, buildNotificationSettingsMessage, buildChannelNotificationMessage } = require('./helpers');
 
 async function handleAlertsCallback(bot, query, user) {
   const chatId = query.message.chat.id;
@@ -19,11 +21,48 @@ async function handleAlertsCallback(bot, query, user) {
   // Show notification settings screen
   if (data === 'settings_alerts' || data === 'notif_main') {
     const fresh = await usersDb.getUserByTelegramId(telegramId) || user;
+
+    // If channel connected — show selection screen "Bot or Channel"
+    if (fresh.channel_id) {
+      const message = `<tg-emoji emoji-id="5262598817626234330">🔔</tg-emoji> <b>Керування сповіщеннями</b>\n\nОберіть, що хочете налаштувати.\nБот та канал мають окремі налаштування:`;
+      await safeEditMessageText(bot, message, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getNotificationSelectKeyboard().reply_markup,
+      });
+    } else {
+      // No channel — go directly to bot notification settings (as before)
+      await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getNotificationKeyboard(fresh).reply_markup,
+      });
+    }
+    return;
+  }
+
+  // Selection: bot notification settings
+  if (data === 'notif_select_bot') {
+    const fresh = await usersDb.getUserByTelegramId(telegramId) || user;
     await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
       reply_markup: getNotificationKeyboard(fresh).reply_markup,
+    });
+    return;
+  }
+
+  // Selection: channel notification settings
+  if (data === 'notif_select_channel') {
+    const fresh = await usersDb.getUserByTelegramId(telegramId) || user;
+    await safeEditMessageText(bot, buildChannelNotificationMessage(fresh), {
+      chat_id: chatId,
+      message_id: query.message.message_id,
+      parse_mode: 'HTML',
+      reply_markup: getChannelNotificationKeyboard(fresh).reply_markup,
     });
     return;
   }
