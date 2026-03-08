@@ -42,5 +42,5 @@ module.exports = {
   DB_POOL_MIN_DEFAULT: 2,
 
   // Migration
-  SCHEMA_VERSION: 5,
+  SCHEMA_VERSION: 6,
 };
