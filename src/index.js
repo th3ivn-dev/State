@@ -17,6 +17,7 @@ const messageQueue = require('./utils/messageQueue');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 const { initWorker, closeQueue } = require('./queue/notificationsQueue');
 const { closePhotoCache } = require('./queue/photoCache');
+const { startMetricsLogging, stopMetricsLogging } = require('./monitoring/systemMetrics');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
@@ -48,6 +49,9 @@ async function main() {
 
   // Запуск логування метрик пулу
   startPoolMetricsLogging();
+
+  // Запуск periodic system metrics logging
+  startMetricsLogging();
 
   messageQueue.init(bot);
   initWorker(bot);
@@ -204,6 +208,10 @@ const shutdown = async (signal) => {
     const { stopPoolMetricsLogging } = require('./database/db');
     stopPoolMetricsLogging();
     console.log('✅ Pool metrics logging stopped');
+
+    // Зупиняємо system metrics logging
+    stopMetricsLogging();
+    console.log('✅ System metrics logging stopped');
 
     // 11. Закриваємо базу даних коректно
     const { closeDatabase } = require('./database/db');
