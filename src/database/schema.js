@@ -52,6 +52,8 @@ async function initializeDatabase() {
         delete_old_message BOOLEAN DEFAULT FALSE,
         picture_only BOOLEAN DEFAULT FALSE,
         last_schedule_message_id INTEGER DEFAULT NULL,
+        last_bot_keyboard_message_id BIGINT DEFAULT NULL,
+        last_reminder_message_id BIGINT DEFAULT NULL,
         channel_paused BOOLEAN DEFAULT FALSE,
         power_notify_target TEXT DEFAULT 'both',
         schedule_alert_enabled BOOLEAN DEFAULT TRUE,

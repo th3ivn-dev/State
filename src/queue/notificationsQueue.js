@@ -40,6 +40,9 @@ function initWorker(botInstance) {
         if (meta.updateLastScheduleMessageId && meta.telegramId) {
           await usersDb.updateLastScheduleMessageId(meta.telegramId, sentMessage.message_id);
         }
+        if (meta.updateLastBotKeyboardMessageId && meta.telegramId) {
+          await usersDb.updateLastBotKeyboardMessageId(meta.telegramId, sentMessage.message_id);
+        }
         if (meta.updateUserPostId && meta.userId) {
           await usersDb.updateUserPostId(meta.userId, sentMessage.message_id);
         }
