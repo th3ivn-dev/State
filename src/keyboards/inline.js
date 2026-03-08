@@ -1325,8 +1325,8 @@ function getNotificationSelectKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: 'Сповіщення бота', callback_data: 'notif_select_bot', icon_custom_emoji_id: '5372981976804366741' }],
-        [{ text: 'Сповіщення каналу', callback_data: 'notif_select_channel', icon_custom_emoji_id: '5424818078833715060' }],
+        [{ text: 'Сповіщення в боті', callback_data: 'notif_select_bot', icon_custom_emoji_id: '5372981976804366741' }],
+        [{ text: 'Сповіщення для каналу', callback_data: 'notif_select_channel', icon_custom_emoji_id: '5424818078833715060' }],
         [
           { text: '← Назад', callback_data: 'back_to_settings' },
           { text: '⤴ Меню', callback_data: 'back_to_main' },
