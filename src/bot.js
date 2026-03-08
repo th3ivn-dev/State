@@ -24,7 +24,8 @@ const {
   handleAdminReply,
   handleAdminRouterIpConversation,
   handleAdminSupportUrlConversation,
-  handleMaintenanceConversation
+  handleMaintenanceConversation,
+  handleBroadcastConversation,
 } = require('./handlers/admin');
 const {
   handleChannel,
@@ -148,6 +149,10 @@ bot.on('message', async (ctx) => {
     // Handle admin ticket replies first (before other handlers)
     const adminReplyHandled = await handleAdminReply(bot, msg);
     if (adminReplyHandled) return;
+
+    // Handle broadcast wizard text input (admin only)
+    const broadcastHandled = await handleBroadcastConversation(bot, msg);
+    if (broadcastHandled) return;
 
     // Try maintenance message conversation
     const maintenanceHandled = await handleMaintenanceConversation(bot, msg);

@@ -13,6 +13,7 @@ const { handleSupportCallback, handleAdminSupportUrlConversation } = require('./
 const { handleMonitoring, handleSetAlertChannel } = require('./monitoring');
 const { handleDatabaseCallback } = require('./database');
 const { handleMaintenanceCallback, handleMaintenanceConversation } = require('./maintenance');
+const { handleBroadcastCallback, handleBroadcastConversation, handleBroadcastCmdCallback } = require('./broadcast');
 
 // Main admin callback router
 async function handleAdminCallback(bot, query) {
@@ -45,6 +46,8 @@ async function handleAdminCallback(bot, query) {
       await handleDatabaseCallback(bot, query, chatId, userId, data);
     } else if (data === 'admin_maintenance' || data.startsWith('maintenance_')) {
       await handleMaintenanceCallback(bot, query, chatId, userId, data);
+    } else if (data.startsWith('broadcast_')) {
+      await handleBroadcastCallback(bot, query, chatId, userId, data);
     } else {
       // commands/core: admin_stats, admin_users*, admin_broadcast, admin_system, admin_menu, noop
       await handleCommandsCallback(bot, query, chatId, userId, data);
@@ -72,4 +75,6 @@ module.exports = {
   handleAdminRouterIpConversation,
   handleAdminSupportUrlConversation,
   handleMaintenanceConversation,
+  handleBroadcastConversation,
+  handleBroadcastCmdCallback,
 };

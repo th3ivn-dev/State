@@ -23,7 +23,8 @@ const states = {
   lastMenuMessages: new Map(), // Last menu message IDs (from handlers/start.js)
   channelInstructions: new Map(), // Channel instruction message IDs (from bot.js)
   regionRequest: new Map(),    // Region request states (from handlers/regionRequest.js)
-  feedback: new Map()          // Feedback states (from handlers/feedback.js)
+  feedback: new Map(),         // Feedback states (from handlers/feedback.js)
+  broadcast: new Map()         // Admin broadcast wizard states
 };
 
 // State expiration times (in milliseconds)
@@ -36,7 +37,8 @@ const EXPIRATION_TIMES = {
   lastMenuMessages: 60 * 60 * 1000, // 1 hour
   channelInstructions: 60 * 60 * 1000, // 1 hour
   regionRequest: 5 * 60 * 1000,     // 5 minutes (matches REGION_REQUEST_TIMEOUT_MS)
-  feedback: 30 * 60 * 1000          // 30 minutes
+  feedback: 30 * 60 * 1000,         // 30 minutes
+  broadcast: 60 * 60 * 1000         // 1 hour
 };
 
 // Max size limits per state type to prevent unbounded memory growth
@@ -49,7 +51,8 @@ const MAX_STATE_SIZES = {
   lastMenuMessages: 10000,
   channelInstructions: 10000,
   regionRequest: 1000,
-  feedback: 5000
+  feedback: 5000,
+  broadcast: 100            // Small limit — admins only
 };
 
 // Cleanup interval reference
