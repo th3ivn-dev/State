@@ -1,5 +1,6 @@
 const { Queue, Worker } = require('bullmq');
 const { createConnection } = require('./connection');
+const { getCachedPhoto } = require('./photoCache');
 const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('../utils/errorHandler');
 const usersDb = require('../database/users');
@@ -33,14 +34,30 @@ function initWorker(botInstance) {
   worker = new Worker(
     'notifications',
     async (job) => {
-      const { type, chatId, text, photo, photoFilename, options, meta } = job.data;
+      const { type, chatId, text, photo, photoCacheKey, photoFilename, options, meta } = job.data;
 
       let sentMessage;
 
-      if (type === 'photo' && photo) {
-        const photoBuffer = Buffer.from(photo, 'base64');
-        const photoInput = new InputFile(photoBuffer, photoFilename || 'schedule.png');
-        sentMessage = await bot.api.sendPhoto(chatId, photoInput, options || {});
+      if (type === 'photo') {
+        // Backward compat: use photo from job directly, or fetch from cache
+        let photoData = photo;
+        if (photoCacheKey && !photoData) {
+          photoData = await getCachedPhoto(photoCacheKey);
+        }
+
+        if (photoData) {
+          const photoBuffer = Buffer.from(photoData, 'base64');
+          const photoInput = new InputFile(photoBuffer, photoFilename || 'schedule.png');
+          sentMessage = await bot.api.sendPhoto(chatId, photoInput, options || {});
+        } else {
+          // Фото недоступне — відправити як текст з caption
+          const fallbackText = options?.caption || text || '📊 Графік недоступний';
+          const fallbackOptions = {};
+          if (options?.parse_mode) fallbackOptions.parse_mode = options.parse_mode;
+          if (options?.caption_entities) fallbackOptions.entities = options.caption_entities;
+          if (options?.reply_markup) fallbackOptions.reply_markup = options.reply_markup;
+          sentMessage = await bot.api.sendMessage(chatId, fallbackText, fallbackOptions);
+        }
       } else {
         sentMessage = await bot.api.sendMessage(chatId, text, options || {});
       }

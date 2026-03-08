@@ -10,6 +10,7 @@ const { isTelegramUserInactiveError } = require('./utils/errorHandler');
 const { updateScheduleCheckTime } = require('./database/scheduleChecks');
 const { createLogger } = require('./utils/logger');
 const { notificationsQueue } = require('./queue/notificationsQueue');
+const { cachePhoto } = require('./queue/photoCache');
 
 const logger = createLogger('Scheduler');
 let bot = null;
@@ -206,6 +207,10 @@ async function sendScheduleNotifications(user, data) {
       try {
         const imageBuffer = await fetchScheduleImage(user.region, user.queue);
         const photoBase64 = Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : null;
+        const photoCacheKey = photoBase64 ? await cachePhoto(user.region, user.queue, photoBase64) : null;
+        if (photoBase64 && !photoCacheKey) {
+          logger.warn(`[${user.telegram_id}] Photo cache недоступний, використовуємо inline base64`);
+        }
 
         // Clear keyboard from previous keyboard message before sending new one
         if (user.last_bot_keyboard_message_id) {
@@ -214,14 +219,19 @@ async function sendScheduleNotifications(user, data) {
           }).catch(() => {});
         }
 
-        await notificationsQueue.add('photo', {
+        const jobData = {
           type: 'photo',
           chatId: user.telegram_id,
-          photo: photoBase64,
           photoFilename: 'schedule.png',
           options: { caption: fullCaption, caption_entities: timestampEntities, reply_markup: scheduleKeyboard },
           meta: { telegramId: user.telegram_id, updateLastBotKeyboardMessageId: true },
-        });
+        };
+        if (photoCacheKey) {
+          jobData.photoCacheKey = photoCacheKey;
+        } else {
+          jobData.photo = photoBase64;
+        }
+        await notificationsQueue.add('photo', jobData);
       } catch (_imgError) {
         // Clear keyboard from previous keyboard message before sending new one
         if (user.last_bot_keyboard_message_id) {
