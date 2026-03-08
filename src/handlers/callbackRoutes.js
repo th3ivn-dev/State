@@ -35,7 +35,8 @@ function createCallbackRouter() {
     // Wizard callbacks (region selection, queue, setup)
     .prefix(['region_', 'queue_', 'wizard_channel_confirm_'], (bot, query) => handleWizardCallback(bot, query))
     .exact(['confirm_setup', 'back_to_region', 'restore_profile', 'create_new_profile',
-            'wizard_notify_bot', 'wizard_notify_channel', 'wizard_notify_back'], (bot, query) => handleWizardCallback(bot, query))
+            'wizard_notify_bot', 'wizard_notify_channel', 'wizard_notify_back',
+            'wizard_resume', 'wizard_restart'], (bot, query) => handleWizardCallback(bot, query))
 
     // Menu callbacks
     .exact('menu_schedule', (bot, query) => handleMenuSchedule(bot, query))
