@@ -1437,7 +1437,7 @@ function getWizardBotNotificationKeyboard(user) {
         [factBtn],
         [
           { text: '← Назад', callback_data: 'wizard_notify_back' },
-          { text: '✅ Готово!', callback_data: 'wizard_bot_done' },
+          { text: '✓ Готово!', callback_data: 'wizard_bot_done' },
         ],
       ],
     },
@@ -1490,7 +1490,8 @@ function getWizardChannelNotificationKeyboard(user) {
         [btn60, btn30, btn15],
         [factBtn],
         [
-          { text: '✅ Готово!', callback_data: 'wizard_channel_done' },
+          { text: '← Назад', callback_data: 'wizard_channel_back' },
+          { text: '✓ Готово!', callback_data: 'wizard_channel_done' },
         ],
       ],
     },

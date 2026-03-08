@@ -11,7 +11,7 @@ const { getSetting } = require('../../database/db');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setConversationState } = require('../channel');
 const { pendingChannels, removePendingChannel } = require('../../state/pendingChannels');
-const { buildNotificationSettingsMessage, buildChannelNotificationMessage } = require('../settings/helpers');
+const { buildWizardNotificationSettingsMessage, buildWizardChannelNotificationMessage } = require('../settings/helpers');
 const {
   PENDING_CHANNEL_EXPIRATION_MS,
   CHANNEL_NAME_PREFIX,
@@ -83,7 +83,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     // Show bot notification settings screen
     const user = await usersDb.getUserByTelegramId(telegramId);
     await safeEditMessageText(bot,
-      buildNotificationSettingsMessage(user),
+      buildWizardNotificationSettingsMessage(user),
       {
         chat_id: chatId,
         message_id: query.message.message_id,
@@ -421,6 +421,30 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     return true;
   }
 
+  // Wizard: кнопка "← Назад" для каналу — повернутися до вибору куди сповіщати
+  if (data === 'wizard_channel_back') {
+    state.step = 'notify_target';
+    await setWizardState(telegramId, state);
+
+    await safeEditMessageText(bot,
+      `✅ Черга: ${state.queue}\n\n` +
+      `📬 Крок 3 із 3 — Куди надсилати сповіщення?\n\n` +
+      `📱 <b>У цьому боті</b>\n` +
+      `Сповіщення приходитимуть прямо в цей чат\n\n` +
+      `📺 <b>У Telegram-каналі</b>\n` +
+      `Бот публікуватиме у ваш канал\n` +
+      `(потрібно додати бота як адміністратора)`,
+      {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        parse_mode: 'HTML',
+        reply_markup: getWizardNotifyTargetKeyboard().reply_markup,
+      }
+    );
+
+    return true;
+  }
+
   // Wizard: toggles для сповіщень бота
   if (data === 'wizard_notif_toggle_schedule') {
     const user = await usersDb.getUserByTelegramId(telegramId);
@@ -428,7 +452,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const newVal = !(user.notify_schedule_changes !== false);
     await usersDb.updateNotificationSettings(telegramId, { notify_schedule_changes: newVal });
     const fresh = await usersDb.getUserByTelegramId(telegramId);
-    await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
+    await safeEditMessageText(bot, buildWizardNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
@@ -444,7 +468,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const newVal = !currentVal;
     await usersDb.updateNotificationSettings(telegramId, { notify_fact_off: newVal, notify_fact_on: newVal });
     const fresh = await usersDb.getUserByTelegramId(telegramId);
-    await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
+    await safeEditMessageText(bot, buildWizardNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
@@ -475,7 +499,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
 
     await usersDb.updateNotificationSettings(telegramId, updates);
     const fresh = await usersDb.getUserByTelegramId(telegramId);
-    await safeEditMessageText(bot, buildNotificationSettingsMessage(fresh), {
+    await safeEditMessageText(bot, buildWizardNotificationSettingsMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
@@ -491,7 +515,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const newVal = !(user.ch_notify_schedule !== false);
     await usersDb.updateChannelNotificationSettings(telegramId, { ch_notify_schedule: newVal });
     const fresh = await usersDb.getUserByTelegramId(telegramId);
-    await safeEditMessageText(bot, buildChannelNotificationMessage(fresh), {
+    await safeEditMessageText(bot, buildWizardChannelNotificationMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
@@ -507,7 +531,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
     const newVal = !currentVal;
     await usersDb.updateChannelNotificationSettings(telegramId, { ch_notify_fact_off: newVal, ch_notify_fact_on: newVal });
     const fresh = await usersDb.getUserByTelegramId(telegramId);
-    await safeEditMessageText(bot, buildChannelNotificationMessage(fresh), {
+    await safeEditMessageText(bot, buildWizardChannelNotificationMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',
@@ -538,7 +562,7 @@ async function handleNotifyCallback(bot, query, chatId, telegramId, data, state)
 
     await usersDb.updateChannelNotificationSettings(telegramId, updates);
     const fresh = await usersDb.getUserByTelegramId(telegramId);
-    await safeEditMessageText(bot, buildChannelNotificationMessage(fresh), {
+    await safeEditMessageText(bot, buildWizardChannelNotificationMessage(fresh), {
       chat_id: chatId,
       message_id: query.message.message_id,
       parse_mode: 'HTML',

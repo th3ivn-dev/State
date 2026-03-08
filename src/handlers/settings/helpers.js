@@ -119,7 +119,55 @@ function buildChannelNotificationMessage(user) {
   const on = '✅';
   const off = '❌';
 
-  return `<tg-emoji emoji-id="5282843764451195532">📺</tg-emoji> <b>Сповіщення каналу</b>\n\n` +
+  return `<tg-emoji emoji-id="5424818078833715060">📺</tg-emoji> <b>Сповіщення каналу</b>\n\n` +
+    `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? on : off}\n\n` +
+    `<tg-emoji emoji-id="5451732530048802485">⏳</tg-emoji> Нагадування про події перед (вимкнення / відновлення):\n` +
+    `├ За 1 год — ${t60 ? on : off}\n` +
+    `├ За 30 хв — ${t30 ? on : off}\n` +
+    `├ За 15 хв — ${t15 ? on : off}\n` +
+    `└ ${hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком'} — ${factOn ? on : off}\n` +
+    `   (${hasIp ? 'коли світло фактично вимкнулось або увімкнулось вдома' : 'коли світло вимкнулось або увімкнулось за графіком'})`;
+}
+
+// Build the wizard bot notification settings message (with explanatory text)
+function buildWizardNotificationSettingsMessage(user) {
+  const scheduleOn = user.notify_schedule_changes !== false;
+  const t60 = user.remind_1h === true;
+  const t30 = user.remind_30m === true;
+  const t15 = user.remind_15m !== false;
+  const factOn = user.notify_fact_off !== false;
+  const hasIp = !!user.router_ip;
+
+  const on = '✅';
+  const off = '❌';
+
+  return `<tg-emoji emoji-id="5262598817626234330">🔔</tg-emoji> <b>Керування сповіщеннями</b>\n\n` +
+    `Налаштуйте, які сповіщення ви хочете\n` +
+    `отримувати у цьому боті:\n\n` +
+    `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? on : off}\n\n` +
+    `<tg-emoji emoji-id="5451732530048802485">⏳</tg-emoji> Нагадування про події перед (вимкнення / відновлення):\n` +
+    `├ За 1 год — ${t60 ? on : off}\n` +
+    `├ За 30 хв — ${t30 ? on : off}\n` +
+    `├ За 15 хв — ${t15 ? on : off}\n` +
+    `└ ${hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком'} — ${factOn ? on : off}\n` +
+    `   (${hasIp ? 'коли світло фактично вимкнулось або увімкнулось вдома' : 'коли світло вимкнулось або увімкнулось за графіком'})`;
+}
+
+// Build the wizard channel notification settings message (with explanatory text)
+function buildWizardChannelNotificationMessage(user) {
+  const scheduleOn = user.ch_notify_schedule !== false;
+  const t60 = user.ch_remind_1h === true;
+  const t30 = user.ch_remind_30m === true;
+  const t15 = user.ch_remind_15m !== false;
+  const factOn = user.ch_notify_fact_off !== false;
+  const hasIp = !!user.router_ip;
+
+  const on = '✅';
+  const off = '❌';
+
+  return `<tg-emoji emoji-id="5424818078833715060">📺</tg-emoji> <b>Сповіщення каналу</b>\n\n` +
+    `Налаштуйте, які сповіщення будуть\n` +
+    `публікуватися у вашому каналі:\n\n` +
     `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? on : off}\n\n` +
     `<tg-emoji emoji-id="5451732530048802485">⏳</tg-emoji> Нагадування про події перед (вимкнення / відновлення):\n` +
     `├ За 1 год — ${t60 ? on : off}\n` +
@@ -208,6 +256,8 @@ module.exports = {
   buildAlertsMessage,
   buildNotificationSettingsMessage,
   buildChannelNotificationMessage,
+  buildWizardNotificationSettingsMessage,
+  buildWizardChannelNotificationMessage,
   isValidIPorDomain,
   hasAnyNotificationEnabled,
 };

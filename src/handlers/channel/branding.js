@@ -3,7 +3,7 @@ const usersDb = require('../../database/users');
 const { getBotUsername } = require('../../utils');
 const { safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { getWizardChannelNotificationKeyboard } = require('../../keyboards/inline');
-const { buildChannelNotificationMessage } = require('../settings/helpers');
+const { buildWizardChannelNotificationMessage } = require('../settings/helpers');
 const {
   setConversationState,
   getConversationState,
@@ -151,7 +151,7 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
     if (state.fromWizard) {
       // Wizard flow: show channel notification settings instead of final message
       const user = await usersDb.getUserByTelegramId(telegramId);
-      await bot.api.sendMessage(chatId, buildChannelNotificationMessage(user), {
+      await bot.api.sendMessage(chatId, buildWizardChannelNotificationMessage(user), {
         parse_mode: 'HTML',
         reply_markup: getWizardChannelNotificationKeyboard(user).reply_markup,
       });
