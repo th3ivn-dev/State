@@ -193,12 +193,8 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
 
 function stopHealthCheck() {
   if (server) {
-    // If using webhook, delete it before stopping
-    if (botRef && config.USE_WEBHOOK) {
-      botRef.api.deleteWebhook().catch((error) => {
-        console.error('⚠️  Помилка при видаленні webhook:', error.message);
-      });
-    }
+    // NOTE: Do NOT delete webhook here — the new container's webhook must persist.
+    // The new instance will overwrite the webhook via setWebhook() on startup.
     server.close();
     console.log('✅ Health check server stopped');
   }
