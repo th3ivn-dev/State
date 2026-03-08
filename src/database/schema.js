@@ -239,6 +239,95 @@ async function initializeDatabase() {
         last_checked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
         PRIMARY KEY (region, queue)
       );
+
+      CREATE TABLE IF NOT EXISTS user_notification_settings (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        notify_before_off INTEGER DEFAULT 15,
+        notify_before_on INTEGER DEFAULT 15,
+        alerts_off_enabled BOOLEAN DEFAULT TRUE,
+        alerts_on_enabled BOOLEAN DEFAULT TRUE,
+        power_notify_target TEXT DEFAULT 'both',
+        schedule_alert_enabled BOOLEAN DEFAULT TRUE,
+        schedule_alert_minutes INTEGER DEFAULT 15,
+        schedule_alert_target TEXT DEFAULT 'both',
+        notify_schedule_changes BOOLEAN DEFAULT TRUE,
+        notify_remind_off BOOLEAN DEFAULT TRUE,
+        notify_fact_off BOOLEAN DEFAULT TRUE,
+        notify_remind_on BOOLEAN DEFAULT TRUE,
+        notify_fact_on BOOLEAN DEFAULT TRUE,
+        remind_15m BOOLEAN DEFAULT TRUE,
+        remind_30m BOOLEAN DEFAULT FALSE,
+        remind_1h BOOLEAN DEFAULT FALSE,
+        notify_schedule_target TEXT DEFAULT 'bot',
+        notify_remind_target TEXT DEFAULT 'bot',
+        notify_power_target TEXT DEFAULT 'bot',
+        auto_delete_commands BOOLEAN DEFAULT FALSE,
+        auto_delete_bot_messages BOOLEAN DEFAULT FALSE,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_notif_settings_user_id ON user_notification_settings(user_id);
+
+      CREATE TABLE IF NOT EXISTS user_channel_config (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        channel_id TEXT,
+        channel_title TEXT,
+        channel_description TEXT,
+        channel_photo_file_id TEXT,
+        channel_user_title TEXT,
+        channel_user_description TEXT,
+        channel_status TEXT DEFAULT 'active',
+        channel_paused BOOLEAN DEFAULT FALSE,
+        channel_branding_updated_at TIMESTAMP,
+        last_published_hash TEXT,
+        last_post_id INTEGER,
+        schedule_caption TEXT DEFAULT NULL,
+        period_format TEXT DEFAULT NULL,
+        power_off_text TEXT DEFAULT NULL,
+        power_on_text TEXT DEFAULT NULL,
+        delete_old_message BOOLEAN DEFAULT FALSE,
+        picture_only BOOLEAN DEFAULT FALSE,
+        ch_notify_schedule BOOLEAN DEFAULT TRUE,
+        ch_notify_remind_off BOOLEAN DEFAULT TRUE,
+        ch_notify_remind_on BOOLEAN DEFAULT TRUE,
+        ch_notify_fact_off BOOLEAN DEFAULT TRUE,
+        ch_notify_fact_on BOOLEAN DEFAULT TRUE,
+        ch_remind_15m BOOLEAN DEFAULT TRUE,
+        ch_remind_30m BOOLEAN DEFAULT FALSE,
+        ch_remind_1h BOOLEAN DEFAULT FALSE,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_channel_config_user_id ON user_channel_config(user_id);
+      CREATE INDEX IF NOT EXISTS idx_channel_config_channel_id ON user_channel_config(channel_id);
+
+      CREATE TABLE IF NOT EXISTS user_power_tracking (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        power_state TEXT,
+        power_changed_at TIMESTAMPTZ,
+        pending_power_state TEXT,
+        pending_power_change_at TIMESTAMPTZ,
+        last_power_state TEXT,
+        last_power_change INTEGER,
+        power_on_duration INTEGER,
+        last_alert_off_period TEXT,
+        last_alert_on_period TEXT,
+        alert_off_message_id INTEGER,
+        alert_on_message_id INTEGER,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_power_tracking_user_id ON user_power_tracking(user_id);
+
+      CREATE TABLE IF NOT EXISTS user_message_tracking (
+        user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        last_schedule_message_id INTEGER DEFAULT NULL,
+        last_bot_keyboard_message_id BIGINT DEFAULT NULL,
+        last_reminder_message_id BIGINT DEFAULT NULL,
+        last_start_message_id INTEGER,
+        last_settings_message_id INTEGER,
+        last_timer_message_id INTEGER,
+        last_menu_message_id INTEGER,
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_msg_tracking_user_id ON user_message_tracking(user_id);
     `);
 
     console.log('✅ База даних ініціалізована');

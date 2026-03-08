@@ -6,6 +6,7 @@ const { updateUserAlertSettings, updateUserFormatSettings, getUserFormatSettings
 const { updateUserHash, updateUserPublishedHash, updateUserHashes, updateSnapshotHashes, getSnapshotHashes, batchUpdateHashes } = require('./hashes');
 const { updateUserRegionQueue, updateUserRegionAndQueue, updateUserPostId, updateUserRouterIp, updateLastScheduleMessageId, updateLastBotKeyboardMessageId, updateLastReminderMessageId } = require('./updates');
 const { getUserStats, getUserCount } = require('./stats');
+const { getUserFullProfile, getUserWithNotifications, getUserWithChannel, getUserWithPowerState, getUserWithMessages } = require('./joins');
 
 module.exports = {
   createUser,
@@ -63,4 +64,9 @@ module.exports = {
   updateChannelNotificationSettings,
   updateCleanupSettings,
   getActiveUsersWithReminders,
+  getUserFullProfile,
+  getUserWithNotifications,
+  getUserWithChannel,
+  getUserWithPowerState,
+  getUserWithMessages,
 };
