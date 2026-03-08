@@ -20,7 +20,7 @@ async function handleIpCallback(bot, query, user) {
         chat_id: chatId,
         message_id: query.message.message_id,
         parse_mode: 'HTML',
-        reply_markup: getIpMonitoringKeyboard().reply_markup,
+        reply_markup: getIpMonitoringKeyboard(!!user.router_ip).reply_markup,
       }
     );
     return;

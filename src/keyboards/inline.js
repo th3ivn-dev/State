@@ -273,10 +273,7 @@ function getSettingsKeyboard(isAdmin = false) {
   );
 
   buttons.push(
-    [
-      { text: '← Назад', callback_data: 'back_to_main' },
-      { text: '⤴ Меню', callback_data: 'back_to_main' }
-    ]
+    [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
   );
 
   return {
@@ -498,19 +495,29 @@ function getDeleteDataFinalKeyboard() {
 }
 
 // IP моніторинг меню
-function getIpMonitoringKeyboard() {
+function getIpMonitoringKeyboard(hasIp = false) {
+  const buttons = [
+    [
+      { text: 'ℹ️ Інструкція', callback_data: 'ip_instruction' },
+      { text: '✚ Підключити IP', callback_data: 'ip_setup' }
+    ],
+  ];
+
+  if (hasIp) {
+    buttons.push([
+      { text: '📋 Показати поточний', callback_data: 'ip_show' },
+      { text: '🗑️ Видалити IP', callback_data: 'ip_delete' }
+    ]);
+  }
+
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+
   return {
     reply_markup: {
-      inline_keyboard: [
-        [{ text: 'ℹ️ Інструкція', callback_data: 'ip_instruction' }],
-        [{ text: '✚ Підключити IP', callback_data: 'ip_setup' }],
-        [{ text: '📋 Показати поточний', callback_data: 'ip_show' }],
-        [{ text: '🗑️ Видалити IP', callback_data: 'ip_delete' }],
-        [
-          { text: '← Назад', callback_data: 'back_to_settings' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
-        ],
-      ],
+      inline_keyboard: buttons,
     },
   };
 }
@@ -535,7 +542,6 @@ function getStatisticsKeyboard() {
         [{ text: '📡 Статус пристрою', callback_data: 'stats_device' }],
         [{ text: '⚙️ Мої налаштування', callback_data: 'stats_settings' }],
         [
-          { text: '← Назад', callback_data: 'back_to_main' },
           { text: '⤴ Меню', callback_data: 'back_to_main' }
         ],
       ],
