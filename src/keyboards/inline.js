@@ -87,7 +87,7 @@ function getSettingsKeyboard(isAdmin) {
 
 // ─── Help Keyboard ────────────────────────────────────────────────────────────
 
-async function getHelpKeyboard() {
+function getHelpKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
@@ -103,7 +103,7 @@ async function getHelpKeyboard() {
 
 // ─── Error Keyboard ───────────────────────────────────────────────────────────
 
-async function getErrorKeyboard() {
+function getErrorKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
