@@ -13,7 +13,7 @@ let botRef = null;
 let healthCache = { data: null, ts: 0 };
 const HEALTH_CACHE_TTL = 10_000; // 10 seconds
 
-function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
+async function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   botRef = bot;
   const useWebhook = config.USE_WEBHOOK;
   const webhookPath = config.WEBHOOK_PATH;
@@ -171,23 +171,28 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
     }
   });
 
-  server.listen(port, () => {
-    console.log(`🏥 Health check server running on port ${port}`);
-
-    if (useWebhook && config.WEBHOOK_URL) {
-      // Set webhook with Telegram
-      const fullWebhookUrl = `${config.WEBHOOK_URL}${webhookPath}`;
-      bot.api.setWebhook(fullWebhookUrl, {
+  // 1. Register webhook with Telegram FIRST (before opening the port)
+  if (useWebhook && config.WEBHOOK_URL) {
+    const fullWebhookUrl = `${config.WEBHOOK_URL}${webhookPath}`;
+    try {
+      await bot.api.setWebhook(fullWebhookUrl, {
         max_connections: config.WEBHOOK_MAX_CONNECTIONS,
         secret_token: webhookSecret,
         allowed_updates: ['message', 'callback_query', 'my_chat_member', 'chat_member', 'channel_post'],
-      }).then(() => {
-        console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
-      }).catch((error) => {
-        console.error('❌ Помилка встановлення webhook:', error.message);
-        process.exit(1); // Let Railway restart the service
       });
+      console.log(`🔗 Webhook встановлено: ${fullWebhookUrl}`);
+    } catch (error) {
+      console.error('❌ Помилка встановлення webhook:', error.message);
+      process.exit(1); // Let Railway restart the service
     }
+  }
+
+  // 2. THEN start the HTTP server (Railway sees the port → routes traffic)
+  return new Promise((resolve) => {
+    server.listen(port, () => {
+      console.log(`🏥 Health check server running on port ${port}`);
+      resolve();
+    });
   });
 }
 

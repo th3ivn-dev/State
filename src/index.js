@@ -96,7 +96,7 @@ async function main() {
   console.log(`🤖 Bot info: @${bot.botInfo.username}`);
 
   // Запуск health check server
-  startHealthCheck(bot, config.HEALTH_PORT);
+  await startHealthCheck(bot, config.HEALTH_PORT);
 
   // Check existing users for migration (run once on startup)
   setTimeout(() => {
