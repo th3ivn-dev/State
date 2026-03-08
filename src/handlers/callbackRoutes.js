@@ -19,7 +19,7 @@ const {
   handleTimerCallback,
   handleStatsCallback,
   handleScheduleRefresh,
-  handleScheduleChangeQueue,
+  handleMyQueues,
 } = require('./menu');
 
 /**
@@ -35,13 +35,12 @@ function createCallbackRouter() {
     // Wizard callbacks (region selection, queue, setup)
     .prefix(['region_', 'queue_', 'wizard_channel_confirm_'], (bot, query) => handleWizardCallback(bot, query))
     .exact(['confirm_setup', 'back_to_region', 'restore_profile', 'create_new_profile',
-            'wizard_notify_bot', 'wizard_notify_channel', 'wizard_notify_back',
-            'schedule_region_confirm'], (bot, query) => handleWizardCallback(bot, query))
+            'wizard_notify_bot', 'wizard_notify_channel', 'wizard_notify_back'], (bot, query) => handleWizardCallback(bot, query))
 
     // Menu callbacks
     .exact('menu_schedule', (bot, query) => handleMenuSchedule(bot, query))
     .exact('schedule_refresh', (bot, query) => handleScheduleRefresh(bot, query))
-    .exact('schedule_change_queue', (bot, query) => handleScheduleChangeQueue(bot, query))
+    .exact('my_queues', (bot, query) => handleMyQueues(bot, query))
     .exact('menu_timer', (bot, query) => handleMenuTimer(bot, query))
     .exact('menu_stats', (bot, query) => handleMenuStats(bot, query))
     .exact('menu_help', (bot, query) => handleMenuHelp(bot, query))

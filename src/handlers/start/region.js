@@ -99,37 +99,17 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
     }
   }
 
-  // Запуск зміни регіону/черги з екрану графіка (schedule_edit mode)
-  if (data === 'schedule_region_confirm') {
-    await setWizardState(telegramId, { step: 'region', mode: 'schedule_edit' });
-
-    await safeEditMessageText(bot,
-      '🌍 Оберіть регіон:\n\n' +
-      DEVELOPMENT_WARNING,
-      {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        reply_markup: getRegionKeyboard().reply_markup,
-      }
-    );
-    return true;
-  }
-
   // Підтвердження
   if (data === 'confirm_setup') {
     const username = query.from.username || query.from.first_name;
     const mode = state.mode || 'new';
 
-    if (mode === 'edit' || mode === 'schedule_edit') {
+    if (mode === 'edit') {
       // Режим редагування - оновлюємо існуючого користувача
       await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
       await clearWizardState(telegramId);
 
       const region = REGIONS[state.region]?.name || state.region;
-
-      // After schedule_edit — return to schedule; after edit — return to main
-      const backCallback = mode === 'schedule_edit' ? 'menu_schedule' : 'back_to_main';
-      const backText = mode === 'schedule_edit' ? '📅 Повернутись до графіка' : '⤴ Меню';
 
       await safeEditMessageText(bot,
         `✅ <b>Налаштування оновлено!</b>\n\n` +
@@ -142,7 +122,7 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
-              [{ text: backText, callback_data: backCallback }]
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
             ]
           }
         }

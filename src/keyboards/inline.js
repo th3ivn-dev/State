@@ -273,7 +273,10 @@ function getSettingsKeyboard(isAdmin = false) {
   );
 
   buttons.push(
-    [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+    [
+      { text: '← Назад', callback_data: 'back_to_main' },
+      { text: '⤴ Меню', callback_data: 'back_to_main' }
+    ]
   );
 
   return {
@@ -333,11 +336,6 @@ function getAdminKeyboard(openTicketsCount = 0) {
       inline_keyboard: buttons,
     },
   };
-}
-
-// Alias for backward compatibility
-function getAdminMenuKeyboard(openTicketsCount = 0) {
-  return getAdminKeyboard(openTicketsCount);
 }
 
 // Аналітика (підменю)
@@ -1340,7 +1338,6 @@ module.exports = {
   getSettingsKeyboard,
   getAlertsSettingsKeyboard,
   getAdminKeyboard,
-  getAdminMenuKeyboard,
   getAdminAnalyticsKeyboard,
   getAdminSettingsMenuKeyboard,
   getMaintenanceKeyboard,
