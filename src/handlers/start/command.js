@@ -89,7 +89,7 @@ async function startWizard(bot, chatId, telegramId, username, mode = 'new') {
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
-              [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
             ]
           }
         }

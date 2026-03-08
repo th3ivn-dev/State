@@ -194,7 +194,7 @@ async function handleBrandingCallbacks(bot, query, data, chatId, telegramId, use
           inline_keyboard: [
             [
               { text: '← Назад', callback_data: 'settings_channel' },
-              { text: '⤵ Меню', callback_data: 'back_to_main' }
+              { text: '⤴ Меню', callback_data: 'back_to_main' }
             ]
           ]
         }

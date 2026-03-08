@@ -37,7 +37,7 @@ function generateLiveStatusMessage(user, regionName) {
   message += `🔔 Сповіщення: ${notificationsEnabled ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
   if (!hasIp) {
-    message += '\n<i>💡 Додайте IP для точного моніторингу світла</i>';
+    message += '\n<i>💡 Додайте IP для моніторингу світла</i>';
   }
 
   if (hasIp && notificationsEnabled) {

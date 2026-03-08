@@ -124,7 +124,7 @@ async function handleMaintenanceCallback(bot, query, chatId, userId, data) {
         if (!newEnabled) {
           broadcastOptions.reply_markup = {
             inline_keyboard: [
-              [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
             ]
           };
         }

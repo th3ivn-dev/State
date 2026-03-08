@@ -403,7 +403,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'admin_menu' },
-            { text: '⤵ Меню', callback_data: 'back_to_main' }
+            { text: '⤴ Меню', callback_data: 'back_to_main' }
           ]
         ]
       },
@@ -453,7 +453,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
       reply_markup: {
         inline_keyboard: [
           [{ text: '← Назад', callback_data: 'admin_users' }],
-          [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+          [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
         ]
       }
     });
@@ -499,7 +499,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
     }
     keyboard.push([
       { text: '← Назад', callback_data: 'admin_users' },
-      { text: '⤵ Меню', callback_data: 'back_to_main' }
+      { text: '⤴ Меню', callback_data: 'back_to_main' }
     ]);
 
     await safeEditMessageText(bot, message, {
@@ -557,7 +557,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'admin_settings_menu' },
-            { text: '⤵ Меню', callback_data: 'back_to_main' }
+            { text: '⤴ Меню', callback_data: 'back_to_main' }
           ]
         ]
       },
