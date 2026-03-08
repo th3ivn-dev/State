@@ -70,6 +70,9 @@ function initWorker(botInstance) {
         if (meta.updateLastBotKeyboardMessageId && meta.telegramId) {
           await usersDb.updateLastBotKeyboardMessageId(meta.telegramId, sentMessage.message_id);
         }
+        if (meta.updateLastReminderMessageId && meta.telegramId) {
+          await usersDb.updateLastReminderMessageId(meta.telegramId, sentMessage.message_id);
+        }
         if (meta.updateUserPostId && meta.userId) {
           await usersDb.updateUserPostId(meta.userId, sentMessage.message_id);
         }
