@@ -46,4 +46,20 @@ function getChannelConnectionInstructions(botUsername) {
   );
 }
 
-module.exports = { getBotUsername, getChannelConnectionInstructions };
+/**
+ * Clear inline button markup from a previously sent message with buttons.
+ * Ignores errors (message might already be deleted or modified).
+ * @param {object} bot - Telegram bot instance
+ * @param {string|number} chatId
+ * @param {number|null} messageId
+ */
+async function clearPreviousButtonsMarkup(bot, chatId, messageId) {
+  if (!messageId) return;
+  try {
+    await bot.api.editMessageReplyMarkup(chatId, messageId, { reply_markup: { inline_keyboard: [] } });
+  } catch (_e) {
+    // Ignore - message may already be deleted or markup already empty
+  }
+}
+
+module.exports = { getBotUsername, getChannelConnectionInstructions, clearPreviousButtonsMarkup };

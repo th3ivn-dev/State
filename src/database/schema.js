@@ -62,6 +62,8 @@ async function initializeDatabase() {
         last_timer_message_id INTEGER,
         channel_branding_updated_at TIMESTAMP,
         last_menu_message_id INTEGER,
+        last_bot_message_with_buttons_id INTEGER DEFAULT NULL,
+        last_reminder_message_id INTEGER DEFAULT NULL,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );

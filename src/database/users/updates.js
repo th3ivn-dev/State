@@ -68,6 +68,38 @@ async function updateUserRouterIp(telegramId, routerIp) {
   }
 }
 
+// Оновити ID останнього повідомлення з кнопками
+async function updateLastBotMessageWithButtonsId(telegramId, messageId) {
+  try {
+    const result = await pool.query(`
+      UPDATE users 
+      SET last_bot_message_with_buttons_id = $1, updated_at = NOW()
+      WHERE telegram_id = $2
+    `, [messageId, telegramId]);
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error in updateLastBotMessageWithButtonsId:', error.message);
+    return false;
+  }
+}
+
+// Оновити ID останнього нагадування
+async function updateLastReminderMessageId(telegramId, messageId) {
+  try {
+    const result = await pool.query(`
+      UPDATE users 
+      SET last_reminder_message_id = $1, updated_at = NOW()
+      WHERE telegram_id = $2
+    `, [messageId, telegramId]);
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error in updateLastReminderMessageId:', error.message);
+    return false;
+  }
+}
+
 // Оновити ID останнього повідомлення з графіком
 async function updateLastScheduleMessageId(telegramId, messageId) {
   try {

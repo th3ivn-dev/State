@@ -116,17 +116,39 @@ function buildNotificationText(type, event, scheduleData, regionName, queue, min
 }
 
 /**
- * Send a notification to user (bot and/or channel depending on target setting)
+ * Send a notification to user (bot and/or channel depending on target setting).
+ * Deletes the previous reminder message before sending the new one.
  */
 async function sendNotification(bot, user, text) {
   const target = user.notify_remind_target || 'bot';
 
+  // Delete previous reminder message if it exists (bot target only)
+  if (user.last_reminder_message_id && (target === 'bot' || target === 'both')) {
+    try {
+      await bot.api.deleteMessage(user.telegram_id, user.last_reminder_message_id);
+    } catch (_e) {
+      // Ignore — message may already be deleted
+    }
+    // Clear the stored ID regardless of delete success
+    await usersDb.updateLastReminderMessageId(user.telegram_id, null);
+  }
+
+  let newMessageId = null;
+
   if (target === 'bot' || target === 'both') {
-    await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
+    const sentMsg = await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
+    if (sentMsg && sentMsg.message_id) {
+      newMessageId = sentMsg.message_id;
+    }
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {
     await safeSendMessage(bot, user.channel_id, text, { parse_mode: 'HTML' });
+  }
+
+  // Save the new bot reminder message_id
+  if (newMessageId) {
+    await usersDb.updateLastReminderMessageId(user.telegram_id, newMessageId);
   }
 }
 
