@@ -1374,12 +1374,22 @@ function getCleanupKeyboard(user) {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: delCmds ? '✅ Видаляти команди' : '❌ Видаляти команди', callback_data: 'cleanup_toggle_commands' },
-          { text: delMsgs ? '✅ Видаляти повід.' : '❌ Видаляти повід.', callback_data: 'cleanup_toggle_messages' },
+          {
+            text: delCmds ? '✅ Видаляти команди' : '⌨️ Видаляти команди',
+            callback_data: 'cleanup_toggle_commands',
+            ...(delCmds ? { style: 'success' } : {}),
+          },
+        ],
+        [
+          {
+            text: delMsgs ? '✅ Видаляти старі відповіді' : '💬 Видаляти старі відповіді',
+            callback_data: 'cleanup_toggle_messages',
+            ...(delMsgs ? { style: 'success' } : {}),
+          },
         ],
         [
           { text: '← Назад', callback_data: 'back_to_settings' },
-          { text: 'Готово ✓', callback_data: 'back_to_main' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' },
         ],
       ],
     },
