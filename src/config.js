@@ -38,6 +38,7 @@ const config = {
 
   // Health check
   HEALTH_PORT: parseInt(process.env.PORT || process.env.HEALTH_PORT || '3000', 10),
+  METRICS_API_KEY: process.env.METRICS_API_KEY || null,
 
   // Webhook configuration
   WEBHOOK_URL: normalizeWebhookUrl(process.env.WEBHOOK_URL), // e.g., your-app.railway.app or https://your-app.railway.app

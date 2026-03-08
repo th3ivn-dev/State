@@ -1,4 +1,5 @@
 const http = require('http');
+const crypto = require('crypto');
 const config = require('./config');
 const { pool } = require('./database/db');
 const { getUserCount } = require('./database/users');
@@ -136,8 +137,25 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: error.message }));
       }
-    } else if (req.url === '/metrics') {
+    } else if (req.url.startsWith('/metrics')) {
       // Metrics endpoint — detailed system metrics
+      // Auth check for metrics endpoint
+      const metricsKey = config.METRICS_API_KEY;
+      if (metricsKey) {
+        const url = new URL(req.url, `http://${req.headers.host}`);
+        const headerKey = req.headers['x-metrics-key'] || '';
+        const queryKey = url.searchParams.get('key') || '';
+        const keyBuf = Buffer.from(metricsKey);
+        const headerMatch = headerKey.length === metricsKey.length &&
+          crypto.timingSafeEqual(Buffer.from(headerKey), keyBuf);
+        const queryMatch = queryKey.length === metricsKey.length &&
+          crypto.timingSafeEqual(Buffer.from(queryKey), keyBuf);
+        if (!headerMatch && !queryMatch) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Unauthorized' }));
+          return;
+        }
+      }
       try {
         const { collectAllMetrics } = require('./monitoring/systemMetrics');
         const metrics = await collectAllMetrics();
