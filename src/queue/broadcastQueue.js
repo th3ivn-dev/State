@@ -278,8 +278,8 @@ async function closeBroadcastQueue() {
     }
     await broadcastQueue.close();
     logger.info('Broadcast queue closed');
-    await queueConnection.disconnect().catch(() => {});
-    await workerConnection.disconnect().catch(() => {});
+    try { await queueConnection?.disconnect?.(); } catch (_) { /* already closed */ }
+    try { await workerConnection?.disconnect?.(); } catch (_) { /* already closed */ }
     logger.success('Broadcast queue та Redis з\'єднання закрито');
   } catch (err) {
     logger.error('Помилка закриття broadcast queue:', { error: err.message });
