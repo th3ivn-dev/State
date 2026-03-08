@@ -1,19 +1,29 @@
 const { Queue, Worker } = require('bullmq');
-const connection = require('./connection');
+const { createConnection } = require('./connection');
 const { InputFile } = require('grammy');
 const { isTelegramUserInactiveError } = require('../utils/errorHandler');
 const usersDb = require('../database/users');
+const { createLogger } = require('../utils/logger');
+
+const logger = createLogger('NotificationsQueue');
+
+const CONCURRENCY = parseInt(process.env.BULLMQ_CONCURRENCY || '15', 10);
+const RATE_MAX = parseInt(process.env.BULLMQ_RATE_MAX || '20', 10);
+const RATE_DURATION = parseInt(process.env.BULLMQ_RATE_DURATION || '1000', 10);
 
 let bot = null;
 let worker = null;
 
+const queueConnection = createConnection();
+const workerConnection = createConnection();
+
 const notificationsQueue = new Queue('notifications', {
-  connection,
+  connection: queueConnection,
   defaultJobOptions: {
     attempts: 3,
     backoff: { type: 'exponential', delay: 1000 },
-    removeOnComplete: 1000,
-    removeOnFail: 5000,
+    removeOnComplete: { count: 500, age: 3600 },
+    removeOnFail: { count: 1000, age: 24 * 3600 },
   },
 });
 
@@ -51,40 +61,71 @@ function initWorker(botInstance) {
       return sentMessage ? { message_id: sentMessage.message_id } : null;
     },
     {
-      connection,
-      concurrency: 15,
-      limiter: { max: 20, duration: 1000 },
+      connection: workerConnection,
+      concurrency: CONCURRENCY,
+      limiter: { max: RATE_MAX, duration: RATE_DURATION },
     }
   );
 
   worker.on('failed', (job, err) => {
     if (err && err.error_code === 429) {
-      console.log(`⏳ Rate limit для ${job?.data?.chatId}, retry...`);
+      const retryAfter = err?.parameters?.retry_after;
+      if (retryAfter) {
+        logger.warn(`Rate limit для ${job?.data?.chatId}, retry after ${retryAfter}s`);
+      } else {
+        logger.warn(`Rate limit для ${job?.data?.chatId}, retry...`);
+      }
     } else if (isTelegramUserInactiveError(err)) {
-      console.log(`ℹ️ Користувач ${job?.data?.chatId} заблокував бота або недоступний`);
+      logger.info(`Користувач ${job?.data?.chatId} заблокував бота або недоступний`);
       const meta = job?.data?.meta;
       if (meta?.telegramId) {
         usersDb.setUserActive(meta.telegramId, false).catch(() => {});
       }
     } else {
-      console.error(`❌ Помилка відправки для ${job?.data?.chatId}:`, err?.message);
+      logger.error(`Помилка відправки для ${job?.data?.chatId}: ${err?.message}`);
     }
   });
 
   worker.on('error', (err) => {
-    console.error('❌ Notifications worker помилка:', err.message);
+    logger.error(`Notifications worker помилка: ${err.message}`);
   });
 
-  console.log('✅ Notifications worker запущено (concurrency: 15, limiter: 20/s)');
+  worker.on('stalled', (jobId) => {
+    logger.warn(`Job ${jobId} stalled`);
+  });
+
+  worker.on('completed', (job) => {
+    logger.debug(`Job ${job.id} completed for ${job.data.chatId}`);
+  });
+
+  logger.success(`Notifications worker запущено (concurrency: ${CONCURRENCY}, limiter: ${RATE_MAX}/${RATE_DURATION}ms)`);
   return worker;
 }
 
 async function closeQueue() {
-  if (worker) {
-    await worker.close();
+  try {
+    if (worker) {
+      await worker.close();
+      logger.info('Worker closed');
+    }
+    await notificationsQueue.close();
+    logger.info('Queue closed');
+    await queueConnection.disconnect().catch(() => {});
+    await workerConnection.disconnect().catch(() => {});
+    logger.success('Notifications queue та Redis з\'єднання закрито');
+  } catch (err) {
+    logger.error('Помилка закриття queue:', { error: err.message });
   }
-  await notificationsQueue.close();
-  console.log('✅ Notifications queue закрито');
 }
 
-module.exports = { notificationsQueue, initWorker, closeQueue };
+async function getQueueStats() {
+  try {
+    const counts = await notificationsQueue.getJobCounts('active', 'completed', 'failed', 'delayed', 'waiting');
+    return counts;
+  } catch (err) {
+    logger.error('Помилка отримання статистики черги:', { error: err.message });
+    return null;
+  }
+}
+
+module.exports = { notificationsQueue, initWorker, closeQueue, getQueueStats };
