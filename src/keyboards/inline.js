@@ -1,702 +1,1091 @@
-const { REGIONS, REGION_CODES, getQueuesForRegion } = require('../constants/regions');
+const { REGIONS, QUEUES, getQueuesForRegion } = require('../constants/regions');
 
-// ─── Main Menu ────────────────────────────────────────────────────────────────
-
-/**
- * Main menu keyboard.
- * @param {string} botStatus - 'active' | 'no_channel' | 'paused'
- * @param {boolean} channelPaused - whether the user's channel is paused
- */
-function getMainMenu(botStatus, channelPaused) {
+// Головне меню після /start для існуючих користувачів
+function getMainMenu(botStatus = 'active', channelPaused = false) {
   const buttons = [
     [
-      { text: 'Графік', callback_data: 'menu_schedule' },
-      { text: '⏱ Таймер', callback_data: 'menu_timer' },
+      { text: 'Графік', callback_data: 'menu_schedule', icon_custom_emoji_id: '5210956306952758910' },
+      { text: 'Допомога', callback_data: 'menu_help', icon_custom_emoji_id: '5443038326535759644' }
     ],
     [
-      { text: '📈 Статистика', callback_data: 'menu_stats' },
-      { text: '❓ Допомога', callback_data: 'menu_help' },
+      { text: 'Статистика', callback_data: 'menu_stats', icon_custom_emoji_id: '5190806721286657692' },
+      { text: 'Таймер', callback_data: 'menu_timer', icon_custom_emoji_id: '5382194935057372936' }
     ],
     [
-      { text: '⚙️ Налаштування', callback_data: 'menu_settings' },
+      { text: 'Налаштування', callback_data: 'menu_settings', icon_custom_emoji_id: '5341715473882955310' }
     ],
   ];
 
-  // Add channel control row when channel is connected
-  if (botStatus === 'active' || botStatus === 'paused') {
+  // Add pause/resume button if user has a channel
+  if (botStatus !== 'no_channel') {
     if (channelPaused) {
-      buttons.push([{ text: '▶️ Відновити канал', callback_data: 'channel_resume' }]);
-    } else if (botStatus === 'active') {
-      buttons.push([{ text: '⏸ Пауза каналу', callback_data: 'channel_pause' }]);
+      buttons.push([
+        { text: 'Відновити роботу каналу', callback_data: 'channel_resume', icon_custom_emoji_id: '5348125953090403204' }
+      ]);
+    } else {
+      buttons.push([
+        { text: 'Тимчасово зупинити канал', callback_data: 'channel_pause', icon_custom_emoji_id: '5359543311897998264' }
+      ]);
     }
   }
 
-  return { reply_markup: { inline_keyboard: buttons } };
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  };
 }
 
-// ─── Schedule View ────────────────────────────────────────────────────────────
-
-/**
- * Schedule view keyboard (shown on schedule screen).
- * Requirement: replace my_queues with schedule_change_queue.
- */
+// Клавіатура для перегляду графіка (кнопки ⭐ Мої черги / 🔄 Оновити / ⤴ Меню)
 function getScheduleViewKeyboard() {
   return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🌍 Змінити чергу', callback_data: 'schedule_change_queue' },
-          { text: '🔄 Оновити', callback_data: 'schedule_refresh' },
-        ],
-        [
-          { text: '⤴ Меню', callback_data: 'back_to_main' },
-        ],
+    inline_keyboard: [
+      [
+        { text: '⭐ Мої черги', callback_data: 'my_queues' },
+        { text: '🔄 Оновити', callback_data: 'schedule_refresh' }
       ],
-    },
+      [
+        { text: '⤴ Меню', callback_data: 'back_to_main' }
+      ]
+    ]
   };
 }
 
-// ─── Settings Keyboard ────────────────────────────────────────────────────────
-
-/**
- * Settings screen keyboard.
- * Requirement: only ⤴ Меню navigation button (no ← Назад).
- * @param {boolean} isAdmin
- */
-function getSettingsKeyboard(isAdmin) {
-  const buttons = [
-    [{ text: '🗺 Регіон / Черга', callback_data: 'settings_region' }],
-    [{ text: '🔔 Сповіщення', callback_data: 'settings_alerts' }],
-    [{ text: '📡 IP моніторинг', callback_data: 'settings_ip' }],
-    [{ text: '📺 Канал', callback_data: 'settings_channel' }],
-    [{ text: '🗑 Автоочищення', callback_data: 'settings_cleanup' }],
-    [
-      { text: '❌ Видалити дані', callback_data: 'settings_delete_data' },
-      { text: '⏸ Деактивувати', callback_data: 'settings_deactivate' },
-    ],
-  ];
-
-  if (isAdmin) {
-    buttons.push([{ text: '👨‍💼 Адмін панель', callback_data: 'settings_admin' }]);
-  }
-
-  buttons.push([{ text: '⤴ Меню', callback_data: 'back_to_main' }]);
-
-  return { reply_markup: { inline_keyboard: buttons } };
-}
-
-// ─── Help Keyboard ────────────────────────────────────────────────────────────
-
-async function getHelpKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '❓ Як налаштувати?', callback_data: 'help_howto' },
-          { text: '📋 FAQ', callback_data: 'help_faq' },
-        ],
-        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
-      ],
-    },
-  };
-}
-
-// ─── Error Keyboard ───────────────────────────────────────────────────────────
-
-async function getErrorKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔄 Спробувати знову', callback_data: 'back_to_main' }],
-      ],
-    },
-  };
-}
-
-// ─── Region Keyboard ──────────────────────────────────────────────────────────
-
+// Вибір регіону
 function getRegionKeyboard() {
-  const rows = REGION_CODES.map(code => [
-    { text: REGIONS[code].name, callback_data: `region_${code}` },
-  ]);
+  const buttons = [];
+  const row = [];
 
-  return { reply_markup: { inline_keyboard: rows } };
+  Object.keys(REGIONS).forEach((code, index) => {
+    row.push({
+      text: REGIONS[code].name,
+      callback_data: `region_${code}`,
+    });
+
+    if (row.length === 2 || index === Object.keys(REGIONS).length - 1) {
+      buttons.push([...row]);
+      row.length = 0;
+    }
+  });
+
+  // Add "Suggest Region" button
+  buttons.push([{ text: '🏙 Запропонувати регіон', callback_data: 'region_request_start' }]);
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  };
 }
 
-// ─── Queue Keyboard ───────────────────────────────────────────────────────────
+// Вибір черги з підтримкою пагінації для Києва
+function getQueueKeyboard(region = null, page = 1) {
+  const buttons = [];
 
-const QUEUES_PER_PAGE = 12;
-
-function getQueueKeyboard(region, page) {
-  const pageNum = page || 1;
-  const queues = getQueuesForRegion(region);
-
-  const totalPages = Math.ceil(queues.length / QUEUES_PER_PAGE);
-  const start = (pageNum - 1) * QUEUES_PER_PAGE;
-  const pageQueues = queues.slice(start, start + QUEUES_PER_PAGE);
-
-  // Build queue buttons (2 per row)
-  const rows = [];
-  for (let i = 0; i < pageQueues.length; i += 2) {
-    const row = [{ text: pageQueues[i], callback_data: `queue_${pageQueues[i]}` }];
-    if (pageQueues[i + 1]) {
-      row.push({ text: pageQueues[i + 1], callback_data: `queue_${pageQueues[i + 1]}` });
-    }
-    rows.push(row);
+  // Validate page number for Kyiv region
+  if (region === 'kyiv' && (page < 1 || page > 5)) {
+    page = 1; // Default to page 1 for invalid page numbers
   }
 
-  // Pagination row
-  if (totalPages > 1) {
-    const navRow = [];
-    if (pageNum > 1) {
-      navRow.push({ text: '← Попередня', callback_data: `queue_page_${pageNum - 1}` });
-    }
-    if (pageNum < totalPages) {
-      navRow.push({ text: 'Наступна →', callback_data: `queue_page_${pageNum + 1}` });
-    }
-    if (navRow.length > 0) rows.push(navRow);
+  // Для не-Київських регіонів або якщо регіон не вказано - показуємо стандартні 12 черг
+  if (!region || region !== 'kyiv') {
+    const queues = region ? getQueuesForRegion(region) : QUEUES;
+    const row = [];
+
+    queues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+
+      // 3 кнопки в рядку
+      if (row.length === 3 || index === queues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+
+    buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
+
+    return {
+      reply_markup: {
+        inline_keyboard: buttons,
+      },
+    };
   }
 
-  rows.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
+  // Для Києва - показуємо пагіновану клавіатуру
+  const kyivQueues = getQueuesForRegion('kyiv');
 
-  return { reply_markup: { inline_keyboard: rows } };
+  if (page === 1) {
+    // Page 1: Стандартні черги 1.1-6.2 (indices 0-11, 12 queues, 4 per row)
+    const standardQueues = kyivQueues.slice(0, 12);
+    const row = [];
+
+    standardQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+
+      // 4 кнопки в рядку
+      if (row.length === 4 || index === standardQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+
+    // Кнопка "Інші черги →"
+    buttons.push([{ text: 'Інші черги →', callback_data: 'queue_page_2' }]);
+    buttons.push([{ text: '← Назад', callback_data: 'back_to_region' }]);
+  } else if (page === 2) {
+    // Page 2: Queues 7.1-22.1 (indices 12-27, 16 queues, 4×4 grid)
+    const pageQueues = kyivQueues.slice(12, 28);
+    const row = [];
+
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+
+    // Navigation buttons
+    buttons.push([
+      { text: '← Назад', callback_data: 'queue_page_1' },
+      { text: 'Далі →', callback_data: 'queue_page_3' }
+    ]);
+  } else if (page === 3) {
+    // Page 3: Queues 23.1-38.1 (indices 28-43, 16 queues, 4×4 grid)
+    const pageQueues = kyivQueues.slice(28, 44);
+    const row = [];
+
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+
+    // Navigation buttons
+    buttons.push([
+      { text: '← Назад', callback_data: 'queue_page_2' },
+      { text: 'Далі →', callback_data: 'queue_page_4' }
+    ]);
+  } else if (page === 4) {
+    // Page 4: Queues 39.1-54.1 (indices 44-59, 16 queues, 4×4 grid)
+    const pageQueues = kyivQueues.slice(44, 60);
+    const row = [];
+
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+
+    // Navigation buttons
+    buttons.push([
+      { text: '← Назад', callback_data: 'queue_page_3' },
+      { text: 'Далі →', callback_data: 'queue_page_5' }
+    ]);
+  } else if (page === 5) {
+    // Page 5: Queues 55.1-60.1 (indices 60-65, 6 queues, last page)
+    const pageQueues = kyivQueues.slice(60, 66);
+    const row = [];
+
+    pageQueues.forEach((queue, index) => {
+      row.push({
+        text: queue,
+        callback_data: `queue_${queue}`,
+      });
+
+      if (row.length === 4 || index === pageQueues.length - 1) {
+        buttons.push([...row]);
+        row.length = 0;
+      }
+    });
+
+    // Only back button on last page
+    buttons.push([{ text: '← Назад', callback_data: 'queue_page_4' }]);
+  }
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  };
 }
 
-// ─── Confirm Keyboard (wizard) ────────────────────────────────────────────────
-
+// Підтвердження налаштувань
 function getConfirmKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [
-          { text: '✅ Підтвердити', callback_data: 'confirm_setup' },
-          { text: '← Назад', callback_data: 'back_to_region' },
-        ],
-      ],
-    },
-  };
-}
-
-// ─── Wizard Notify Target Keyboard ───────────────────────────────────────────
-
-function getWizardNotifyTargetKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📱 У боті', callback_data: 'wizard_notify_bot' }],
-        [{ text: '📺 У каналі', callback_data: 'wizard_notify_channel' }],
-      ],
-    },
-  };
-}
-
-// ─── IP Monitoring Keyboard ───────────────────────────────────────────────────
-
-function getIpMonitoringKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📝 Налаштувати IP', callback_data: 'ip_setup' }],
-        [{ text: '📖 Інструкція', callback_data: 'ip_instruction' }],
-        [{ text: '👁 Показати IP', callback_data: 'ip_show' }],
-        [{ text: '← Назад', callback_data: 'back_to_settings' }],
-      ],
-    },
-  };
-}
-
-function getIpCancelKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '❌ Скасувати', callback_data: 'ip_cancel' }],
-      ],
-    },
-  };
-}
-
-// ─── Channel Menu Keyboard ────────────────────────────────────────────────────
-
-/**
- * @param {string|null} channelId
- * @param {boolean} isPublic
- * @param {string} channelStatus - 'active' | 'blocked'
- */
-function getChannelMenuKeyboard(channelId, isPublic, channelStatus) {
-  const buttons = [];
-
-  if (channelId) {
-    // Show reconnect button when blocked
-    if (channelStatus === 'blocked') {
-      buttons.push([{ text: '🔗 Перепідключити канал', callback_data: 'channel_reconnect' }]);
-    }
-
-    buttons.push([{ text: '🎨 Налаштування формату', callback_data: 'format_settings' }]);
-    buttons.push([{ text: '🧪 Тест публікації', callback_data: 'channel_test' }]);
-
-    if (!isPublic) {
-      buttons.push([
-        { text: '⏸ Пауза каналу', callback_data: 'channel_pause' },
-        { text: '❌ Вимкнути', callback_data: 'channel_disable' },
-      ]);
-    } else {
-      buttons.push([{ text: '❌ Вимкнути', callback_data: 'channel_disable' }]);
-    }
-  } else {
-    buttons.push([{ text: '🔗 Підключити канал', callback_data: 'channel_connect' }]);
-  }
-
-  buttons.push([{ text: '← Назад', callback_data: 'back_to_settings' }]);
-
-  return { reply_markup: { inline_keyboard: buttons } };
-}
-
-// ─── Delete Data Keyboards ────────────────────────────────────────────────────
-
-function getDeleteDataConfirmKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🗑 Так, видалити', callback_data: 'delete_data_step2' },
-          { text: '← Скасувати', callback_data: 'back_to_settings' },
-        ],
-      ],
-    },
-  };
-}
-
-function getDeleteDataFinalKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '❌ Так, видалити все', callback_data: 'confirm_delete_data' },
-          { text: '← Ні, залишити', callback_data: 'back_to_settings' },
-        ],
-      ],
-    },
-  };
-}
-
-function getDeactivateConfirmKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '✅ Так, вимкнути', callback_data: 'confirm_deactivate' },
-          { text: '← Скасувати', callback_data: 'back_to_settings' },
-        ],
-      ],
-    },
-  };
-}
-
-// ─── Format Keyboards ─────────────────────────────────────────────────────────
-
-/**
- * Channel format overview keyboard with section headers.
- * @param {object} _user
- */
-function getFormatSettingsKeyboard(_user) {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '── ГРАФІК ВІДКЛЮЧЕНЬ ──', callback_data: 'noop' }],
-        [{ text: '📅 Налаштування графіка', callback_data: 'format_schedule_settings' }],
-        [{ text: '── ФАКТИЧНИЙ СТАН ──', callback_data: 'noop' }],
-        [{ text: '⚡ Стан живлення', callback_data: 'format_power_settings' }],
-        [{ text: '← Назад', callback_data: 'settings_channel' }],
-      ],
-    },
-  };
-}
-
-/**
- * Schedule format settings keyboard.
- * Per test: merged button format_schedule_text, format_toggle_delete, format_toggle_piconly.
- * @param {object} user
- */
-function getFormatScheduleKeyboard(user) {
-  const deleteIcon = user && user.delete_old_message ? '✅' : '❌';
-  const picOnlyIcon = user && user.picture_only ? '✅' : '❌';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '📝 Налаштувати текст графіка', callback_data: 'format_schedule_text' }],
-        [{ text: `${deleteIcon} Видаляти попереднє`, callback_data: 'format_toggle_delete' }],
-        [{ text: `${picOnlyIcon} Тільки зображення`, callback_data: 'format_toggle_piconly' }],
-        [{ text: '🔄 Скинути до стандартних', callback_data: 'format_reset_all_schedule' }],
-        [{ text: '← Назад', callback_data: 'format_settings' }],
-      ],
-    },
-  };
-}
-
-/**
- * Power format settings keyboard.
- */
-function getFormatPowerKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '✍️ Текст: Світло є', callback_data: 'format_power_on_text' }],
-        [{ text: '✍️ Текст: Світла немає', callback_data: 'format_power_off_text' }],
-        [{ text: '🔄 Скинути до стандартних', callback_data: 'format_reset_all_power' }],
-        [{ text: '← Назад', callback_data: 'format_settings' }],
-      ],
-    },
-  };
-}
-
-// ─── Unified Alerts Keyboard (legacy) ────────────────────────────────────────
-
-/**
- * @param {boolean} isActive
- * @param {string} currentTarget - 'bot' | 'channel' | 'both'
- */
-function getUnifiedAlertsKeyboard(isActive, currentTarget) {
-  const toggleText = isActive ? '🔕 Вимкнути сповіщення' : '🔔 Увімкнути сповіщення';
-
-  const botMark = currentTarget === 'bot' ? '✅ ' : '';
-  const channelMark = currentTarget === 'channel' ? '✅ ' : '';
-  const bothMark = currentTarget === 'both' ? '✅ ' : '';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: toggleText, callback_data: 'alert_toggle' }],
-        [
-          { text: `${botMark}📱 Бот`, callback_data: 'notify_target_bot' },
-          { text: `${channelMark}📺 Канал`, callback_data: 'notify_target_channel' },
-          { text: `${bothMark}📱📺 Обидва`, callback_data: 'notify_target_both' },
-        ],
-        [{ text: '← Назад', callback_data: 'back_to_settings' }],
-      ],
-    },
-  };
-}
-
-// ─── Notification Keyboard (new, single-screen) ───────────────────────────────
-
-/**
- * @param {object} user
- */
-function getNotificationKeyboard(user) {
-  const scheduleOn = user.notify_schedule_changes !== false;
-  const t60 = user.remind_1h === true;
-  const t30 = user.remind_30m === true;
-  const t15 = user.remind_15m !== false;
-  const factOn = user.notify_fact_off !== false;
-
-  const on = '✅';
-  const off = '❌';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: `${scheduleOn ? on : off} Оновлення графіків`, callback_data: 'notif_toggle_schedule' }],
-        [{ text: `${t60 ? on : off} Нагадування за 1 год`, callback_data: 'notif_time_60' }],
-        [{ text: `${t30 ? on : off} Нагадування за 30 хв`, callback_data: 'notif_time_30' }],
-        [{ text: `${t15 ? on : off} Нагадування за 15 хв`, callback_data: 'notif_time_15' }],
-        [{ text: `${factOn ? on : off} Факт по графіку`, callback_data: 'notif_toggle_fact' }],
-        [{ text: '← Назад', callback_data: 'back_to_settings' }],
-      ],
-    },
-  };
-}
-
-// ─── Cleanup Keyboard ─────────────────────────────────────────────────────────
-
-/**
- * @param {object} user
- */
-function getCleanupKeyboard(user) {
-  const cmdIcon = user && user.auto_delete_commands ? '✅' : '❌';
-  const msgIcon = user && user.auto_delete_bot_messages ? '✅' : '❌';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: `${cmdIcon} Видаляти команди`, callback_data: 'cleanup_toggle_commands' }],
-        [{ text: `${msgIcon} Видаляти повідомлення бота`, callback_data: 'cleanup_toggle_messages' }],
-        [{ text: '← Назад', callback_data: 'back_to_settings' }],
-      ],
-    },
-  };
-}
-
-// ─── Restoration Keyboard ─────────────────────────────────────────────────────
-
-function getRestorationKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔄 Відновити профіль', callback_data: 'restore_profile' }],
-        [{ text: '🆕 Створити новий', callback_data: 'create_new_profile' }],
-      ],
-    },
-  };
-}
-
-// ─── Admin Keyboards ──────────────────────────────────────────────────────────
-
-/**
- * @param {number} openTicketsCount
- */
-function getAdminKeyboard(openTicketsCount) {
-  const ticketText = openTicketsCount > 0
-    ? `📩 Звернення (${openTicketsCount})`
-    : '📩 Звернення';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '📊 Статистика', callback_data: 'admin_stats' },
-          { text: '👥 Користувачі', callback_data: 'admin_users' },
-        ],
-        [
-          { text: '📈 Ріст', callback_data: 'admin_growth' },
-          { text: '📉 Аналітика', callback_data: 'admin_analytics' },
-        ],
-        [
-          { text: '⏸ Пауза', callback_data: 'admin_pause' },
-          { text: '📡 Моніторинг роутера', callback_data: 'admin_router' },
-        ],
-        [
-          { text: ticketText, callback_data: 'admin_tickets' },
-          { text: '⚙️ Налаштування', callback_data: 'admin_settings_menu' },
-        ],
+        [{ text: '✓ Підтвердити', callback_data: 'confirm_setup' }],
+        [{ text: '🔄 Змінити регіон', callback_data: 'back_to_region' }],
         [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
       ],
+    },
+  };
+}
+
+// Меню налаштувань - Живий стан
+function getSettingsKeyboard(isAdmin = false) {
+  const buttons = [
+    [
+      { text: 'Регіон', callback_data: 'settings_region', icon_custom_emoji_id: '5399898266265475100' },
+      { text: 'IP', callback_data: 'settings_ip', icon_custom_emoji_id: '5447410659077661506' }
+    ],
+    [
+      { text: 'Канал', callback_data: 'settings_channel', icon_custom_emoji_id: '5424818078833715060' },
+      { text: 'Сповіщення', callback_data: 'settings_alerts', icon_custom_emoji_id: '5458603043203327669' }
+    ],
+    [
+      { text: '🗑 Очищення', callback_data: 'settings_cleanup' }
+    ],
+  ];
+
+  // Add admin panel button if user is admin
+  if (isAdmin) {
+    buttons.push(
+      [{ text: 'Адмін-панель', callback_data: 'settings_admin', icon_custom_emoji_id: '5217822164362739968' }]
+    );
+  }
+
+  buttons.push(
+    [{ text: 'Видалити мої дані', callback_data: 'settings_delete_data', icon_custom_emoji_id: '5445267414562389170' }]
+  );
+
+  buttons.push(
+    [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+  );
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  };
+}
+
+// Налаштування алертів (спрощена версія - тільки увімк/вимк)
+function getAlertsSettingsKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '← Назад', callback_data: 'back_to_settings' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ],
+      ],
+    },
+  };
+}
+
+// Вибір часу для алертів - ВИДАЛЕНО (більше не використовується)
+// function getAlertTimeKeyboard(type) { ... }
+
+// Адмін меню
+function getAdminKeyboard(openTicketsCount = 0) {
+  const ticketsText = openTicketsCount > 0 ? `📩 Звернення (${openTicketsCount})` : '📩 Звернення';
+
+  const buttons = [
+    [
+      { text: '📊 Аналітика', callback_data: 'admin_analytics' },
+      { text: '👥 Користувачі', callback_data: 'admin_users' }
+    ],
+    [
+      { text: ticketsText, callback_data: 'admin_tickets' },
+      { text: '📢 Розсилка', callback_data: 'admin_broadcast' }
+    ],
+    [
+      { text: '⚙️ Налаштування', callback_data: 'admin_settings_menu' },
+      { text: '📡 Роутер', callback_data: 'admin_router' }
+    ],
+    [
+      { text: '🔧 Тех. роботи', callback_data: 'admin_maintenance' },
+      { text: '📞 Підтримка', callback_data: 'admin_support' }
+    ],
+  ];
+
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
     },
   };
 }
 
 // Alias for backward compatibility
-function getAdminMenuKeyboard(openTicketsCount) {
+function getAdminMenuKeyboard(openTicketsCount = 0) {
   return getAdminKeyboard(openTicketsCount);
 }
 
-function getUsersMenuKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '📊 Статистика', callback_data: 'admin_users_stats' },
-          { text: '📋 Список', callback_data: 'admin_users_list_1' },
-        ],
-        [{ text: '← Назад', callback_data: 'admin_menu' }],
-      ],
-    },
-  };
-}
-
+// Аналітика (підменю)
 function getAdminAnalyticsKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '← Назад', callback_data: 'admin_menu' }],
-      ],
-    },
+        [{ text: '📊 Загальна статистика', callback_data: 'admin_stats' }],
+        [{ text: '📈 Ріст / Growth', callback_data: 'admin_growth' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
   };
 }
 
+// Налаштування бота (підменю)
 function getAdminSettingsMenuKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: '⏱ Інтервали', callback_data: 'admin_intervals' },
           { text: '💻 Система', callback_data: 'admin_system' },
+          { text: '⏱ Інтервали', callback_data: 'admin_intervals' }
         ],
         [
-          { text: '🗑 Очистити БД', callback_data: 'admin_clear_db' },
-          { text: '🔄 Перезапуск', callback_data: 'admin_restart' },
+          { text: '⏸ Debounce', callback_data: 'admin_debounce' },
+          { text: '⏸️ Режим паузи', callback_data: 'admin_pause' }
         ],
         [
-          { text: '📞 Підтримка', callback_data: 'admin_support' },
-          { text: '🔧 Тех. роботи', callback_data: 'admin_maintenance' },
-        ],
-        [{ text: '← Назад', callback_data: 'admin_menu' }],
-      ],
-    },
-  };
-}
-
-function getRestartConfirmKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🔄 Так, перезапустити', callback_data: 'admin_restart_confirm' },
-          { text: '← Скасувати', callback_data: 'admin_settings_menu' },
-        ],
-      ],
-    },
-  };
-}
-
-// ─── Admin Pause / Debounce Keyboards ─────────────────────────────────────────
-
-/**
- * @param {boolean} isPaused
- */
-function getPauseMenuKeyboard(isPaused) {
-  const toggleText = isPaused ? '▶️ Вимкнути паузу' : '⏸ Увімкнути паузу';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: toggleText, callback_data: 'pause_toggle' }],
-        [{ text: '✏️ Змінити повідомлення', callback_data: 'pause_message_settings' }],
-        [{ text: '🔧 Тип паузи', callback_data: 'pause_type_select' }],
-        [{ text: '📜 Журнал', callback_data: 'pause_log' }],
-        [{ text: '← Назад', callback_data: 'admin_menu' }],
-      ],
-    },
-  };
-}
-
-/**
- * @param {boolean} _isPaused - unused but kept for API compatibility
- */
-function getPauseMessageKeyboard(_isPaused) {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '1️⃣ Бот тимчасово недоступний', callback_data: 'pause_template_1' }],
-        [{ text: '2️⃣ Бот на паузі. Скоро повернемось', callback_data: 'pause_template_2' }],
-        [{ text: '3️⃣ Бот тимчасово оновлюється', callback_data: 'pause_template_3' }],
-        [{ text: '4️⃣ Планові роботи', callback_data: 'pause_template_4' }],
-        [{ text: '5️⃣ Технічні роботи', callback_data: 'pause_template_5' }],
-        [{ text: '✏️ Свій текст', callback_data: 'pause_custom_message' }],
-        [{ text: '❌ Скасувати', callback_data: 'pause_message_settings' }],
-      ],
-    },
-  };
-}
-
-function getPauseTypeKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '🔄 Оновлення', callback_data: 'pause_type_update' }],
-        [{ text: '🔧 Технічні роботи', callback_data: 'pause_type_maintenance' }],
-        [{ text: '⚡ Аварія', callback_data: 'pause_type_emergency' }],
-        [{ text: '← Назад', callback_data: 'admin_pause' }],
-      ],
-    },
-  };
-}
-
-/**
- * @param {string} currentDebounce - current debounce minutes value
- */
-function getDebounceKeyboard(currentDebounce) {
-  const mark = (val) => String(currentDebounce) === String(val) ? '✅ ' : '';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: `${mark('0')}Вимкнено`, callback_data: 'debounce_set_0' }],
-        [
-          { text: `${mark('2')}2 хв`, callback_data: 'debounce_set_2' },
-          { text: `${mark('3')}3 хв`, callback_data: 'debounce_set_3' },
-          { text: `${mark('5')}5 хв`, callback_data: 'debounce_set_5' },
+          { text: '🗑 Очистити базу', callback_data: 'admin_clear_db' },
+          { text: '🔄 Перезапуск', callback_data: 'admin_restart' }
         ],
         [
-          { text: `${mark('10')}10 хв`, callback_data: 'debounce_set_10' },
-          { text: `${mark('15')}15 хв`, callback_data: 'debounce_set_15' },
-        ],
-        [{ text: '← Назад', callback_data: 'admin_pause' }],
-      ],
-    },
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
   };
 }
 
-// ─── Admin Intervals Keyboards ────────────────────────────────────────────────
+// Технічні роботи (підменю)
+function getMaintenanceKeyboard(enabled) {
+  const toggleText = enabled ? '🟢 Вимкнути тех. роботи' : '🔴 Увімкнути тех. роботи';
 
-function getAdminIntervalsKeyboard(scheduleMinutes, ipFormatted) {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: `⏱ Графік: ${scheduleMinutes} хв`, callback_data: 'admin_interval_schedule' }],
-        [{ text: `📡 IP: ${ipFormatted}`, callback_data: 'admin_interval_ip' }],
-        [{ text: '← Назад', callback_data: 'admin_settings_menu' }],
-      ],
-    },
+        [{ text: toggleText, callback_data: 'maintenance_toggle' }],
+        [{ text: '✏️ Змінити повідомлення', callback_data: 'maintenance_edit_message' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
   };
 }
 
+// Меню інтервалів (адмін)
+function getAdminIntervalsKeyboard(currentScheduleInterval, currentIpInterval) {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `⏱ Графіки: ${currentScheduleInterval} хв`, callback_data: 'admin_interval_schedule' }],
+        [{ text: `📡 IP: ${currentIpInterval}`, callback_data: 'admin_interval_ip' }],
+        [
+          { text: '← Назад', callback_data: 'admin_settings_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Вибір інтервалу графіків
 function getScheduleIntervalKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
         [
+          { text: '1 хв', callback_data: 'admin_schedule_1' },
           { text: '5 хв', callback_data: 'admin_schedule_5' },
           { text: '10 хв', callback_data: 'admin_schedule_10' },
-          { text: '15 хв', callback_data: 'admin_schedule_15' },
+          { text: '15 хв', callback_data: 'admin_schedule_15' }
         ],
         [
-          { text: '30 хв', callback_data: 'admin_schedule_30' },
-          { text: '45 хв', callback_data: 'admin_schedule_45' },
-          { text: '60 хв', callback_data: 'admin_schedule_60' },
-        ],
-        [{ text: '← Назад', callback_data: 'admin_intervals' }],
-      ],
-    },
+          { text: '← Назад', callback_data: 'admin_intervals' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
   };
 }
 
+// Вибір інтервалу IP моніторингу
 function getIpIntervalKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
         [
+          { text: '10 сек', callback_data: 'admin_ip_10' },
+          { text: '30 сек', callback_data: 'admin_ip_30' },
           { text: '1 хв', callback_data: 'admin_ip_60' },
-          { text: '2 хв', callback_data: 'admin_ip_120' },
-          { text: '5 хв', callback_data: 'admin_ip_300' },
+          { text: '2 хв', callback_data: 'admin_ip_120' }
         ],
-        [{ text: '← Назад', callback_data: 'admin_intervals' }],
+        [
+          { text: '🔄 Динамічний', callback_data: 'admin_ip_0' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_intervals' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Підтвердження деактивації
+function getDeactivateConfirmKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '✓ Так, деактивувати', callback_data: 'confirm_deactivate' }],
+        [{ text: '✕ Скасувати', callback_data: 'back_to_settings' }],
       ],
     },
   };
 }
 
-// ─── Admin Router Keyboards ───────────────────────────────────────────────────
+// Підтвердження видалення даних - Step 1
+function getDeleteDataConfirmKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Скасувати', callback_data: 'back_to_settings', style: 'success' },
+          { text: 'Продовжити', callback_data: 'delete_data_step2', style: 'danger' }
+        ],
+      ],
+    },
+  };
+}
 
-/**
- * @param {object|null} routerData
- */
+// Підтвердження видалення даних - Step 2
+function getDeleteDataFinalKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: 'Ні', callback_data: 'back_to_settings', style: 'success' },
+          { text: 'Так, видалити', callback_data: 'confirm_delete_data', style: 'danger', icon_custom_emoji_id: '5445267414562389170' }
+        ],
+      ],
+    },
+  };
+}
+
+// IP моніторинг меню
+function getIpMonitoringKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'ℹ️ Інструкція', callback_data: 'ip_instruction' }],
+        [{ text: '✚ Підключити IP', callback_data: 'ip_setup' }],
+        [{ text: '📋 Показати поточний', callback_data: 'ip_show' }],
+        [{ text: '🗑️ Видалити IP', callback_data: 'ip_delete' }],
+        [
+          { text: '← Назад', callback_data: 'back_to_settings' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ],
+      ],
+    },
+  };
+}
+
+// Кнопка скасування для IP setup
+function getIpCancelKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '✕ Скасувати', callback_data: 'ip_cancel' }],
+      ],
+    },
+  };
+}
+
+// Статистика меню
+function getStatisticsKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⚡ Відключення за тиждень', callback_data: 'stats_week' }],
+        [{ text: '📡 Статус пристрою', callback_data: 'stats_device' }],
+        [{ text: '⚙️ Мої налаштування', callback_data: 'stats_settings' }],
+        [
+          { text: '← Назад', callback_data: 'back_to_main' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ],
+      ],
+    },
+  };
+}
+
+// Допомога меню
+async function getHelpKeyboard() {
+  const { getSupportButton } = require('../handlers/feedback');
+  const supportButton = await getSupportButton();
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '📖 Інструкція', callback_data: 'help_howto' },
+          supportButton
+        ],
+        [
+          { text: '📢 Новини', url: 'https://t.me/Voltyk_news' },
+          { text: '💬 Обговорення', url: 'https://t.me/voltyk_chat' }
+        ],
+        [{ text: '🏙 Запропонувати регіон', callback_data: 'region_request_start' }],
+        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+      ],
+    },
+  };
+}
+
+// Канал меню
+function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatus = 'active') {
+  const buttons = [];
+
+  if (!channelId) {
+    // Канал НЕ підключено
+    buttons.push([{ text: '✚ Підключити канал', callback_data: 'channel_connect' }]);
+  } else {
+    // Канал підключено
+    // Add "Open channel" button for public channels
+    if (isPublic && channelId.startsWith('@')) {
+      buttons.push([{ text: '📺 Відкрити канал', url: `https://t.me/${channelId.replace('@', '')}` }]);
+    }
+
+    buttons.push([
+      { text: 'ℹ️ Інфо', callback_data: 'channel_info' },
+      { text: '✏️ Назва', callback_data: 'channel_edit_title' }
+    ]);
+    buttons.push([
+      { text: '📝 Опис', callback_data: 'channel_edit_description' },
+      { text: '📋 Формат', callback_data: 'channel_format' }
+    ]);
+    buttons.push([
+      { text: '🧪 Тест', callback_data: 'channel_test' },
+      // Add reconnect button if channel is blocked, otherwise disable
+      channelStatus === 'blocked'
+        ? { text: '⚙️ Перепідключити', callback_data: 'channel_reconnect' }
+        : { text: '🔴 Вимкнути', callback_data: 'channel_disable' }
+    ]);
+  }
+
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons,
+    },
+  };
+}
+
+// Restoration keyboard for deactivated users
+function getRestorationKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔄 Відновити налаштування', callback_data: 'restore_profile' }],
+        [{ text: '🆕 Почати заново', callback_data: 'create_new_profile' }],
+      ],
+    },
+  };
+}
+
+// Меню формату публікацій
+// Level 1 - Main format menu
+function getFormatSettingsKeyboard(_user) {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Графік відключень', callback_data: 'format_schedule_settings' }],
+        [{ text: '⚡ Фактичний стан', callback_data: 'format_power_settings' }],
+        [
+          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Level 2a - Schedule format settings
+function getFormatScheduleKeyboard(user) {
+  const deleteOld = user.delete_old_message ? '✓' : '○';
+  const picOnly = user.picture_only ? '✓' : '○';
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📝 Налаштувати текст графіка', callback_data: 'format_schedule_text' }],
+        [{ text: `${deleteOld} Видаляти старий графік`, callback_data: 'format_toggle_delete' }],
+        [{ text: `${picOnly} Без тексту (тільки картинка)`, callback_data: 'format_toggle_piconly' }],
+        [
+          { text: '← Назад', callback_data: 'format_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Level 2b - Power state settings
+function getFormatPowerKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔴 Повідомлення "Світло зникло"', callback_data: 'format_power_off' }],
+        [{ text: '🟢 Повідомлення "Світло є"', callback_data: 'format_power_on' }],
+        [{ text: '🔄 Скинути все до стандартних', callback_data: 'format_reset_all_power' }],
+        [
+          { text: '← Назад', callback_data: 'format_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Меню тесту публікації
+function getTestPublicationKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Графік відключень', callback_data: 'test_schedule' }],
+        [{ text: '⚡ Фактичний стан (світло є)', callback_data: 'test_power_on' }],
+        [{ text: '📴 Фактичний стан (світла немає)', callback_data: 'test_power_off' }],
+        [{ text: '✏️ Своє повідомлення', callback_data: 'test_custom' }],
+        [
+          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Меню режиму паузи
+function getPauseMenuKeyboard(isPaused) {
+  const statusIcon = isPaused ? '🔴' : '🟢';
+  const statusText = isPaused ? 'Бот на паузі' : 'Бот активний';
+  const toggleText = isPaused ? '🟢 Вимкнути паузу' : '🔴 Увімкнути паузу';
+
+  const buttons = [
+    [{ text: `${statusIcon} ${statusText}`, callback_data: 'pause_status' }],
+    [{ text: toggleText, callback_data: 'pause_toggle' }],
+    [{ text: '📋 Налаштувати повідомлення', callback_data: 'pause_message_settings' }],
+  ];
+
+  if (isPaused) {
+    buttons.push([{ text: '🏷 Тип паузи', callback_data: 'pause_type_select' }]);
+  }
+
+  buttons.push([{ text: '📜 Лог паузи', callback_data: 'pause_log' }]);
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_settings_menu' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons
+    }
+  };
+}
+
+// Меню налаштування повідомлення паузи
+function getPauseMessageKeyboard(showSupportButton) {
+  const supportIcon = showSupportButton ? '✓' : '○';
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔧 Бот тимчасово недоступний...', callback_data: 'pause_template_1' }],
+        [{ text: '⏸️ Бот на паузі. Скоро повернемось', callback_data: 'pause_template_2' }],
+        [{ text: '🔧 Бот тимчасово оновлюється. Спробуйте пізніше.', callback_data: 'pause_template_3' }],
+        [{ text: '⏸️ Бот на паузі. Скоро повернемось.', callback_data: 'pause_template_4' }],
+        [{ text: '🚧 Технічні роботи. Дякуємо за розуміння.', callback_data: 'pause_template_5' }],
+        [{ text: '✏️ Свій текст...', callback_data: 'pause_custom_message' }],
+        [{ text: `${supportIcon} Показувати кнопку "Обговорення/Підтримка"`, callback_data: 'pause_toggle_support' }],
+        [
+          { text: '← Назад', callback_data: 'admin_pause' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Меню вибору типу паузи
+function getPauseTypeKeyboard(currentType = 'update') {
+  const types = [
+    { value: 'update', label: '🔧 Оновлення', icon: '🔧' },
+    { value: 'emergency', label: '🚨 Аварія', icon: '🚨' },
+    { value: 'maintenance', label: '🔨 Обслуговування', icon: '🔨' },
+    { value: 'testing', label: '🧪 Тестування', icon: '🧪' },
+  ];
+
+  const buttons = types.map(type => [{
+    text: currentType === type.value ? `✓ ${type.label}` : type.label,
+    callback_data: `pause_type_${type.value}`
+  }]);
+
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_pause' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons
+    }
+  };
+}
+
+// Меню помилки з кнопкою підтримки
+async function getErrorKeyboard() {
+  const { getSupportButton } = require('../handlers/feedback');
+  const supportButton = await getSupportButton();
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '🔄 Спробувати ще', callback_data: 'back_to_main' }],
+        [supportButton],
+      ],
+    },
+  };
+}
+
+// Меню налаштування debounce
+function getDebounceKeyboard(currentValue) {
+  const options = [0, 1, 2, 3, 5, 10, 15];
+  const buttons = options.map(min => {
+    if (min === 0) {
+      // Special text for 0 value
+      const isSelected = currentValue === '0' || currentValue === 0;
+      return {
+        text: isSelected ? '✓ Вимкнено' : '❌ Вимкнути',
+        callback_data: 'debounce_set_0'
+      };
+    }
+    return {
+      text: currentValue === String(min) || currentValue === min ? `✓ ${min} хв` : `${min} хв`,
+      callback_data: `debounce_set_${min}`
+    };
+  });
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [buttons[0]], // [❌ Вимкнути] or [✓ Вимкнено]
+        buttons.slice(1, 4), // [1 хв] [2 хв] [3 хв]
+        buttons.slice(4, 7), // [5 хв] [10 хв] [15 хв]
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Меню вибору куди публікувати сповіщення про світло
+function getNotifyTargetKeyboard(currentTarget = 'both') {
+  const options = [
+    { value: 'bot', label: '📱 Тільки в бот' },
+    { value: 'channel', label: '📺 Тільки в канал' },
+    { value: 'both', label: '📱📺 В бот і канал' }
+  ];
+
+  const buttons = options.map(opt => [{
+    text: currentTarget === opt.value ? `✓ ${opt.label}` : opt.label,
+    callback_data: `notify_target_${opt.value}`
+  }]);
+
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons
+    }
+  };
+}
+
+// Unified alerts menu (combines alerts on/off with notify target selection)
+function getUnifiedAlertsKeyboard(isActive, currentTarget = 'both') {
+  const buttons = [];
+
+  if (isActive) {
+    // Show target selection buttons when notifications are enabled
+    const options = [
+      { value: 'bot', label: '📱 Тільки в бот' },
+      { value: 'channel', label: '📺 Тільки в канал' },
+      { value: 'both', label: '📱📺 В бот і канал' }
+    ];
+
+    options.forEach(opt => {
+      const btn = {
+        text: opt.label,
+        callback_data: `notify_target_${opt.value}`
+      };
+      if (currentTarget === opt.value) btn.style = 'success';
+      buttons.push([btn]);
+    });
+
+    // Add disable button
+    buttons.push([{ text: '🔕 Вимкнути сповіщення', callback_data: 'alert_toggle', style: 'danger' }]);
+  } else {
+    // Show only enable button when notifications are disabled
+    buttons.push([{ text: '🔔 Увімкнути сповіщення', callback_data: 'alert_toggle', style: 'success' }]);
+  }
+
+  // Add back button
+  buttons.push([
+    { text: '← Назад', callback_data: 'back_to_settings' }
+  ]);
+
+  return {
+    reply_markup: {
+      inline_keyboard: buttons
+    }
+  };
+}
+
+// Wizard: вибір куди надсилати сповіщення (для нових користувачів)
+function getWizardNotifyTargetKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📱 У цьому боті', callback_data: 'wizard_notify_bot' }],
+        [{ text: '📺 У Telegram-каналі', callback_data: 'wizard_notify_channel' }]
+      ]
+    }
+  };
+}
+
+// Growth management keyboard
+function getGrowthKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Метрики', callback_data: 'growth_metrics' }],
+        [{ text: '🎯 Етап росту', callback_data: 'growth_stage' }],
+        [{ text: '🔐 Реєстрація', callback_data: 'growth_registration' }],
+        [{ text: '📝 Події', callback_data: 'growth_events' }],
+        [
+          { text: '← Назад', callback_data: 'admin_analytics' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Growth stage selection keyboard
+function getGrowthStageKeyboard(currentStage) {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: `${currentStage === 0 ? '✓' : ''} Етап 0: Закрите тестування (0-50)`, callback_data: 'growth_stage_0' }],
+        [{ text: `${currentStage === 1 ? '✓' : ''} Етап 1: Відкритий тест (50-300)`, callback_data: 'growth_stage_1' }],
+        [{ text: `${currentStage === 2 ? '✓' : ''} Етап 2: Контрольований ріст (300-1000)`, callback_data: 'growth_stage_2' }],
+        [{ text: `${currentStage === 3 ? '✓' : ''} Етап 3: Активний ріст (1000-5000)`, callback_data: 'growth_stage_3' }],
+        [{ text: `${currentStage === 4 ? '✓' : ''} Етап 4: Масштаб (5000+)`, callback_data: 'growth_stage_4' }],
+        [
+          { text: '← Назад', callback_data: 'admin_growth' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Growth registration control keyboard
+function getGrowthRegistrationKeyboard(enabled) {
+  const toggleText = enabled ? '🔴 Вимкнути реєстрацію' : '🟢 Увімкнути реєстрацію';
+  const statusText = enabled ? '🟢 Реєстрація увімкнена' : '🔴 Реєстрація вимкнена';
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: statusText, callback_data: 'growth_reg_status' }],
+        [{ text: toggleText, callback_data: 'growth_reg_toggle' }],
+        [
+          { text: '← Назад', callback_data: 'admin_growth' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Restart confirmation keyboard
+function getRestartConfirmKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '✅ Так, перезапустити', callback_data: 'admin_restart_confirm' }],
+        [{ text: '❌ Скасувати', callback_data: 'admin_settings_menu' }]
+      ]
+    }
+  };
+}
+
+// Users menu keyboard
+function getUsersMenuKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Статистика користувачів', callback_data: 'admin_users_stats' }],
+        [{ text: '📋 Список користувачів', callback_data: 'admin_users_list_1' }],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ]
+      ]
+    }
+  };
+}
+
+// Admin ticket keyboard with counter
+function getAdminTicketsKeyboard(openCount = 0) {
+  const buttonText = openCount > 0 ? `📩 Звернення (${openCount})` : '📩 Звернення';
+  return {
+    inline_keyboard: [
+      [{ text: buttonText, callback_data: 'admin_tickets' }],
+    ],
+  };
+}
+
+// Admin ticket management keyboard
+function getAdminTicketKeyboard(ticketId, status = 'open') {
+  const buttons = [];
+
+  if (status === 'open') {
+    buttons.push([{ text: '💬 Відповісти', callback_data: `admin_ticket_reply_${ticketId}` }]);
+    buttons.push([{ text: '✅ Закрити', callback_data: `admin_ticket_close_${ticketId}` }]);
+  } else if (status === 'closed') {
+    buttons.push([{ text: '🔄 Відкрити знову', callback_data: `admin_ticket_reopen_${ticketId}` }]);
+  }
+
+  buttons.push([
+    { text: '← Назад до списку', callback_data: 'admin_tickets' },
+  ]);
+
+  return {
+    inline_keyboard: buttons,
+  };
+}
+
+// Admin tickets list keyboard
+function getAdminTicketsListKeyboard(tickets, page = 1) {
+  const buttons = [];
+
+  // Show up to 5 tickets per page
+  const startIndex = (page - 1) * 5;
+  const endIndex = Math.min(startIndex + 5, tickets.length);
+
+  for (let i = startIndex; i < endIndex; i++) {
+    const ticket = tickets[i];
+    const typeEmoji = ticket.type === 'bug' ? '🐛' : ticket.type === 'region_request' ? '🏙' : '💬';
+    const statusEmoji = ticket.status === 'open' ? '🆕' : ticket.status === 'closed' ? '✅' : '🔄';
+    let displaySubject = ticket.subject ? ticket.subject : 'Звернення';
+    if (displaySubject.length > 30) {
+      displaySubject = displaySubject.substring(0, 30) + '...';
+    }
+    const buttonText = `${statusEmoji} ${typeEmoji} #${ticket.id} - ${displaySubject}`;
+    buttons.push([{ text: buttonText, callback_data: `admin_ticket_view_${ticket.id}` }]);
+  }
+
+  // Pagination if needed
+  const totalPages = Math.ceil(tickets.length / 5);
+  if (totalPages > 1) {
+    const paginationRow = [];
+    if (page > 1) {
+      paginationRow.push({ text: '← Попередня', callback_data: `admin_tickets_page_${page - 1}` });
+    }
+    if (page < totalPages) {
+      paginationRow.push({ text: 'Наступна →', callback_data: `admin_tickets_page_${page + 1}` });
+    }
+    if (paginationRow.length > 0) {
+      buttons.push(paginationRow);
+    }
+  }
+
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_menu' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
+
+  return {
+    inline_keyboard: buttons,
+  };
+}
+
+// Admin router monitoring keyboards
 function getAdminRouterKeyboard(routerData) {
   const buttons = [];
 
   if (!routerData || !routerData.router_ip) {
-    buttons.push([{ text: '📝 Налаштувати IP', callback_data: 'admin_router_set_ip' }]);
+    // IP not configured
+    buttons.push([
+      { text: '✏️ Налаштувати IP', callback_data: 'admin_router_set_ip' }
+    ]);
   } else {
-    const notifyText = routerData.notifications_on
-      ? '🔕 Вимкнути сповіщення'
-      : '🔔 Увімкнути сповіщення';
-    buttons.push([{ text: '📝 Змінити IP', callback_data: 'admin_router_set_ip' }]);
-    buttons.push([{ text: notifyText, callback_data: 'admin_router_toggle_notify' }]);
-    buttons.push([{ text: '🔄 Оновити статус', callback_data: 'admin_router_refresh' }]);
-    buttons.push([{ text: '📊 Статистика', callback_data: 'admin_router_stats' }]);
+    // IP is configured
+    buttons.push([
+      { text: '✏️ Змінити IP', callback_data: 'admin_router_set_ip' },
+      { text: routerData.notifications_on ? '✓ Сповіщення' : '✗ Сповіщення', callback_data: 'admin_router_toggle_notify' }
+    ]);
+    buttons.push([
+      { text: '📊 Статистика', callback_data: 'admin_router_stats' },
+      { text: '🔄 Оновити', callback_data: 'admin_router_refresh' }
+    ]);
   }
 
-  buttons.push([{ text: '← Назад', callback_data: 'admin_menu' }]);
+  buttons.push([
+    { text: '← Назад', callback_data: 'admin_menu' },
+    { text: '⤴ Меню', callback_data: 'back_to_main' }
+  ]);
 
-  return { reply_markup: { inline_keyboard: buttons } };
-}
-
-function getAdminRouterSetIpKeyboard() {
   return {
     reply_markup: {
-      inline_keyboard: [
-        [{ text: '❌ Скасувати', callback_data: 'admin_router' }],
-      ],
+      inline_keyboard: buttons,
     },
   };
 }
@@ -705,226 +1094,297 @@ function getAdminRouterStatsKeyboard() {
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '← Назад', callback_data: 'admin_router' }],
+        [
+          { text: '🔄 Оновити', callback_data: 'admin_router_stats' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_router' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' }
+        ],
       ],
     },
   };
 }
 
-// ─── Admin Support Keyboard ───────────────────────────────────────────────────
+function getAdminRouterSetIpKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '❌ Скасувати', callback_data: 'admin_router' }
+        ],
+      ],
+    },
+  };
+}
 
-/**
- * @param {string} mode - 'channel' | 'bot'
- * @param {string} _url
- */
-function getAdminSupportKeyboard(mode, _url) {
-  const channelMark = mode === 'channel' ? '✅ ' : '';
-  const botMark = mode === 'bot' ? '✅ ' : '';
+function getAdminSupportKeyboard(currentMode, _supportUrl) {
+  const channelActive = currentMode === 'channel';
+  const botActive = currentMode === 'bot';
 
   return {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: `${channelMark}📺 Через канал`, callback_data: 'admin_support_channel' },
-          { text: `${botMark}🤖 Через бот`, callback_data: 'admin_support_bot' },
-        ],
-        [{ text: '✏️ Змінити посилання', callback_data: 'admin_support_edit_url' }],
-        [{ text: '← Назад', callback_data: 'admin_settings_menu' }],
-      ],
-    },
-  };
-}
-
-// ─── Admin Tickets Keyboards ──────────────────────────────────────────────────
-
-/**
- * @param {number} ticketId
- */
-function getAdminTicketKeyboard(ticketId) {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: '✉️ Відповісти', callback_data: `admin_ticket_reply_${ticketId}` }],
-        [{ text: '✅ Закрити тікет', callback_data: `admin_ticket_close_${ticketId}` }],
-        [{ text: '← Список', callback_data: 'admin_tickets' }],
-      ],
-    },
-  };
-}
-
-/**
- * @param {Array} tickets
- * @param {number} page
- */
-function getAdminTicketsListKeyboard(tickets, page) {
-  const perPage = 10;
-  const currentPage = page || 1;
-  const totalPages = Math.ceil(tickets.length / perPage);
-  const start = (currentPage - 1) * perPage;
-  const pageTickets = tickets.slice(start, start + perPage);
-
-  const buttons = pageTickets.map(ticket => ([
-    { text: `📩 Переглянути`, callback_data: `admin_ticket_view_${ticket.id}` },
-  ]));
-
-  const navRow = [];
-  if (currentPage > 1) {
-    navRow.push({ text: '← Попередня', callback_data: `admin_tickets_page_${currentPage - 1}` });
-  }
-  if (currentPage < totalPages) {
-    navRow.push({ text: 'Наступна →', callback_data: `admin_tickets_page_${currentPage + 1}` });
-  }
-  if (navRow.length > 0) buttons.push(navRow);
-
-  buttons.push([
-    { text: '← Назад', callback_data: 'admin_menu' },
-  ]);
-
-  return { inline_keyboard: buttons };
-}
-
-// ─── Maintenance Keyboard ─────────────────────────────────────────────────────
-
-/**
- * @param {boolean} enabled
- */
-function getMaintenanceKeyboard(enabled) {
-  const toggleText = enabled ? '❌ Вимкнути тех. роботи' : '✅ Увімкнути тех. роботи';
-
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: toggleText, callback_data: 'maintenance_toggle' }],
-        [{ text: '✏️ Змінити повідомлення', callback_data: 'maintenance_edit_message' }],
-        [{ text: '← Назад', callback_data: 'admin_settings_menu' }],
-      ],
-    },
-  };
-}
-
-// ─── Growth Keyboards ─────────────────────────────────────────────────────────
-
-function getGrowthKeyboard() {
-  return {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '📊 Метрики', callback_data: 'growth_metrics' },
-          { text: '🎯 Етап росту', callback_data: 'growth_stage' },
+          {
+            text: `${channelActive ? '●' : '○'} Через канал (листування)`,
+            callback_data: 'admin_support_channel'
+          }
         ],
         [
-          { text: '🔐 Реєстрація', callback_data: 'growth_registration' },
-          { text: '📝 Події', callback_data: 'growth_events' },
+          {
+            text: `${botActive ? '●' : '○'} Через бот (тікети)`,
+            callback_data: 'admin_support_bot'
+          }
         ],
-        [{ text: '← Назад', callback_data: 'admin_menu' }],
+        [
+          { text: '✏️ Змінити посилання', callback_data: 'admin_support_edit_url' }
+        ],
+        [
+          { text: '← Назад', callback_data: 'admin_menu' }
+        ],
       ],
     },
   };
 }
 
-/**
- * @param {number} currentStageId
- */
-function getGrowthStageKeyboard(currentStageId) {
-  const stages = [
-    { id: 0, name: 'Закрите Тестування' },
-    { id: 1, name: 'Відкритий Тест' },
-    { id: 2, name: 'Контрольований Ріст' },
-    { id: 3, name: 'Активний Ріст' },
-    { id: 4, name: 'Масштаб' },
+// =====================================================
+// NOTIFICATION SYSTEM KEYBOARDS (3-level menu)
+// =====================================================
+
+// Screen 1 — Main notification settings
+function getNotificationMainKeyboard(user) {
+  const scheduleOn = user.notify_schedule_changes !== false;
+  const hasChannel = !!user.channel_id;
+
+  const buttons = [
+    [
+      {
+        text: `📊 Зміни графіка  ${scheduleOn ? '✅' : '❌'}`,
+        callback_data: 'notif_toggle_schedule'
+      }
+    ],
+    [
+      {
+        text: '⏰ Нагадування  →',
+        callback_data: 'notif_reminders'
+      }
+    ],
   ];
 
-  const buttons = stages.map(stage => {
-    const mark = stage.id === currentStageId ? '✅ ' : '';
-    return [{ text: `${mark}${stage.name}`, callback_data: `growth_stage_${stage.id}` }];
-  });
+  if (hasChannel) {
+    buttons.push([
+      {
+        text: '📍 Куди надсилати  →',
+        callback_data: 'notif_targets'
+      }
+    ]);
+  }
 
-  buttons.push([{ text: '← Назад', callback_data: 'admin_growth' }]);
-
-  return { reply_markup: { inline_keyboard: buttons } };
-}
-
-/**
- * @param {boolean} enabled
- */
-function getGrowthRegistrationKeyboard(enabled) {
-  const toggleText = enabled ? '🔴 Вимкнути реєстрацію' : '🟢 Увімкнути реєстрацію';
+  buttons.push([{ text: '← Назад', callback_data: 'back_to_settings' }]);
 
   return {
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: toggleText, callback_data: 'growth_reg_toggle' }],
-        [{ text: '📊 Статус', callback_data: 'growth_reg_status' }],
-        [{ text: '← Назад', callback_data: 'admin_growth' }],
-      ],
-    },
+    reply_markup: { inline_keyboard: buttons },
   };
 }
 
-// ─── Test Publication Keyboard ────────────────────────────────────────────────
+// Screen 2 — Reminders submenu
+function getNotificationRemindersKeyboard(user) {
+  const remindOff = user.notify_remind_off !== false;
+  const factOff = user.notify_fact_off !== false;
+  const remindOn = user.notify_remind_on !== false;
+  const factOn = user.notify_fact_on !== false;
+  const t15 = user.remind_15m !== false;
+  const t30 = user.remind_30m === true;
+  const t60 = user.remind_1h === true;
 
-function getTestPublicationKeyboard() {
+  const buttons = [
+    [{ text: `🔴 Нагадування перед відкл.  ${remindOff ? '✅' : '❌'}`, callback_data: 'notif_toggle_remind_off' }],
+    [{ text: `🔴 Факт відключення  ${factOff ? '✅' : '❌'}`, callback_data: 'notif_toggle_fact_off' }],
+    [{ text: `🟢 Нагадування перед вкл.  ${remindOn ? '✅' : '❌'}`, callback_data: 'notif_toggle_remind_on' }],
+    [{ text: `🟢 Факт включення  ${factOn ? '✅' : '❌'}`, callback_data: 'notif_toggle_fact_on' }],
+    [
+      { text: t15 ? '✅ 15 хв' : '15 хв', callback_data: 'notif_time_15' },
+      { text: t30 ? '✅ 30 хв' : '30 хв', callback_data: 'notif_time_30' },
+      { text: t60 ? '✅ 1 год' : '1 год', callback_data: 'notif_time_60' },
+    ],
+    [{ text: '← Назад', callback_data: 'notif_main' }],
+  ];
+
+  return {
+    reply_markup: { inline_keyboard: buttons },
+  };
+}
+
+// Screen 3 — Where to send notifications
+function getNotificationTargetsKeyboard(user) {
+  const hasIp = !!user.router_ip;
+
+  const buttons = [
+    [{ text: '📊 Зміни графіка  →', callback_data: 'notif_target_type_schedule' }],
+    [{ text: '⏰ Нагадування  →', callback_data: 'notif_target_type_remind' }],
+  ];
+
+  if (hasIp) {
+    buttons.push([{ text: '⚡ Факт. стан (IP)  →', callback_data: 'notif_target_type_power' }]);
+  } else {
+    buttons.push([{ text: '📡 Налаштувати IP моніторинг', callback_data: 'settings_ip' }]);
+  }
+
+  buttons.push([{ text: '← Назад', callback_data: 'notif_main' }]);
+
+  return {
+    reply_markup: { inline_keyboard: buttons },
+  };
+}
+
+// Screen 3.1 — Radio select: where to send a specific notification type
+function getNotificationTargetSelectKeyboard(type, currentTarget) {
+  const options = [
+    { value: 'bot', label: '📱 В бот' },
+    { value: 'channel', label: '📺 В канал' },
+    { value: 'both', label: '📱📺 Обидва' },
+  ];
+
+  const buttons = options.map(opt => [{
+    text: currentTarget === opt.value ? `✅ ${opt.label}` : opt.label,
+    callback_data: `notif_target_set_${type}_${opt.value}`,
+  }]);
+
+  buttons.push([{ text: '← Назад', callback_data: 'notif_targets' }]);
+
+  return {
+    reply_markup: { inline_keyboard: buttons },
+  };
+}
+
+// Single-screen notification settings keyboard
+function getNotificationKeyboard(user) {
+  const scheduleOn = user.notify_schedule_changes !== false;
+  const t60 = user.remind_1h === true;
+  const t30 = user.remind_30m === true;
+  const t15 = user.remind_15m !== false;
+  const factOn = user.notify_fact_off !== false;
+
+  const scheduleBtn = {
+    text: 'Оновлення графіків',
+    callback_data: 'notif_toggle_schedule',
+    icon_custom_emoji_id: '5231200819986047254',
+    ...(scheduleOn ? { style: 'success' } : {}),
+  };
+
+  const btn60 = {
+    text: '1 год',
+    callback_data: 'notif_time_60',
+    ...(t60 ? { style: 'success' } : {}),
+  };
+  const btn30 = {
+    text: '30 хв',
+    callback_data: 'notif_time_30',
+    ...(t30 ? { style: 'success' } : {}),
+  };
+  const btn15 = {
+    text: '15 хв',
+    callback_data: 'notif_time_15',
+    ...(t15 ? { style: 'success' } : {}),
+  };
+
+  const factBtn = {
+    text: 'Фактично за графіком',
+    callback_data: 'notif_toggle_fact',
+    icon_custom_emoji_id: '5382194935057372936',
+    ...(factOn ? { style: 'success' } : {}),
+  };
+
   return {
     reply_markup: {
       inline_keyboard: [
-        [{ text: '📅 Графік', callback_data: 'test_schedule' }],
+        [scheduleBtn],
+        [btn60, btn30, btn15],
+        [factBtn],
         [
-          { text: '🟢 Світло є', callback_data: 'test_power_on' },
-          { text: '🔴 Світла немає', callback_data: 'test_power_off' },
+          { text: '← Назад', callback_data: 'back_to_settings' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' },
         ],
-        [{ text: '← Назад', callback_data: 'settings_channel' }],
       ],
     },
   };
 }
 
-// ─── Exports ──────────────────────────────────────────────────────────────────
+// Auto-cleanup settings keyboard
+function getCleanupKeyboard(user) {
+  const delCmds = user.auto_delete_commands === true;
+  const delMsgs = user.auto_delete_bot_messages === true;
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: delCmds ? '✅ Видаляти команди' : '❌ Видаляти команди', callback_data: 'cleanup_toggle_commands' },
+          { text: delMsgs ? '✅ Видаляти повід.' : '❌ Видаляти повід.', callback_data: 'cleanup_toggle_messages' },
+        ],
+        [
+          { text: '← Назад', callback_data: 'back_to_settings' },
+          { text: 'Готово ✓', callback_data: 'back_to_main' },
+        ],
+      ],
+    },
+  };
+}
 
 module.exports = {
   getMainMenu,
-  getScheduleViewKeyboard,
-  getSettingsKeyboard,
-  getHelpKeyboard,
-  getErrorKeyboard,
   getRegionKeyboard,
   getQueueKeyboard,
   getConfirmKeyboard,
-  getWizardNotifyTargetKeyboard,
-  getIpMonitoringKeyboard,
-  getIpCancelKeyboard,
-  getChannelMenuKeyboard,
-  getDeleteDataConfirmKeyboard,
-  getDeleteDataFinalKeyboard,
-  getDeactivateConfirmKeyboard,
-  getFormatSettingsKeyboard,
-  getFormatScheduleKeyboard,
-  getFormatPowerKeyboard,
-  getUnifiedAlertsKeyboard,
-  getNotificationKeyboard,
-  getCleanupKeyboard,
-  getRestorationKeyboard,
+  getSettingsKeyboard,
+  getAlertsSettingsKeyboard,
   getAdminKeyboard,
   getAdminMenuKeyboard,
-  getUsersMenuKeyboard,
   getAdminAnalyticsKeyboard,
   getAdminSettingsMenuKeyboard,
-  getRestartConfirmKeyboard,
-  getAdminRouterKeyboard,
-  getAdminRouterSetIpKeyboard,
-  getAdminRouterStatsKeyboard,
-  getAdminSupportKeyboard,
-  getAdminTicketKeyboard,
-  getAdminTicketsListKeyboard,
+  getMaintenanceKeyboard,
   getAdminIntervalsKeyboard,
   getScheduleIntervalKeyboard,
   getIpIntervalKeyboard,
-  getMaintenanceKeyboard,
-  getGrowthKeyboard,
-  getGrowthStageKeyboard,
-  getGrowthRegistrationKeyboard,
+  getDeactivateConfirmKeyboard,
+  getDeleteDataConfirmKeyboard,
+  getDeleteDataFinalKeyboard,
+  getIpMonitoringKeyboard,
+  getIpCancelKeyboard,
+  getStatisticsKeyboard,
+  getHelpKeyboard,
+  getChannelMenuKeyboard,
+  getRestorationKeyboard,
+  getFormatSettingsKeyboard,
+  getFormatScheduleKeyboard,
+  getFormatPowerKeyboard,
   getTestPublicationKeyboard,
   getPauseMenuKeyboard,
   getPauseMessageKeyboard,
   getPauseTypeKeyboard,
+  getErrorKeyboard,
   getDebounceKeyboard,
+  getNotifyTargetKeyboard,
+  getUnifiedAlertsKeyboard,
+  getWizardNotifyTargetKeyboard,
+  getGrowthKeyboard,
+  getGrowthStageKeyboard,
+  getGrowthRegistrationKeyboard,
+  getRestartConfirmKeyboard,
+  getUsersMenuKeyboard,
+  getAdminTicketsKeyboard,
+  getAdminTicketKeyboard,
+  getAdminTicketsListKeyboard,
+  getAdminRouterKeyboard,
+  getAdminRouterStatsKeyboard,
+  getAdminRouterSetIpKeyboard,
+  getAdminSupportKeyboard,
+  getNotificationMainKeyboard,
+  getNotificationRemindersKeyboard,
+  getNotificationTargetsKeyboard,
+  getNotificationTargetSelectKeyboard,
+  getNotificationKeyboard,
+  getCleanupKeyboard,
+  getScheduleViewKeyboard,
 };
