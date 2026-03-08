@@ -1,6 +1,7 @@
 const { Queue, Worker, UnrecoverableError } = require('bullmq');
 const { createConnection } = require('./connection');
 const { isTelegramUserInactiveError } = require('../utils/errorHandler');
+const usersDb = require('../database/users');
 const { createLogger } = require('../utils/logger');
 
 const logger = createLogger('BroadcastQueue');
@@ -36,7 +37,6 @@ const broadcastQueue = new Queue('broadcast', {
  * @param {number} total - Total active user count (for display)
  */
 async function runBroadcast(botInstance, adminChatId, progressMessageId, broadcastText, msgOptions, total) {
-  const usersDb = require('../database/users');
   const broadcastId = `broadcast_${Date.now()}`;
   const redisKey = {
     sent: `broadcast:${broadcastId}:sent`,
@@ -159,9 +159,10 @@ function initBroadcastWorker(botInstance) {
   worker.on('failed', async (job, err) => {
     const telegramId = job?.data?.telegramId;
     const redisKey = job?.data?.redisKey;
+    const maxAttempts = job?.opts?.attempts ?? 3;
 
     // On terminal failures (not retried further) — increment failed counter
-    if (job?.attemptsMade >= (job?.opts?.attempts || 3) || err instanceof UnrecoverableError) {
+    if ((job?.attemptsMade ?? 0) >= maxAttempts || err instanceof UnrecoverableError) {
       if (redisKey) {
         await workerConnection.incr(redisKey.failed).catch(() => {});
       }

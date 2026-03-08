@@ -18,27 +18,38 @@ const {
   getBroadcastCommandButtonsKeyboard,
   getBroadcastPreviewKeyboard,
 } = require('../../keyboards/inline');
+const { runBroadcast } = require('../../queue/broadcastQueue');
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+/** Prefix prepended to all broadcast messages sent to users */
+const BROADCAST_HEADER = '📢 <b>Повідомлення від адміністрації:</b>\n\n';
 
 // ─── HTML helpers ─────────────────────────────────────────────────────────────
 
 /**
  * Sanitize common HTML issues in broadcast text:
  * - Trim whitespace inside closing tags (e.g. `</i >` → `</i>`)
- * - Close any unclosed tags in order
+ * - Append closing tags for unclosed opens (best-effort; does not handle interleaved tags)
+ *
+ * NOTE: This sanitizer is intentionally simple and only handles the most common
+ * mistakes admins make (forgetting to close a tag). It does not fix interleaved
+ * tags (e.g. `<b><i></b></i>`) — those require manual correction.
+ * Supported Telegram HTML tags: b, strong, i, em, u, ins, s, strike, del,
+ * span, tg-spoiler, a, tg-emoji, code, pre.
  */
 function sanitizeBroadcastHtml(text) {
   if (!text) return text;
   // Trim whitespace inside closing tags
   let result = text.replace(/<\/\s*(\w+)\s*>/g, '</$1>');
   // Close unclosed tags (track opened tags and close them in reverse)
-  const selfClosing = new Set(['br', 'hr', 'img', 'input']);
+  // Telegram has no self-closing tags in its supported HTML subset
   const opened = [];
   const tagRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
   let m;
   while ((m = tagRe.exec(result)) !== null) {
     const full = m[0];
     const name = m[1].toLowerCase();
-    if (selfClosing.has(name)) continue;
     if (full.startsWith('</')) {
       // closing tag — pop from stack
       const idx = opened.lastIndexOf(name);
@@ -497,7 +508,7 @@ async function showBotButtonsPage(bot, chatId, messageId, page) {
 
 async function showPreview(bot, chatId, messageId, userId, broadcastState) {
   const buttons = broadcastState.buttons || [];
-  const broadcastText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${broadcastState.text}`;
+  const broadcastText = `${BROADCAST_HEADER}${broadcastState.text}`;
 
   // Validate the full broadcast text (as it will be sent to users) before showing preview
   const htmlError = await validateHtml(bot, chatId, broadcastText);
@@ -584,11 +595,10 @@ async function executeBroadcast(bot, chatId, messageId, userId, broadcastState) 
     msgOptions.reply_markup = buildMessageKeyboard(buttons);
   }
 
-  const broadcastText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${broadcastState.text}`;
+  const broadcastText = `${BROADCAST_HEADER}${broadcastState.text}`;
 
   let usedBullMQ = false;
   try {
-    const { runBroadcast } = require('../../queue/broadcastQueue');
     await runBroadcast(bot, chatId, progressMsg ? progressMsg.message_id : null, broadcastText, msgOptions, total);
     usedBullMQ = true;
   } catch (err) {
@@ -690,7 +700,7 @@ async function handleBroadcastConversation(bot, msg) {
     }
 
     // Validate HTML before saving
-    const testText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${text.trim()}`;
+    const testText = `${BROADCAST_HEADER}${text.trim()}`;
     const htmlError = await validateHtml(bot, chatId, testText);
     if (htmlError) {
       const sanitized = sanitizeBroadcastHtml(text.trim());

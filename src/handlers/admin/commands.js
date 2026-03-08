@@ -8,6 +8,9 @@ const { getSetting, setSetting } = require('../../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../../utils/errorHandler');
 const { formatAnalytics } = require('../../analytics');
 const { startBroadcastWizard } = require('./broadcast');
+const { runBroadcast } = require('../../queue/broadcastQueue');
+
+const BROADCAST_HEADER = '📢 <b>Повідомлення від адміністрації:</b>\n\n';
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -130,7 +133,7 @@ async function handleBroadcast(bot, msg) {
       return;
     }
 
-    const broadcastText = `📢 <b>Повідомлення від адміністрації:</b>\n\n${text}`;
+    const broadcastText = `${BROADCAST_HEADER}${text}`;
     const msgOptions = { parse_mode: 'HTML' };
     const total = stats.active;
 
@@ -146,7 +149,6 @@ async function handleBroadcast(bot, msg) {
 
     let usedBullMQ = false;
     try {
-      const { runBroadcast } = require('../queue/broadcastQueue');
       await runBroadcast(bot, chatId, progressMsg ? progressMsg.message_id : null, broadcastText, msgOptions, total);
       usedBullMQ = true;
     } catch (err) {
