@@ -8,7 +8,8 @@
     "dev": "nodemon src/index.js",
     "test": "node tests/test.js",
     "lint": "eslint src/ tests/",
-    "lint:fix": "eslint src/ tests/ --fix"
+    "lint:fix": "eslint src/ tests/ --fix",
+    "worker": "node src/queue/workerProcess.js"
   },
   "keywords": [
     "telegram",
