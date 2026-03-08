@@ -1396,6 +1396,115 @@ function getCleanupKeyboard(user) {
   };
 }
 
+// ─── Broadcast wizard keyboards ────────────────────────────────────────────────
+
+// Step 1: Admin is prompted to enter broadcast text
+function getBroadcastTextPromptKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }]
+      ]
+    }
+  };
+}
+
+// Step 2: Text received — offer to add custom emoji or skip to buttons
+function getBroadcastAfterTextKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '😀 Додати custom emoji до тексту', callback_data: 'broadcast_add_emoji' }],
+        [{ text: 'Далі →', callback_data: 'broadcast_show_buttons' }],
+        [{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }]
+      ]
+    }
+  };
+}
+
+// Step 2b: Waiting for emoji ID input
+function getBroadcastEmojiPromptKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '⏭ Пропустити', callback_data: 'broadcast_show_buttons' }],
+        [{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }]
+      ]
+    }
+  };
+}
+
+// Step 3: Buttons management — shows current buttons and add/remove options
+function getBroadcastButtonsMenuKeyboard(currentButtons = []) {
+  const keyboard = [];
+
+  // Show existing buttons with remove option
+  currentButtons.forEach((btn, idx) => {
+    keyboard.push([
+      { text: `🗑 ${btn.text}`, callback_data: `broadcast_remove_btn_${idx}` }
+    ]);
+  });
+
+  keyboard.push([{ text: '➕ Кнопка бота (callback)', callback_data: 'broadcast_add_btn_callback' }]);
+  keyboard.push([{ text: '🔗 URL кнопка', callback_data: 'broadcast_add_btn_url' }]);
+  keyboard.push([{ text: '⌨️ Кнопка команди', callback_data: 'broadcast_add_btn_cmd' }]);
+  keyboard.push([{ text: '👁 Попередній перегляд', callback_data: 'broadcast_preview' }]);
+  keyboard.push([{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }]);
+
+  return {
+    reply_markup: { inline_keyboard: keyboard }
+  };
+}
+
+// Step 3a: Paginated list of bot action buttons
+function getBroadcastBotButtonsKeyboard(items, page, totalPages) {
+  const keyboard = items.map((btn, relIdx) => {
+    const absIdx = (page - 1) * 5 + relIdx;
+    return [{ text: `${btn.text} — ${btn.description}`, callback_data: `broadcast_bot_btn_${absIdx}` }];
+  });
+
+  const nav = [];
+  if (page > 1) nav.push({ text: '← Назад', callback_data: `broadcast_bot_page_${page - 1}` });
+  nav.push({ text: `${page}/${totalPages}`, callback_data: 'noop' });
+  if (page < totalPages) nav.push({ text: 'Вперед →', callback_data: `broadcast_bot_page_${page + 1}` });
+  if (nav.length > 1) keyboard.push(nav);
+
+  keyboard.push([{ text: '← До кнопок', callback_data: 'broadcast_show_buttons' }]);
+
+  return {
+    reply_markup: { inline_keyboard: keyboard }
+  };
+}
+
+// Step 3b: Command buttons list
+function getBroadcastCommandButtonsKeyboard(items) {
+  const keyboard = items.map((btn, idx) => [
+    { text: btn.text, callback_data: `broadcast_cmd_btn_${idx}` }
+  ]);
+
+  keyboard.push([{ text: '← До кнопок', callback_data: 'broadcast_show_buttons' }]);
+
+  return {
+    reply_markup: { inline_keyboard: keyboard }
+  };
+}
+
+// Step 4: Preview keyboard
+function getBroadcastPreviewKeyboard() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '✅ Відправити', callback_data: 'broadcast_confirm_send' }],
+        [
+          { text: '✏️ Редагувати текст', callback_data: 'broadcast_edit_text' },
+          { text: '🔘 Редагувати кнопки', callback_data: 'broadcast_show_buttons' }
+        ],
+        [{ text: '❌ Скасувати', callback_data: 'broadcast_cancel' }]
+      ]
+    }
+  };
+}
+
 module.exports = {
   getMainMenu,
   getRegionKeyboard,
@@ -1451,4 +1560,11 @@ module.exports = {
   getChannelNotificationKeyboard,
   getCleanupKeyboard,
   getScheduleViewKeyboard,
+  getBroadcastTextPromptKeyboard,
+  getBroadcastAfterTextKeyboard,
+  getBroadcastEmojiPromptKeyboard,
+  getBroadcastButtonsMenuKeyboard,
+  getBroadcastBotButtonsKeyboard,
+  getBroadcastCommandButtonsKeyboard,
+  getBroadcastPreviewKeyboard,
 };

@@ -3,7 +3,7 @@ const { CallbackRouter } = require('../utils/CallbackRouter');
 // Import all handlers (same imports that bot.js currently has)
 const { handleWizardCallback } = require('./start');
 const { handleSettingsCallback } = require('./settings');
-const { handleAdminCallback } = require('./admin');
+const { handleAdminCallback, handleBroadcastCmdCallback } = require('./admin');
 const { handleChannelCallback } = require('./channel');
 const { handleFeedbackCallback } = require('./feedback');
 const { handleRegionRequestCallback } = require('./regionRequest');
@@ -71,13 +71,24 @@ function createCallbackRouter() {
     // Feedback callbacks
     .prefix('feedback_', (bot, query) => handleFeedbackCallback(bot, query))
 
-    // Admin callbacks (including pause mode, debounce, growth, and maintenance)
+    // Broadcast command buttons (from broadcast messages sent to users)
+    // These must come BEFORE the general broadcast_ prefix handled by admin
+    .prefix('broadcast_cmd_', (bot, query) =>
+      handleBroadcastCmdCallback(bot, query, {
+        schedule: handleMenuSchedule,
+        help: handleMenuHelp,
+        start: handleBackToMain,
+      })
+    )
+
+    // Admin callbacks (including pause mode, debounce, growth, maintenance, and broadcast wizard)
     .on(
       (d) => d.startsWith('admin_') ||
              d.startsWith('pause_') ||
              d.startsWith('debounce_') ||
              d.startsWith('growth_') ||
-             d.startsWith('maintenance_'),
+             d.startsWith('maintenance_') ||
+             d.startsWith('broadcast_'),
       (bot, query) => handleAdminCallback(bot, query)
     )
 

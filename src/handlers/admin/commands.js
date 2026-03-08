@@ -7,6 +7,7 @@ const { REGIONS } = require('../../constants/regions');
 const { getSetting, setSetting } = require('../../database/db');
 const { safeSendMessage, safeEditMessageText } = require('../../utils/errorHandler');
 const { formatAnalytics } = require('../../analytics');
+const { startBroadcastWizard } = require('./broadcast');
 
 // Обробник команди /admin
 async function handleAdmin(bot, msg) {
@@ -516,20 +517,7 @@ async function handleCommandsCallback(bot, query, chatId, userId, data) {
   }
 
   if (data === 'admin_broadcast') {
-    await safeEditMessageText(bot,
-      '📢 <b>Розсилка повідомлення</b>\n\n' +
-      'Для розсилки використовуйте команду:\n' +
-      '<code>/broadcast Ваше повідомлення</code>\n\n' +
-      'Приклад:\n' +
-      '<code>/broadcast Важливе оновлення! Нова версія бота.</code>\n\n' +
-      'Повідомлення буде відправлено всім активним користувачам.',
-      {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        parse_mode: 'HTML',
-        reply_markup: getAdminKeyboard().reply_markup,
-      }
-    );
+    await startBroadcastWizard(bot, query, chatId, userId);
     return;
   }
 
