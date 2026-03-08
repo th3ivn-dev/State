@@ -16,6 +16,7 @@ const { startHealthCheck, stopHealthCheck } = require('./healthcheck');
 const messageQueue = require('./utils/messageQueue');
 const { notifyAdminsAboutError } = require('./utils/adminNotifier');
 const { initWorker, closeQueue } = require('./queue/notificationsQueue');
+const { closePhotoCache } = require('./queue/photoCache');
 
 // Флаг для запобігання подвійного завершення
 let isShuttingDown = false;
@@ -151,6 +152,12 @@ const shutdown = async (signal) => {
     // 2.1 Закриваємо notifications queue (BullMQ)
     await closeQueue();
     console.log('✅ Notifications queue закрито');
+
+    // 2.2 Закриваємо photo cache
+    try {
+      await closePhotoCache();
+    } catch (_e) { /* ignore */ }
+    console.log('✅ Photo cache закрито');
 
     // 3. Зупиняємо scheduler manager
     schedulerManager.stop();

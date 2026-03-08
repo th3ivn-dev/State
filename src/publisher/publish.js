@@ -6,6 +6,7 @@ const { REGIONS } = require('../constants/regions');
 const { calculateScheduleHash, getUpdateTypeV2 } = require('./scheduleHash');
 const { validateChannel } = require('./channelValidator');
 const { notificationsQueue } = require('../queue/notificationsQueue');
+const { cachePhoto } = require('../queue/photoCache');
 
 // Get monitoring manager
 let metricsCollector = null;
@@ -157,28 +158,42 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
       // Завантажуємо зображення як Buffer
       const imageBuffer = await fetchScheduleImage(region, queue);
       const photoBase64 = Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : null;
+      const photoCacheKey = photoBase64 ? await cachePhoto(region, queue, photoBase64) : null;
+      if (photoBase64 && !photoCacheKey) {
+        console.warn(`[${user.telegram_id}] Photo cache недоступний для ${region}/${queue}, використовуємо inline base64`);
+      }
 
       // Check if picture_only mode is enabled
       if (user.picture_only) {
         // Відправляємо тільки фото без підпису
-        await notificationsQueue.add('photo', {
+        const jobData = {
           type: 'photo',
           chatId: user.channel_id,
-          photo: photoBase64,
           photoFilename: 'schedule.png',
           options: { reply_markup: inlineKeyboard },
           meta,
-        });
+        };
+        if (photoCacheKey) {
+          jobData.photoCacheKey = photoCacheKey;
+        } else {
+          jobData.photo = photoBase64;
+        }
+        await notificationsQueue.add('photo', jobData);
       } else {
         // Відправляємо фото з підписом та кнопками
-        await notificationsQueue.add('photo', {
+        const jobData = {
           type: 'photo',
           chatId: user.channel_id,
-          photo: photoBase64,
           photoFilename: 'schedule.png',
           options: { caption: messageText, parse_mode: 'HTML', reply_markup: inlineKeyboard },
           meta,
-        });
+        };
+        if (photoCacheKey) {
+          jobData.photoCacheKey = photoCacheKey;
+        } else {
+          jobData.photo = photoBase64;
+        }
+        await notificationsQueue.add('photo', jobData);
       }
     } catch (_imageError) {
       console.log(`Зображення недоступне для ${region}/${queue}, відправляємо тільки текст`);
