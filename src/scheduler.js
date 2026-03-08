@@ -206,21 +206,36 @@ async function sendScheduleNotifications(user, data) {
       try {
         const imageBuffer = await fetchScheduleImage(user.region, user.queue);
         const photoBase64 = Buffer.isBuffer(imageBuffer) ? imageBuffer.toString('base64') : null;
+
+        // Clear keyboard from previous keyboard message before sending new one
+        if (user.last_bot_keyboard_message_id) {
+          await bot.api.editMessageReplyMarkup(user.telegram_id, user.last_bot_keyboard_message_id, {
+            reply_markup: { inline_keyboard: [] }
+          }).catch(() => {});
+        }
+
         await notificationsQueue.add('photo', {
           type: 'photo',
           chatId: user.telegram_id,
           photo: photoBase64,
           photoFilename: 'schedule.png',
           options: { caption: fullCaption, caption_entities: timestampEntities, reply_markup: scheduleKeyboard },
-          meta: { telegramId: user.telegram_id },
+          meta: { telegramId: user.telegram_id, updateLastBotKeyboardMessageId: true },
         });
       } catch (_imgError) {
+        // Clear keyboard from previous keyboard message before sending new one
+        if (user.last_bot_keyboard_message_id) {
+          await bot.api.editMessageReplyMarkup(user.telegram_id, user.last_bot_keyboard_message_id, {
+            reply_markup: { inline_keyboard: [] }
+          }).catch(() => {});
+        }
+
         await notificationsQueue.add('user', {
           type: 'user',
           chatId: user.telegram_id,
           text: fullCaption,
           options: { entities: timestampEntities, reply_markup: scheduleKeyboard },
-          meta: { telegramId: user.telegram_id },
+          meta: { telegramId: user.telegram_id, updateLastBotKeyboardMessageId: true },
         });
       }
 

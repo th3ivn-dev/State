@@ -16,7 +16,7 @@ const { fetchScheduleData } = require('./api');
 const { parseScheduleForQueue } = require('./parser');
 const { REGIONS } = require('./constants/regions');
 const usersDb = require('./database/users');
-const { safeSendMessage } = require('./utils/errorHandler');
+const { safeSendMessage, safeDeleteMessage } = require('./utils/errorHandler');
 const { MAX_SENT_REMINDERS_MAP_SIZE } = require('./constants/timeouts');
 
 // In-memory tracking of already-sent reminders (cleared daily, bounded)
@@ -117,12 +117,23 @@ function buildNotificationText(type, event, scheduleData, regionName, queue, min
 
 /**
  * Send a notification to user (bot and/or channel depending on target setting)
+ * Deletes the previous reminder message in bot chat and tracks the new one.
  */
 async function sendNotification(bot, user, text) {
   const target = user.notify_remind_target || 'bot';
 
   if (target === 'bot' || target === 'both') {
-    await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
+    // Delete previous reminder message to keep chat clean
+    if (user.last_reminder_message_id) {
+      await safeDeleteMessage(bot, user.telegram_id, user.last_reminder_message_id);
+    }
+
+    const sentMsg = await safeSendMessage(bot, user.telegram_id, text, { parse_mode: 'HTML' });
+
+    // Track the new reminder message ID
+    if (sentMsg && sentMsg.message_id) {
+      await usersDb.updateLastReminderMessageId(user.telegram_id, sentMsg.message_id);
+    }
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {

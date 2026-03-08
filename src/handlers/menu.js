@@ -1,6 +1,7 @@
 const { InputFile } = require('grammy');
 const config = require('../config');
-const { getMainMenu, getHelpKeyboard, getSettingsKeyboard, getErrorKeyboard, getScheduleViewKeyboard } = require('../keyboards/inline');
+const { getMainMenu, getHelpKeyboard, getSettingsKeyboard, getErrorKeyboard, getScheduleViewKeyboard, getRegionKeyboard } = require('../keyboards/inline');
+const { setWizardState } = require('./start/helpers');
 const { REGIONS } = require('../constants/regions');
 const { formatErrorMessage, formatScheduleMessage, formatTimerMessage, formatTimerPopup } = require('../formatter');
 const { generateLiveStatusMessage } = require('../utils');
@@ -67,7 +68,7 @@ async function handleMenuSchedule(bot, query) {
           reply_markup: {
             inline_keyboard: [
               [{ text: '🔄 Оновити', callback_data: 'schedule_refresh' }],
-              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
+              [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
             ]
           }
         }
@@ -400,7 +401,7 @@ async function handleHelpHowto(bot, query) {
         inline_keyboard: [
           [
             { text: '← Назад', callback_data: 'menu_help' },
-            { text: '⤴ Меню', callback_data: 'back_to_main' }
+            { text: '⤵ Меню', callback_data: 'back_to_main' }
           ]
         ]
       }
@@ -603,12 +604,40 @@ async function handleScheduleRefresh(bot, query) {
   }
 }
 
-// Обробник callback my_queues
-async function handleMyQueues(bot, query) {
-  await safeAnswerCallbackQuery(bot, query.id, {
-    text: '🚧 Функціонал "Мої черги" в розробці',
-    show_alert: true
-  });
+// Обробник callback my_queues — змінити регіон з перегляду графіка
+async function handleChangeRegion(bot, query) {
+  const chatId = query.message.chat.id;
+  const telegramId = String(query.from.id);
+
+  try {
+    const user = await usersDb.getUserByTelegramId(telegramId);
+    if (!user) {
+      await safeAnswerCallbackQuery(bot, query.id, {
+        text: '❌ Користувач не знайдений',
+        show_alert: true
+      });
+      return;
+    }
+
+    await bot.api.answerCallbackQuery(query.id).catch(() => {});
+
+    await setWizardState(telegramId, { step: 'region', mode: 'edit_from_schedule' });
+
+    await safeEditMessageText(bot,
+      'Оберіть свій регіон:',
+      {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        reply_markup: getRegionKeyboard().reply_markup,
+      }
+    );
+  } catch (error) {
+    console.error('Помилка handleChangeRegion:', error);
+    await safeAnswerCallbackQuery(bot, query.id, {
+      text: '😅 Щось пішло не так. Спробуйте ще раз!',
+      show_alert: true
+    });
+  }
 }
 
 module.exports = {
@@ -623,5 +652,5 @@ module.exports = {
   handleTimerCallback,
   handleStatsCallback,
   handleScheduleRefresh,
-  handleMyQueues,
+  handleChangeRegion,
 };

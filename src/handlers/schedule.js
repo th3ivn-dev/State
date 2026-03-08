@@ -27,6 +27,13 @@ async function handleSchedule(bot, msg) {
       await safeDeleteMessage(bot, chatId, user.last_schedule_message_id);
     }
 
+    // Clear inline keyboard from the previous bot keyboard message
+    if (user.last_bot_keyboard_message_id && user.last_bot_keyboard_message_id !== user.last_schedule_message_id) {
+      await bot.api.editMessageReplyMarkup(chatId, user.last_bot_keyboard_message_id, {
+        reply_markup: { inline_keyboard: [] }
+      }).catch(() => {});
+    }
+
     // Показуємо індикатор завантаження
     await bot.api.sendChatAction(chatId, 'typing');
 
@@ -72,7 +79,10 @@ async function handleSchedule(bot, msg) {
     }
 
     if (sentMsg) {
-      await usersDb.updateUser(telegramId, { last_schedule_message_id: sentMsg.message_id });
+      await usersDb.updateUser(telegramId, {
+        last_schedule_message_id: sentMsg.message_id,
+        last_bot_keyboard_message_id: sentMsg.message_id,
+      });
     }
 
   } catch (error) {

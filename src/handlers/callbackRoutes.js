@@ -19,7 +19,7 @@ const {
   handleTimerCallback,
   handleStatsCallback,
   handleScheduleRefresh,
-  handleMyQueues,
+  handleChangeRegion,
 } = require('./menu');
 
 /**
@@ -40,7 +40,7 @@ function createCallbackRouter() {
     // Menu callbacks
     .exact('menu_schedule', (bot, query) => handleMenuSchedule(bot, query))
     .exact('schedule_refresh', (bot, query) => handleScheduleRefresh(bot, query))
-    .exact('my_queues', (bot, query) => handleMyQueues(bot, query))
+    .exact('my_queues', (bot, query) => handleChangeRegion(bot, query))
     .exact('menu_timer', (bot, query) => handleMenuTimer(bot, query))
     .exact('menu_stats', (bot, query) => handleMenuStats(bot, query))
     .exact('menu_help', (bot, query) => handleMenuHelp(bot, query))

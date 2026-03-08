@@ -36,16 +36,16 @@ function getMainMenu(botStatus = 'active', channelPaused = false) {
   };
 }
 
-// Клавіатура для перегляду графіка (кнопки ⭐ Мої черги / 🔄 Оновити / ⤴ Меню)
+// Клавіатура для перегляду графіка (кнопки Змінити регіон / Оновити / ⤵ Меню)
 function getScheduleViewKeyboard() {
   return {
     inline_keyboard: [
       [
-        { text: '⭐ Мої черги', callback_data: 'my_queues' },
-        { text: '🔄 Оновити', callback_data: 'schedule_refresh' }
+        { text: 'Змінити регіон', callback_data: 'my_queues', icon_custom_emoji_id: '5399898266265475100' },
+        { text: 'Оновити', callback_data: 'schedule_refresh', icon_custom_emoji_id: '5017470156276761427' }
       ],
       [
-        { text: '⤴ Меню', callback_data: 'back_to_main' }
+        { text: '⤵ Меню', callback_data: 'back_to_main' }
       ]
     ]
   };
@@ -239,7 +239,7 @@ function getConfirmKeyboard() {
       inline_keyboard: [
         [{ text: '✓ Підтвердити', callback_data: 'confirm_setup' }],
         [{ text: '🔄 Змінити регіон', callback_data: 'back_to_region' }],
-        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+        [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
       ],
     },
   };
@@ -275,7 +275,7 @@ function getSettingsKeyboard(isAdmin = false) {
   buttons.push(
     [
       { text: '← Назад', callback_data: 'back_to_main' },
-      { text: '⤴ Меню', callback_data: 'back_to_main' }
+      { text: '⤵ Меню', callback_data: 'back_to_main' }
     ]
   );
 
@@ -293,7 +293,7 @@ function getAlertsSettingsKeyboard() {
       inline_keyboard: [
         [
           { text: '← Назад', callback_data: 'back_to_settings' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ],
       ],
     },
@@ -328,7 +328,7 @@ function getAdminKeyboard(openTicketsCount = 0) {
 
   buttons.push([
     { text: '← Назад', callback_data: 'back_to_settings' },
-    { text: '⤴ Меню', callback_data: 'back_to_main' }
+    { text: '⤵ Меню', callback_data: 'back_to_main' }
   ]);
 
   return {
@@ -347,7 +347,7 @@ function getAdminAnalyticsKeyboard() {
         [{ text: '📈 Ріст / Growth', callback_data: 'admin_growth' }],
         [
           { text: '← Назад', callback_data: 'admin_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -373,7 +373,7 @@ function getAdminSettingsMenuKeyboard() {
         ],
         [
           { text: '← Назад', callback_data: 'admin_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -391,7 +391,7 @@ function getMaintenanceKeyboard(enabled) {
         [{ text: '✏️ Змінити повідомлення', callback_data: 'maintenance_edit_message' }],
         [
           { text: '← Назад', callback_data: 'admin_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -407,7 +407,7 @@ function getAdminIntervalsKeyboard(currentScheduleInterval, currentIpInterval) {
         [{ text: `📡 IP: ${currentIpInterval}`, callback_data: 'admin_interval_ip' }],
         [
           { text: '← Назад', callback_data: 'admin_settings_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -427,7 +427,7 @@ function getScheduleIntervalKeyboard() {
         ],
         [
           { text: '← Назад', callback_data: 'admin_intervals' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -450,7 +450,7 @@ function getIpIntervalKeyboard() {
         ],
         [
           { text: '← Назад', callback_data: 'admin_intervals' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -508,7 +508,7 @@ function getIpMonitoringKeyboard() {
         [{ text: '🗑️ Видалити IP', callback_data: 'ip_delete' }],
         [
           { text: '← Назад', callback_data: 'back_to_settings' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ],
       ],
     },
@@ -536,7 +536,7 @@ function getStatisticsKeyboard() {
         [{ text: '⚙️ Мої налаштування', callback_data: 'stats_settings' }],
         [
           { text: '← Назад', callback_data: 'back_to_main' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ],
       ],
     },
@@ -560,7 +560,7 @@ async function getHelpKeyboard() {
           { text: '💬 Обговорення', url: 'https://t.me/voltyk_chat' }
         ],
         [{ text: '🏙 Запропонувати регіон', callback_data: 'region_request_start' }],
-        [{ text: '⤴ Меню', callback_data: 'back_to_main' }],
+        [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
       ],
     },
   };
@@ -599,7 +599,7 @@ function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatu
 
   buttons.push([
     { text: '← Назад', callback_data: 'back_to_settings' },
-    { text: '⤴ Меню', callback_data: 'back_to_main' }
+    { text: '⤵ Меню', callback_data: 'back_to_main' }
   ]);
 
   return {
@@ -631,7 +631,7 @@ function getFormatSettingsKeyboard(_user) {
         [{ text: '⚡ Фактичний стан', callback_data: 'format_power_settings' }],
         [
           { text: '← Назад', callback_data: 'settings_channel' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -651,7 +651,7 @@ function getFormatScheduleKeyboard(user) {
         [{ text: `${picOnly} Без тексту (тільки картинка)`, callback_data: 'format_toggle_piconly' }],
         [
           { text: '← Назад', callback_data: 'format_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -668,7 +668,7 @@ function getFormatPowerKeyboard() {
         [{ text: '🔄 Скинути все до стандартних', callback_data: 'format_reset_all_power' }],
         [
           { text: '← Назад', callback_data: 'format_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -686,7 +686,7 @@ function getTestPublicationKeyboard() {
         [{ text: '✏️ Своє повідомлення', callback_data: 'test_custom' }],
         [
           { text: '← Назад', callback_data: 'settings_channel' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -712,7 +712,7 @@ function getPauseMenuKeyboard(isPaused) {
   buttons.push([{ text: '📜 Лог паузи', callback_data: 'pause_log' }]);
   buttons.push([
     { text: '← Назад', callback_data: 'admin_settings_menu' },
-    { text: '⤴ Меню', callback_data: 'back_to_main' }
+    { text: '⤵ Меню', callback_data: 'back_to_main' }
   ]);
 
   return {
@@ -738,7 +738,7 @@ function getPauseMessageKeyboard(showSupportButton) {
         [{ text: `${supportIcon} Показувати кнопку "Обговорення/Підтримка"`, callback_data: 'pause_toggle_support' }],
         [
           { text: '← Назад', callback_data: 'admin_pause' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -761,7 +761,7 @@ function getPauseTypeKeyboard(currentType = 'update') {
 
   buttons.push([
     { text: '← Назад', callback_data: 'admin_pause' },
-    { text: '⤴ Меню', callback_data: 'back_to_main' }
+    { text: '⤵ Меню', callback_data: 'back_to_main' }
   ]);
 
   return {
@@ -812,7 +812,7 @@ function getDebounceKeyboard(currentValue) {
         buttons.slice(4, 7), // [5 хв] [10 хв] [15 хв]
         [
           { text: '← Назад', callback_data: 'admin_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -834,7 +834,7 @@ function getNotifyTargetKeyboard(currentTarget = 'both') {
 
   buttons.push([
     { text: '← Назад', callback_data: 'back_to_settings' },
-    { text: '⤴ Меню', callback_data: 'back_to_main' }
+    { text: '⤵ Меню', callback_data: 'back_to_main' }
   ]);
 
   return {
@@ -907,7 +907,7 @@ function getGrowthKeyboard() {
         [{ text: '📝 Події', callback_data: 'growth_events' }],
         [
           { text: '← Назад', callback_data: 'admin_analytics' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -926,7 +926,7 @@ function getGrowthStageKeyboard(currentStage) {
         [{ text: `${currentStage === 4 ? '✓' : ''} Етап 4: Масштаб (5000+)`, callback_data: 'growth_stage_4' }],
         [
           { text: '← Назад', callback_data: 'admin_growth' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -945,7 +945,7 @@ function getGrowthRegistrationKeyboard(enabled) {
         [{ text: toggleText, callback_data: 'growth_reg_toggle' }],
         [
           { text: '← Назад', callback_data: 'admin_growth' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -973,7 +973,7 @@ function getUsersMenuKeyboard() {
         [{ text: '📋 Список користувачів', callback_data: 'admin_users_list_1' }],
         [
           { text: '← Назад', callback_data: 'admin_menu' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ]
       ]
     }
@@ -1047,7 +1047,7 @@ function getAdminTicketsListKeyboard(tickets, page = 1) {
 
   buttons.push([
     { text: '← Назад', callback_data: 'admin_menu' },
-    { text: '⤴ Меню', callback_data: 'back_to_main' }
+    { text: '⤵ Меню', callback_data: 'back_to_main' }
   ]);
 
   return {
@@ -1078,7 +1078,7 @@ function getAdminRouterKeyboard(routerData) {
 
   buttons.push([
     { text: '← Назад', callback_data: 'admin_menu' },
-    { text: '⤴ Меню', callback_data: 'back_to_main' }
+    { text: '⤵ Меню', callback_data: 'back_to_main' }
   ]);
 
   return {
@@ -1097,7 +1097,7 @@ function getAdminRouterStatsKeyboard() {
         ],
         [
           { text: '← Назад', callback_data: 'admin_router' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' }
+          { text: '⤵ Меню', callback_data: 'back_to_main' }
         ],
       ],
     },
@@ -1302,7 +1302,7 @@ function getNotificationKeyboard(user) {
         [factBtn],
         [
           { text: '← Назад', callback_data: 'back_to_settings' },
-          { text: '⤴ Меню', callback_data: 'back_to_main' },
+          { text: '⤵ Меню', callback_data: 'back_to_main' },
         ],
       ],
     },

@@ -1,9 +1,16 @@
+const { InputFile } = require('grammy');
 const usersDb = require('../../database/users');
-const { getConfirmKeyboard, getMainMenu, getQueueKeyboard, getRegionKeyboard, getWizardNotifyTargetKeyboard } = require('../../keyboards/inline');
+const { getConfirmKeyboard, getMainMenu, getQueueKeyboard, getRegionKeyboard, getWizardNotifyTargetKeyboard, getScheduleViewKeyboard } = require('../../keyboards/inline');
 const { REGIONS } = require('../../constants/regions');
 const { safeEditMessageText } = require('../../utils/errorHandler');
 const { isRegistrationEnabled, checkUserLimit, logUserRegistration, logWizardCompletion } = require('../../growthMetrics');
 const { setWizardState, clearWizardState, DEVELOPMENT_WARNING, notifyAdminsAboutNewUser } = require('./helpers');
+const { fetchScheduleData, fetchScheduleImage } = require('../../api');
+const { parseScheduleForQueue, findNextEvent } = require('../../parser');
+const { formatScheduleMessage } = require('../../formatter');
+const { appendTimestamp } = require('../../utils/timestamp');
+const { getScheduleCheckTime } = require('../../database/scheduleChecks');
+const { getUpdateTypeV2 } = require('../../publisher');
 
 /**
  * Handles region/queue/confirm/back callbacks.
@@ -104,29 +111,114 @@ async function handleRegionCallback(bot, query, chatId, telegramId, data, state)
     const username = query.from.username || query.from.first_name;
     const mode = state.mode || 'new';
 
-    if (mode === 'edit') {
+    if (mode === 'edit' || mode === 'edit_from_schedule') {
       // Режим редагування - оновлюємо існуючого користувача
       await usersDb.updateUserRegionAndQueue(telegramId, state.region, state.queue);
       await clearWizardState(telegramId);
 
-      const region = REGIONS[state.region]?.name || state.region;
+      if (mode === 'edit_from_schedule') {
+        // Show updated schedule after region change from schedule view
+        try {
+          const updatedUser = await usersDb.getUserByTelegramId(telegramId);
+          const apiData = await fetchScheduleData(updatedUser.region);
+          const scheduleData = parseScheduleForQueue(apiData, updatedUser.queue);
+          const nextEvent = findNextEvent(scheduleData);
 
-      await safeEditMessageText(bot,
-        `✅ <b>Налаштування оновлено!</b>\n\n` +
-        `📍 Регіон: ${region}\n` +
-        `⚡ Черга: ${state.queue}\n\n` +
-        `Графік буде опубліковано при наступній перевірці.`,
-        {
-          chat_id: chatId,
-          message_id: query.message.message_id,
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '⤴ Меню', callback_data: 'back_to_main' }]
-            ]
+          let lastCheck;
+          try {
+            lastCheck = await getScheduleCheckTime(updatedUser.region, updatedUser.queue);
+          } catch (_e) {
+            lastCheck = Math.floor(Date.now() / 1000);
           }
+
+          const updateTypeV2 = getUpdateTypeV2(null, scheduleData, updatedUser);
+          const updateType = {
+            tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+            todayUpdated: updateTypeV2.todayChanged,
+            todayUnchanged: !updateTypeV2.todayChanged,
+          };
+          const message = formatScheduleMessage(updatedUser.region, updatedUser.queue, scheduleData, nextEvent, null, updateType);
+          const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, lastCheck);
+          const scheduleKeyboard = getScheduleViewKeyboard();
+
+          let imageBuffer;
+          let photoInput;
+          try {
+            imageBuffer = await fetchScheduleImage(updatedUser.region, updatedUser.queue);
+            photoInput = Buffer.isBuffer(imageBuffer) ? new InputFile(imageBuffer, 'schedule.png') : imageBuffer;
+          } catch (_fetchError) {
+            // Image unavailable — fall back to text-only
+          }
+
+          if (photoInput) {
+            try {
+              await bot.api.editMessageMedia(
+                chatId,
+                query.message.message_id,
+                { type: 'photo', media: photoInput, caption: fullCaption, caption_entities: timestampEntities },
+                { reply_markup: scheduleKeyboard }
+              );
+              return true;
+            } catch (_editError) {
+              // Fallback: delete + send
+              try { await bot.api.deleteMessage(chatId, query.message.message_id); } catch (_e) {}
+              try {
+                await bot.api.sendPhoto(chatId, photoInput, {
+                  caption: fullCaption,
+                  caption_entities: timestampEntities,
+                  reply_markup: scheduleKeyboard,
+                });
+                return true;
+              } catch (_imgError) {
+                // Fall through to text-only
+              }
+            }
+          }
+
+          await bot.api.sendMessage(chatId, fullCaption, {
+            entities: timestampEntities,
+            reply_markup: scheduleKeyboard,
+          });
+        } catch (_scheduleError) {
+          // Log the error for debugging, then fallback to simple confirmation
+          console.error('Помилка відображення графіка після зміни регіону:', _scheduleError.message);
+          const region = REGIONS[state.region]?.name || state.region;
+          await safeEditMessageText(bot,
+            `✅ <b>Налаштування оновлено!</b>\n\n` +
+            `📍 Регіон: ${region}\n` +
+            `⚡ Черга: ${state.queue}`,
+            {
+              chat_id: chatId,
+              message_id: query.message.message_id,
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+                ]
+              }
+            }
+          );
         }
-      );
+      } else {
+        const region = REGIONS[state.region]?.name || state.region;
+
+        await safeEditMessageText(bot,
+          `✅ <b>Налаштування оновлено!</b>\n\n` +
+          `📍 Регіон: ${region}\n` +
+          `⚡ Черга: ${state.queue}\n\n` +
+          `Графік буде опубліковано при наступній перевірці.`,
+          {
+            chat_id: chatId,
+            message_id: query.message.message_id,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: '⤵ Меню', callback_data: 'back_to_main' }]
+              ]
+            }
+          }
+        );
+      }
     } else {
       // Режим створення нового користувача (legacy flow without notification target selection)
       // Перевіряємо чи користувач вже існує (для безпеки)
