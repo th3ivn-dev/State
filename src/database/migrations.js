@@ -87,7 +87,16 @@ async function runMigrations() {
       { name: 'auto_delete_bot_messages', type: 'BOOLEAN DEFAULT FALSE' },
       // Message ID tracking
       { name: 'last_bot_keyboard_message_id', type: 'BIGINT DEFAULT NULL' },
-      { name: 'last_reminder_message_id', type: 'BIGINT DEFAULT NULL' }
+      { name: 'last_reminder_message_id', type: 'BIGINT DEFAULT NULL' },
+      // Channel-independent notification settings
+      { name: 'ch_notify_schedule', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'ch_notify_remind_off', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'ch_notify_remind_on', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'ch_notify_fact_off', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'ch_notify_fact_on', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'ch_remind_15m', type: 'BOOLEAN DEFAULT TRUE' },
+      { name: 'ch_remind_30m', type: 'BOOLEAN DEFAULT FALSE' },
+      { name: 'ch_remind_1h', type: 'BOOLEAN DEFAULT FALSE' },
     ];
 
     let addedCount = 0;

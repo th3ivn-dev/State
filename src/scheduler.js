@@ -246,15 +246,19 @@ async function sendScheduleNotifications(user, data) {
   }
 
   if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
-    try {
-      const { publishScheduleWithPhoto } = require('./publisher');
-      await publishScheduleWithPhoto(bot, user, user.region, user.queue);
-      console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
-    } catch (channelError) {
-      if (isTelegramUserInactiveError(channelError)) {
-        console.log(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
-      } else {
-        console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+    if (user.ch_notify_schedule === false) {
+      console.log(`📺 Канальні сповіщення графіка вимкнено для ${user.telegram_id}, пропускаємо`);
+    } else {
+      try {
+        const { publishScheduleWithPhoto } = require('./publisher');
+        await publishScheduleWithPhoto(bot, user, user.region, user.queue);
+        console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
+      } catch (channelError) {
+        if (isTelegramUserInactiveError(channelError)) {
+          console.log(`ℹ️ Канал ${user.channel_id} недоступний — публікацію пропущено`);
+        } else {
+          console.error(`Не вдалося відправити в канал ${user.channel_id}:`, channelError.message);
+        }
       }
     }
   }

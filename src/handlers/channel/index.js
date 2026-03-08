@@ -16,6 +16,7 @@ const { handleSettingsCallbacks } = require('./settings');
 const { handleFormatCallbacks } = require('./format');
 const { handlePauseCallbacks } = require('./pause');
 const { handleTestCallbacks } = require('./test');
+const { handleChannelNotificationCallbacks } = require('./notifications');
 
 // Handle callback for channel operations
 async function handleChannelCallback(bot, query) {
@@ -88,6 +89,14 @@ async function handleChannelCallback(bot, query) {
     // Route to format sub-handler
     if (data.startsWith('format_')) {
       if (await handleFormatCallbacks(bot, query, data, chatId, telegramId, user)) return;
+    }
+
+    // Route to channel notification sub-handler
+    if (
+      data === 'channel_notifications' ||
+      data.startsWith('ch_notif_')
+    ) {
+      if (await handleChannelNotificationCallbacks(bot, query, data, chatId, telegramId, user)) return;
     }
 
   } catch (error) {

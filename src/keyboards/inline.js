@@ -595,6 +595,9 @@ function getChannelMenuKeyboard(channelId = null, isPublic = false, channelStatu
         ? { text: '⚙️ Перепідключити', callback_data: 'channel_reconnect' }
         : { text: '🔴 Вимкнути', callback_data: 'channel_disable' }
     ]);
+    buttons.push([
+      { text: '🔔 Сповіщення', callback_data: 'channel_notifications' },
+    ]);
   }
 
   buttons.push([
@@ -1309,6 +1312,59 @@ function getNotificationKeyboard(user) {
   };
 }
 
+// Channel notification settings keyboard (independent from bot notification settings)
+function getChannelNotificationKeyboard(user) {
+  const scheduleOn = user.ch_notify_schedule !== false;
+  const t60 = user.ch_remind_1h === true;
+  const t30 = user.ch_remind_30m === true;
+  const t15 = user.ch_remind_15m !== false;
+  const factOn = user.ch_notify_fact_off !== false;
+
+  const scheduleBtn = {
+    text: 'Оновлення графіків',
+    callback_data: 'ch_notif_toggle_schedule',
+    icon_custom_emoji_id: '5231200819986047254',
+    ...(scheduleOn ? { style: 'success' } : {}),
+  };
+
+  const btn60 = {
+    text: '1 год',
+    callback_data: 'ch_notif_time_60',
+    ...(t60 ? { style: 'success' } : {}),
+  };
+  const btn30 = {
+    text: '30 хв',
+    callback_data: 'ch_notif_time_30',
+    ...(t30 ? { style: 'success' } : {}),
+  };
+  const btn15 = {
+    text: '15 хв',
+    callback_data: 'ch_notif_time_15',
+    ...(t15 ? { style: 'success' } : {}),
+  };
+
+  const factBtn = {
+    text: 'Фактично за графіком',
+    callback_data: 'ch_notif_toggle_fact',
+    icon_custom_emoji_id: '5382194935057372936',
+    ...(factOn ? { style: 'success' } : {}),
+  };
+
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [scheduleBtn],
+        [btn60, btn30, btn15],
+        [factBtn],
+        [
+          { text: '← Назад', callback_data: 'settings_channel' },
+          { text: '⤴ Меню', callback_data: 'back_to_main' },
+        ],
+      ],
+    },
+  };
+}
+
 // Auto-cleanup settings keyboard
 function getCleanupKeyboard(user) {
   const delCmds = user.auto_delete_commands === true;
@@ -1382,6 +1438,7 @@ module.exports = {
   getNotificationTargetsKeyboard,
   getNotificationTargetSelectKeyboard,
   getNotificationKeyboard,
+  getChannelNotificationKeyboard,
   getCleanupKeyboard,
   getScheduleViewKeyboard,
 };

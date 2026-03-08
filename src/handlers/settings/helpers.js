@@ -97,6 +97,27 @@ function buildNotificationSettingsMessage(user) {
     `   (коли світло вимкнулось або увімкнулось за графіком)`;
 }
 
+// Build the channel notification settings message (single screen, independent from bot)
+function buildChannelNotificationMessage(user) {
+  const scheduleOn = user.ch_notify_schedule !== false;
+  const t60 = user.ch_remind_1h === true;
+  const t30 = user.ch_remind_30m === true;
+  const t15 = user.ch_remind_15m !== false;
+  const factOn = user.ch_notify_fact_off !== false;
+
+  const on = '✅';
+  const off = '❌';
+
+  return `<tg-emoji emoji-id="5282843764451195532">📺</tg-emoji> <b>Сповіщення каналу</b>\n\n` +
+    `<tg-emoji emoji-id="5231200819986047254">📈</tg-emoji> Оновлення графіків — ${scheduleOn ? on : off}\n\n` +
+    `<tg-emoji emoji-id="5451732530048802485">⏳</tg-emoji> Нагадування про події перед (вимкнення / відновлення):\n` +
+    `├ За 1 год — ${t60 ? on : off}\n` +
+    `├ За 30 хв — ${t30 ? on : off}\n` +
+    `├ За 15 хв — ${t15 ? on : off}\n` +
+    `└ Фактично за графіком — ${factOn ? on : off}\n` +
+    `   (коли світло вимкнулось або увімкнулось за графіком)`;
+}
+
 // Build the alerts message in tree format
 function buildAlertsMessage(isActive, currentTarget) {
   const targetLabels = {
@@ -175,5 +196,6 @@ module.exports = {
   restoreIpSetupStates,
   buildAlertsMessage,
   buildNotificationSettingsMessage,
+  buildChannelNotificationMessage,
   isValidIPorDomain,
 };

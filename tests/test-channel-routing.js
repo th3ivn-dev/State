@@ -18,6 +18,7 @@ function shouldRouteToChannelCallback(data) {
          data.startsWith('brand_') ||
          data.startsWith('test_') ||
          data.startsWith('format_') ||
+         data.startsWith('ch_notif_') ||
          data.startsWith('connect_channel_') ||
          data.startsWith('replace_channel_') ||
          data === 'cancel_channel_connect' ||
@@ -28,6 +29,7 @@ function shouldRouteToChannelCallback(data) {
 const shouldRouteCallbacks = [
   'channel_connect',
   'channel_disconnect',
+  'channel_notifications',
   'brand_customize',
   'test_send',
   'format_html',
@@ -36,7 +38,12 @@ const shouldRouteCallbacks = [
   'replace_channel_12345',
   'replace_channel_-100123456789',
   'cancel_channel_connect',
-  'keep_current_channel'
+  'keep_current_channel',
+  'ch_notif_toggle_schedule',
+  'ch_notif_toggle_fact',
+  'ch_notif_time_15',
+  'ch_notif_time_30',
+  'ch_notif_time_60',
 ];
 
 for (const callback of shouldRouteCallbacks) {
