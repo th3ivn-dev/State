@@ -1,7 +1,5 @@
 'use strict';
 
-const { Markup } = require('telegraf');
-
 /**
  * Convert inline keyboard to reply keyboard while preserving custom emoji and button styling.
  * @param {Array} inlineKeyboard - The inline keyboard to convert.
@@ -11,7 +9,7 @@ const inlineToReply = (inlineKeyboard) => {
   return inlineKeyboard.map(row => {
     return row.map(button => {
       const { text, callback_data } = button;
-      return Markup.button.callback(text, callback_data || '');
+      return { text, callback_data: callback_data || '' };
     });
   });
 };

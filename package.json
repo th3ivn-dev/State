@@ -25,6 +25,7 @@
     "@grammyjs/hydrate": "^1.6.0",
     "axios": "^1.6.5",
     "bullmq": "^5.70.4",
+    "dotenv": "^17.3.1",
     "grammy": "^1.41.0",
     "ioredis": "^5.10.0",
     "node-cron": "^3.0.3",
@@ -32,7 +33,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
-    "dotenv": "^17.3.1",
     "eslint": "^9.0.0",
     "nodemon": "^3.0.2"
   },
