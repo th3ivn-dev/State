@@ -2,6 +2,8 @@ const http = require('http');
 const config = require('./config');
 const { pool } = require('./database/db');
 const { getUserCount } = require('./database/users');
+const { getRedisHealthStatus } = require('./queue/connection');
+const { getQueueStats } = require('./queue/notificationsQueue');
 
 let server = null;
 let botRef = null;
@@ -87,6 +89,10 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
           cached.timestamp = new Date().toISOString();
           const mem = process.memoryUsage();
           cached.memory = { rss: Math.round(mem.rss / 1024 / 1024), heapUsed: Math.round(mem.heapUsed / 1024 / 1024) };
+          try { cached.redis = await getRedisHealthStatus(); }
+          catch (_e) { cached.redis = { connected: false, error: 'unavailable' }; }
+          try { cached.queue = await getQueueStats() || {}; }
+          catch (_e) { cached.queue = {}; }
           const statusCode = cached.database === 'connected' ? 200 : 503;
           res.writeHead(statusCode, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(cached));
@@ -111,6 +117,14 @@ function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
             rss: Math.round(process.memoryUsage().rss / 1024 / 1024),
             heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
           },
+          redis: await (async () => {
+            try { return await getRedisHealthStatus(); }
+            catch (_e) { return { connected: false, error: 'unavailable' }; }
+          })(),
+          queue: await (async () => {
+            try { return await getQueueStats() || {}; }
+            catch (_e) { return {}; }
+          })(),
         };
 
         healthCache = { data: health, ts: now };
