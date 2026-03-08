@@ -256,6 +256,38 @@ async function updateUser(telegramId, updates) {
   }
 }
 
+// Batch deactivate users — single query using ANY
+async function batchSetUsersInactive(telegramIds) {
+  if (!telegramIds || telegramIds.length === 0) return 0;
+
+  try {
+    const result = await pool.query(
+      'UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE telegram_id = ANY($1::text[]) AND is_active = TRUE',
+      [telegramIds]
+    );
+    return result.rowCount;
+  } catch (error) {
+    console.error('Error in batchSetUsersInactive:', error.message);
+    return 0;
+  }
+}
+
+// Batch activate users — single query using ANY
+async function batchSetUsersActive(telegramIds) {
+  if (!telegramIds || telegramIds.length === 0) return 0;
+
+  try {
+    const result = await pool.query(
+      'UPDATE users SET is_active = TRUE, updated_at = NOW() WHERE telegram_id = ANY($1::text[]) AND is_active = FALSE',
+      [telegramIds]
+    );
+    return result.rowCount;
+  } catch (error) {
+    console.error('Error in batchSetUsersActive:', error.message);
+    return 0;
+  }
+}
+
 module.exports = {
   createUser,
   saveUser,
@@ -265,4 +297,6 @@ module.exports = {
   deleteUser,
   setUserActive,
   updateUser,
+  batchSetUsersInactive,
+  batchSetUsersActive,
 };

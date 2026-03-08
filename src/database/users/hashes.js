@@ -115,6 +115,74 @@ async function batchUpdateHashes(updates) {
   }
 }
 
+// Batch update snapshot hashes using unnest — O(1) round-trips.
+// updates = [{ telegramId, todayHash, tomorrowHash, tomorrowDate }, ...]
+async function batchUpdateSnapshotHashes(updates) {
+  if (!updates || updates.length === 0) return;
+
+  const telegramIds = [];
+  const todayHashes = [];
+  const tomorrowHashes = [];
+  const tomorrowDates = [];
+
+  for (const u of updates) {
+    telegramIds.push(u.telegramId);
+    todayHashes.push(u.todayHash || null);
+    tomorrowHashes.push(u.tomorrowHash || null);
+    tomorrowDates.push(u.tomorrowDate || null);
+  }
+
+  try {
+    await pool.query(`
+      UPDATE users u SET
+        today_snapshot_hash = v.th,
+        tomorrow_snapshot_hash = v.tmh,
+        tomorrow_published_date = v.td,
+        updated_at = NOW()
+      FROM (
+        SELECT unnest($1::text[]) AS tid,
+               unnest($2::text[]) AS th,
+               unnest($3::text[]) AS tmh,
+               unnest($4::text[]) AS td
+      ) v
+      WHERE u.telegram_id = v.tid
+    `, [telegramIds, todayHashes, tomorrowHashes, tomorrowDates]);
+  } catch (error) {
+    console.error('Error in batchUpdateSnapshotHashes:', error.message);
+    throw error;
+  }
+}
+
+// Batch update published hashes — O(1) round-trips.
+// updates = [{ id, lastPublishedHash }, ...]
+async function batchUpdatePublishedHashes(updates) {
+  if (!updates || updates.length === 0) return;
+
+  const ids = [];
+  const pubHashes = [];
+
+  for (const { id, lastPublishedHash } of updates) {
+    ids.push(id);
+    pubHashes.push(lastPublishedHash);
+  }
+
+  try {
+    await pool.query(`
+      UPDATE users u SET
+        last_published_hash = v.lph,
+        updated_at = NOW()
+      FROM (
+        SELECT unnest($1::int[]) AS id,
+               unnest($2::text[]) AS lph
+      ) v
+      WHERE u.id = v.id
+    `, [ids, pubHashes]);
+  } catch (error) {
+    console.error('Error in batchUpdatePublishedHashes:', error.message);
+    throw error;
+  }
+}
+
 module.exports = {
   updateUserHash,
   updateUserPublishedHash,
@@ -122,4 +190,6 @@ module.exports = {
   updateSnapshotHashes,
   getSnapshotHashes,
   batchUpdateHashes,
+  batchUpdateSnapshotHashes,
+  batchUpdatePublishedHashes,
 };
