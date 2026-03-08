@@ -92,6 +92,7 @@ function buildNotificationSettingsMessage(user) {
   const t30 = user.remind_30m === true;
   const t15 = user.remind_15m !== false;
   const factOn = user.notify_fact_off !== false;
+  const hasIp = !!user.router_ip;
 
   const on = '✅';
   const off = '❌';
@@ -102,8 +103,8 @@ function buildNotificationSettingsMessage(user) {
     `├ За 1 год — ${t60 ? on : off}\n` +
     `├ За 30 хв — ${t30 ? on : off}\n` +
     `├ За 15 хв — ${t15 ? on : off}\n` +
-    `└ Фактично за графіком — ${factOn ? on : off}\n` +
-    `   (коли світло вимкнулось або увімкнулось за графіком)`;
+    `└ ${hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком'} — ${factOn ? on : off}\n` +
+    `   (${hasIp ? 'коли світло фактично вимкнулось або увімкнулось вдома' : 'коли світло вимкнулось або увімкнулось за графіком'})`;
 }
 
 // Build the channel notification settings message (single screen, independent from bot)
@@ -113,6 +114,7 @@ function buildChannelNotificationMessage(user) {
   const t30 = user.ch_remind_30m === true;
   const t15 = user.ch_remind_15m !== false;
   const factOn = user.ch_notify_fact_off !== false;
+  const hasIp = !!user.router_ip;
 
   const on = '✅';
   const off = '❌';
@@ -123,8 +125,8 @@ function buildChannelNotificationMessage(user) {
     `├ За 1 год — ${t60 ? on : off}\n` +
     `├ За 30 хв — ${t30 ? on : off}\n` +
     `├ За 15 хв — ${t15 ? on : off}\n` +
-    `└ Фактично за графіком — ${factOn ? on : off}\n` +
-    `   (коли світло вимкнулось або увімкнулось за графіком)`;
+    `└ ${hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком'} — ${factOn ? on : off}\n` +
+    `   (${hasIp ? 'коли світло фактично вимкнулось або увімкнулось вдома' : 'коли світло вимкнулось або увімкнулось за графіком'})`;
 }
 
 // Build the alerts message in tree format

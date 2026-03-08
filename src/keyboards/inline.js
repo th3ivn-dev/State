@@ -1296,8 +1296,9 @@ function getNotificationKeyboard(user) {
     ...(t15 ? { style: 'success' } : {}),
   };
 
+  const hasIp = !!user.router_ip;
   const factBtn = {
-    text: 'Фактично за графіком',
+    text: hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком',
     callback_data: 'notif_toggle_fact',
     icon_custom_emoji_id: '5382194935057372936',
     ...(factOn ? { style: 'success' } : {}),
@@ -1349,8 +1350,9 @@ function getChannelNotificationKeyboard(user) {
     ...(t15 ? { style: 'success' } : {}),
   };
 
+  const hasIp = !!user.router_ip;
   const factBtn = {
-    text: 'Фактично за графіком',
+    text: hasIp ? 'Фактично за IP-адресою' : 'Фактично за графіком',
     callback_data: 'ch_notif_toggle_fact',
     icon_custom_emoji_id: '5382194935057372936',
     ...(factOn ? { style: 'success' } : {}),
