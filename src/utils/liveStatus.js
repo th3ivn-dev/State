@@ -31,22 +31,23 @@ function generateLiveStatusMessage(user, regionName) {
     message += '⚪ Світло зараз: Невідомо\n\n';
   }
 
-  // Settings section
-  message += `📍 ${regionName} · ${user.queue}\n`;
-  message += `📡 IP: ${hasIp ? 'підключено' : 'не підключено'}\n`;
+  // Settings section — регіон та черга жирним
+  message += `📍 <b>${regionName} · ${user.queue}</b>\n`;
 
-  // Special messages based on configuration
   if (!hasIp) {
-    message += '⚠️ Налаштуйте IP для моніторингу світла\n';
+    message += '\n📡 Моніторинг світла: ще не підключено 😕\n';
+    message += '<i>💡 Підключіть IP роутера — тоді я буду повідомляти точно, коли у вас зникне/з"явиться світло</i>\n';
+  } else {
+    message += `📡 IP: підключено ✅\n`;
   }
 
-  message += `📺 Канал: ${hasChannel ? 'підключено' : 'не підключено'}\n`;
+  message += `\n📺 Канал: ${hasChannel ? 'підключено ✅' : 'не підключено'}\n`;
 
   if (!hasChannel && hasIp) {
     message += 'ℹ️ Сповіщення приходитимуть лише в бот\n';
   }
 
-  message += `🔔 Сповіщення: ${notificationsEnabled ? 'увімкнено' : 'вимкнено'}\n`;
+  message += `🔔 Сповіщення: ${notificationsEnabled ? 'увімкнено ✅' : 'вимкнено'}\n`;
 
   // Monitoring active message
   if (hasIp && notificationsEnabled) {
