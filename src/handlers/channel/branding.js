@@ -2,6 +2,8 @@ const fs = require('fs');
 const usersDb = require('../../database/users');
 const { getBotUsername } = require('../../utils');
 const { safeEditMessageText, safeSetChatTitle, safeSetChatDescription, safeSetChatPhoto, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
+const { getWizardChannelNotificationKeyboard } = require('../../keyboards/inline');
+const { buildChannelNotificationMessage } = require('../settings/helpers');
 const {
   setConversationState,
   getConversationState,
@@ -146,15 +148,24 @@ async function applyChannelBranding(bot, chatId, telegramId, state) {
       `⤵ Меню — перейти в головне меню\n` +
       `📢 Новини бота — канал з оновленнями`;
 
-    await bot.api.sendMessage(chatId, successMessage, {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
-          [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
-        ]
-      }
-    });
+    if (state.fromWizard) {
+      // Wizard flow: show channel notification settings instead of final message
+      const user = await usersDb.getUserByTelegramId(telegramId);
+      await bot.api.sendMessage(chatId, buildChannelNotificationMessage(user), {
+        parse_mode: 'HTML',
+        reply_markup: getWizardChannelNotificationKeyboard(user).reply_markup,
+      });
+    } else {
+      await bot.api.sendMessage(chatId, successMessage, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⤵ Меню', callback_data: 'back_to_main' }],
+            [{ text: '📢 Новини бота', url: 'https://t.me/Voltyk_news' }],
+          ]
+        }
+      });
+    }
 
   } catch (error) {
     console.error('Помилка в applyChannelBranding:', error);
