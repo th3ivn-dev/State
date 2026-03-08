@@ -284,14 +284,26 @@ test('Instruction button should be first in IP monitoring menu', () => {
 });
 
 test('IP monitoring menu should have all required buttons', () => {
-  const keyboard = getIpMonitoringKeyboard();
+  const keyboard = getIpMonitoringKeyboard(true);
   const allButtons = keyboard.reply_markup.inline_keyboard.flat();
   const buttonTexts = allButtons.map(btn => btn.text);
 
   assert(buttonTexts.includes('ℹ️ Інструкція'), 'Missing instruction button');
-  assert(buttonTexts.includes('✚ Налаштувати IP'), 'Missing setup button');
+  assert(buttonTexts.includes('✚ Підключити IP'), 'Missing setup button');
   assert(buttonTexts.includes('📋 Показати поточний'), 'Missing show button');
   assert(buttonTexts.includes('🗑️ Видалити IP'), 'Missing delete button');
+  assert(buttonTexts.includes('← Назад'), 'Missing back button');
+});
+
+test('IP monitoring menu without IP should not show show/delete buttons', () => {
+  const keyboard = getIpMonitoringKeyboard(false);
+  const allButtons = keyboard.reply_markup.inline_keyboard.flat();
+  const buttonTexts = allButtons.map(btn => btn.text);
+
+  assert(buttonTexts.includes('ℹ️ Інструкція'), 'Missing instruction button');
+  assert(buttonTexts.includes('✚ Підключити IP'), 'Missing setup button');
+  assert(!buttonTexts.includes('📋 Показати поточний'), 'Show button should not appear without IP');
+  assert(!buttonTexts.includes('🗑️ Видалити IP'), 'Delete button should not appear without IP');
   assert(buttonTexts.includes('← Назад'), 'Missing back button');
 });
 
