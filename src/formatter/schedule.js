@@ -15,29 +15,31 @@ function formatScheduleMessage(region, queue, scheduleData, nextEvent, changes =
   const _regionName = REGIONS[region]?.name || region;
   const lines = [];
 
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const _todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+  // Get day name
+  const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
+  const todayName = dayNames[now.getDay()];
+
+  // Format dates
+  const todayDate = formatDate(now);
+
   if (!scheduleData.hasData) {
-    lines.push(`<i>💡 Графік відключень для черги ${queue}</i>`);
+    lines.push(`<i>💡 Графік відключень <b>на сьогодні, ${todayDate} (${todayName}),</b> для черги ${queue}:</i>`);
     lines.push('');
     lines.push('<tg-emoji emoji-id="5870509845911702494">✅</tg-emoji> Відключень не заплановано');
     return lines.join('\n');
   }
 
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const _todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
   const tomorrowStart = new Date(todayStart);
   tomorrowStart.setDate(tomorrowStart.getDate() + 1);
   const tomorrowEnd = new Date(tomorrowStart);
   tomorrowEnd.setDate(tomorrowEnd.getDate() + 1);
   tomorrowEnd.setMilliseconds(-1);
 
-  // Get day name
-  const dayNames = ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'];
-  const todayName = dayNames[now.getDay()];
   const tomorrowName = dayNames[(now.getDay() + 1) % 7];
-
-  // Format dates
-  const todayDate = formatDate(now);
   const tomorrowDate = formatDate(tomorrowStart);
 
   // Day boundary for filtering (tomorrow's start)
