@@ -237,6 +237,20 @@ async function checkReminders(bot) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_off', event, scheduleData, regionName, queue, mins);
                   await sendNotification(bot, user, text, 'remind_off');
+                  // Channel-only: send remind_off to channel when target is bot-only but channel interval is enabled
+                  if (user.channel_id && notifyTarget !== 'channel' && notifyTarget !== 'both' &&
+                      chReminderMinutes.includes(mins) && user.ch_notify_remind_off !== false) {
+                    if (user.last_channel_reminder_message_id) {
+                      safeDeleteMessage(bot, user.channel_id, user.last_channel_reminder_message_id);
+                    }
+                    await notificationsQueue.add('user', {
+                      type: 'user',
+                      chatId: user.channel_id,
+                      text: text,
+                      options: { parse_mode: 'HTML' },
+                      meta: { telegramId: user.telegram_id, updateLastChannelReminderMessageId: true },
+                    });
+                  }
                 }
               } else if (!reminderMinutes.includes(mins) && chReminderMinutes.includes(mins) &&
                          user.ch_notify_remind_off !== false && user.channel_id) {
@@ -296,6 +310,20 @@ async function checkReminders(bot) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_on', event, scheduleData, regionName, queue, mins);
                   await sendNotification(bot, user, text, 'remind_on');
+                  // Channel-only: send remind_on to channel when target is bot-only but channel interval is enabled
+                  if (user.channel_id && notifyTarget !== 'channel' && notifyTarget !== 'both' &&
+                      chReminderMinutes.includes(mins) && user.ch_notify_remind_on !== false) {
+                    if (user.last_channel_reminder_message_id) {
+                      safeDeleteMessage(bot, user.channel_id, user.last_channel_reminder_message_id);
+                    }
+                    await notificationsQueue.add('user', {
+                      type: 'user',
+                      chatId: user.channel_id,
+                      text: text,
+                      options: { parse_mode: 'HTML' },
+                      meta: { telegramId: user.telegram_id, updateLastChannelReminderMessageId: true },
+                    });
+                  }
                 }
               } else if (!reminderMinutes.includes(mins) && chReminderMinutes.includes(mins) &&
                          user.ch_notify_remind_on !== false && user.channel_id) {
