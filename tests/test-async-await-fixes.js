@@ -116,7 +116,7 @@ const schedulerCode = fs.readFileSync(path.join(__dirname, '../src/scheduler.js'
 
 // After BullMQ integration, updateUserPostId is handled by the queue worker via metadata.
 // Verify that scheduler.js calls publishScheduleWithPhoto without capturing sentMsg for updateUserPostId.
-const schedulerMatch = schedulerCode.match(/await publishScheduleWithPhoto\(bot, user, user\.region, user\.queue\)/);
+const schedulerMatch = schedulerCode.match(/await publishScheduleWithPhoto\(bot, user, user\.region, user\.queue, \{ force: true \}\)/);
 assert(
   schedulerMatch,
   'scheduler.js should call publishScheduleWithPhoto (message_id tracking is handled by BullMQ worker)'
