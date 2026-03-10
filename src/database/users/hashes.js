@@ -20,9 +20,10 @@ async function updateUserHash(id, hash) {
 async function updateUserPublishedHash(id, hash) {
   try {
     const result = await pool.query(`
-      UPDATE users 
-      SET last_published_hash = $1, updated_at = NOW()
-      WHERE id = $2
+      INSERT INTO user_channel_config (user_id, last_published_hash, updated_at)
+      VALUES ($2, $1, NOW())
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_published_hash = EXCLUDED.last_published_hash, updated_at = NOW()
     `, [hash, id]);
 
     return result.rowCount > 0;
@@ -35,13 +36,20 @@ async function updateUserPublishedHash(id, hash) {
 // Оновити обидва хеші користувача
 async function updateUserHashes(id, hash) {
   try {
-    const result = await pool.query(`
+    await pool.query(`
       UPDATE users 
-      SET last_hash = $1, last_published_hash = $2, updated_at = NOW()
-      WHERE id = $3
-    `, [hash, hash, id]);
+      SET last_hash = $1, updated_at = NOW()
+      WHERE id = $2
+    `, [hash, id]);
 
-    return result.rowCount > 0;
+    await pool.query(`
+      INSERT INTO user_channel_config (user_id, last_published_hash, updated_at)
+      VALUES ($2, $1, NOW())
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_published_hash = EXCLUDED.last_published_hash, updated_at = NOW()
+    `, [hash, id]);
+
+    return true;
   } catch (error) {
     console.error('Error in updateUserHashes:', error.message);
     return false;
@@ -100,15 +108,20 @@ async function batchUpdateHashes(updates) {
     await pool.query(`
       UPDATE users u SET
         last_hash = v.lh,
-        last_published_hash = v.lph,
         updated_at = NOW()
       FROM (
         SELECT unnest($1::int[])  AS id,
-               unnest($2::text[]) AS lh,
-               unnest($3::text[]) AS lph
+               unnest($2::text[]) AS lh
       ) v
       WHERE u.id = v.id
-    `, [ids, hashes, pubHashes]);
+    `, [ids, hashes]);
+
+    await pool.query(`
+      INSERT INTO user_channel_config (user_id, last_published_hash, updated_at)
+      SELECT unnest($1::int[]), unnest($2::text[]), NOW()
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_published_hash = EXCLUDED.last_published_hash, updated_at = NOW()
+    `, [ids, pubHashes]);
   } catch (error) {
     console.error('Error in batchUpdateHashes:', error.message);
     throw error;
@@ -168,14 +181,10 @@ async function batchUpdatePublishedHashes(updates) {
 
   try {
     await pool.query(`
-      UPDATE users u SET
-        last_published_hash = v.lph,
-        updated_at = NOW()
-      FROM (
-        SELECT unnest($1::int[]) AS id,
-               unnest($2::text[]) AS lph
-      ) v
-      WHERE u.id = v.id
+      INSERT INTO user_channel_config (user_id, last_published_hash, updated_at)
+      SELECT unnest($1::int[]), unnest($2::text[]), NOW()
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_published_hash = EXCLUDED.last_published_hash, updated_at = NOW()
     `, [ids, pubHashes]);
   } catch (error) {
     console.error('Error in batchUpdatePublishedHashes:', error.message);
