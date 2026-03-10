@@ -23,6 +23,7 @@ const SCHEDULER_COLUMNS = [
   'schedule_caption', 'period_format', 'power_off_text', 'power_on_text',
   'delete_old_message', 'picture_only',
   'last_schedule_message_id', 'last_post_id',
+  'ch_notify_schedule', 'is_active',
 ].join(', ');
 
 async function getUsersByRegionForScheduler(region) {
