@@ -116,6 +116,22 @@ async function updateLastReminderMessageId(telegramId, messageId) {
   }
 }
 
+// Оновити ID останнього нагадування в каналі
+async function updateLastChannelReminderMessageId(telegramId, messageId) {
+  try {
+    const result = await pool.query(`
+      UPDATE users 
+      SET last_channel_reminder_message_id = $1, updated_at = NOW()
+      WHERE telegram_id = $2
+    `, [messageId, telegramId]);
+
+    return result.rowCount > 0;
+  } catch (error) {
+    console.error('Error in updateLastChannelReminderMessageId:', error.message);
+    return false;
+  }
+}
+
 module.exports = {
   updateUserRegionQueue,
   updateUserRegionAndQueue,
@@ -124,4 +140,5 @@ module.exports = {
   updateLastScheduleMessageId,
   updateLastBotKeyboardMessageId,
   updateLastReminderMessageId,
+  updateLastChannelReminderMessageId,
 };

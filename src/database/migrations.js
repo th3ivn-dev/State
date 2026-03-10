@@ -97,6 +97,8 @@ async function runMigrations() {
       { name: 'ch_remind_15m', type: 'BOOLEAN DEFAULT TRUE' },
       { name: 'ch_remind_30m', type: 'BOOLEAN DEFAULT FALSE' },
       { name: 'ch_remind_1h', type: 'BOOLEAN DEFAULT FALSE' },
+      // Channel reminder message tracking
+      { name: 'last_channel_reminder_message_id', type: 'BIGINT DEFAULT NULL' },
     ];
 
     let addedCount = 0;
@@ -247,6 +249,7 @@ async function runMigrations() {
         last_schedule_message_id INTEGER DEFAULT NULL,
         last_bot_keyboard_message_id BIGINT DEFAULT NULL,
         last_reminder_message_id BIGINT DEFAULT NULL,
+        last_channel_reminder_message_id BIGINT DEFAULT NULL,
         last_start_message_id INTEGER,
         last_settings_message_id INTEGER,
         last_timer_message_id INTEGER,
@@ -338,10 +341,12 @@ async function runMigrations() {
       ON CONFLICT DO NOTHING`,
       `INSERT INTO user_message_tracking (
         user_id, last_schedule_message_id, last_bot_keyboard_message_id, last_reminder_message_id,
+        last_channel_reminder_message_id,
         last_start_message_id, last_settings_message_id, last_timer_message_id, last_menu_message_id
       )
       SELECT
         id, last_schedule_message_id, last_bot_keyboard_message_id, last_reminder_message_id,
+        last_channel_reminder_message_id,
         last_start_message_id, last_settings_message_id, last_timer_message_id, last_menu_message_id
       FROM users
       ON CONFLICT DO NOTHING`,

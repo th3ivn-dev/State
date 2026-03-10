@@ -151,11 +151,15 @@ async function sendNotification(bot, user, text, type = 'remind_off') {
       chEnabled = user.ch_notify_remind_off !== false;
     }
     if (chEnabled) {
+      if (user.last_channel_reminder_message_id) {
+        safeDeleteMessage(bot, user.channel_id, user.last_channel_reminder_message_id);
+      }
       await notificationsQueue.add('user', {
         type: 'user',
         chatId: user.channel_id,
         text: text,
         options: { parse_mode: 'HTML' },
+        meta: { telegramId: user.telegram_id, updateLastChannelReminderMessageId: true },
       });
     }
   }
@@ -241,11 +245,15 @@ async function checkReminders(bot) {
                 if (!sentReminders.has(rKey)) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_off', event, scheduleData, regionName, queue, mins);
+                  if (user.last_channel_reminder_message_id) {
+                    safeDeleteMessage(bot, user.channel_id, user.last_channel_reminder_message_id);
+                  }
                   await notificationsQueue.add('user', {
                     type: 'user',
                     chatId: user.channel_id,
                     text: text,
                     options: { parse_mode: 'HTML' },
+                    meta: { telegramId: user.telegram_id, updateLastChannelReminderMessageId: true },
                   });
                 }
               }
@@ -263,11 +271,15 @@ async function checkReminders(bot) {
                 // Channel-only: send fact_off to channel when target is bot-only but channel fact_off is enabled
                 if (user.channel_id && notifyTarget !== 'channel' && notifyTarget !== 'both' &&
                     user.ch_notify_fact_off !== false) {
+                  if (user.last_channel_reminder_message_id) {
+                    safeDeleteMessage(bot, user.channel_id, user.last_channel_reminder_message_id);
+                  }
                   await notificationsQueue.add('user', {
                     type: 'user',
                     chatId: user.channel_id,
                     text: text,
                     options: { parse_mode: 'HTML' },
+                    meta: { telegramId: user.telegram_id, updateLastChannelReminderMessageId: true },
                   });
                 }
               }
@@ -292,11 +304,15 @@ async function checkReminders(bot) {
                 if (!sentReminders.has(rKey)) {
                   sentReminders.set(rKey, Date.now());
                   const text = buildNotificationText('remind_on', event, scheduleData, regionName, queue, mins);
+                  if (user.last_channel_reminder_message_id) {
+                    safeDeleteMessage(bot, user.channel_id, user.last_channel_reminder_message_id);
+                  }
                   await notificationsQueue.add('user', {
                     type: 'user',
                     chatId: user.channel_id,
                     text: text,
                     options: { parse_mode: 'HTML' },
+                    meta: { telegramId: user.telegram_id, updateLastChannelReminderMessageId: true },
                   });
                 }
               }
@@ -314,11 +330,15 @@ async function checkReminders(bot) {
                 // Channel-only: send fact_on to channel when target is bot-only but channel fact_on is enabled
                 if (user.channel_id && notifyTarget !== 'channel' && notifyTarget !== 'both' &&
                     user.ch_notify_fact_on !== false) {
+                  if (user.last_channel_reminder_message_id) {
+                    safeDeleteMessage(bot, user.channel_id, user.last_channel_reminder_message_id);
+                  }
                   await notificationsQueue.add('user', {
                     type: 'user',
                     chatId: user.channel_id,
                     text: text,
                     options: { parse_mode: 'HTML' },
+                    meta: { telegramId: user.telegram_id, updateLastChannelReminderMessageId: true },
                   });
                 }
               }
