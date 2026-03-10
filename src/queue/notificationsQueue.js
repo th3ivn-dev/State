@@ -73,6 +73,9 @@ function initWorker(botInstance) {
         if (meta.updateLastReminderMessageId && meta.telegramId) {
           await usersDb.updateLastReminderMessageId(meta.telegramId, sentMessage.message_id);
         }
+        if (meta.updateLastChannelReminderMessageId && meta.telegramId) {
+          await usersDb.updateLastChannelReminderMessageId(meta.telegramId, sentMessage.message_id);
+        }
         if (meta.updateUserPostId && meta.userId) {
           await usersDb.updateUserPostId(meta.userId, sentMessage.message_id);
         }

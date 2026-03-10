@@ -4,7 +4,7 @@ const { updateUserPowerState, changePowerStateAndGetDuration, setPendingPowerCha
 const { updateUserChannel, resetUserChannel, updateChannelBranding, updateChannelBrandingPartial, updateChannelStatus, updateUserChannelPaused } = require('./channel');
 const { updateUserAlertSettings, updateUserFormatSettings, getUserFormatSettings, updateUserPowerNotifyTarget, updateScheduleAlertEnabled, updateScheduleAlertMinutes, updateScheduleAlertTarget, updateUserScheduleAlertSettings, updateNotificationSettings, updateChannelNotificationSettings, updateCleanupSettings } = require('./settings');
 const { updateUserHash, updateUserPublishedHash, updateUserHashes, updateSnapshotHashes, getSnapshotHashes, batchUpdateHashes, batchUpdateSnapshotHashes, batchUpdatePublishedHashes } = require('./hashes');
-const { updateUserRegionQueue, updateUserRegionAndQueue, updateUserPostId, updateUserRouterIp, updateLastScheduleMessageId, updateLastBotKeyboardMessageId, updateLastReminderMessageId } = require('./updates');
+const { updateUserRegionQueue, updateUserRegionAndQueue, updateUserPostId, updateUserRouterIp, updateLastScheduleMessageId, updateLastBotKeyboardMessageId, updateLastReminderMessageId, updateLastChannelReminderMessageId } = require('./updates');
 const { getUserStats, getUserCount } = require('./stats');
 const { getUserFullProfile, getUserWithNotifications, getUserWithChannel, getUserWithPowerState, getUserWithMessages } = require('./joins');
 
@@ -46,6 +46,7 @@ module.exports = {
   updateLastScheduleMessageId,
   updateLastBotKeyboardMessageId,
   updateLastReminderMessageId,
+  updateLastChannelReminderMessageId,
   updateUserChannelPaused,
   updateUserPowerNotifyTarget,
   updateScheduleAlertEnabled,
