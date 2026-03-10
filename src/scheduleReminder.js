@@ -139,10 +139,17 @@ async function sendNotification(bot, user, text, type = 'remind_off') {
   }
 
   if ((target === 'channel' || target === 'both') && user.channel_id) {
-    // Check channel-specific remind settings before sending to channel
-    const chEnabled = type === 'remind_on'
-      ? user.ch_notify_remind_on !== false
-      : user.ch_notify_remind_off !== false;
+    // Check channel-specific settings before sending to channel
+    let chEnabled;
+    if (type === 'fact_off') {
+      chEnabled = user.ch_notify_fact_off !== false;
+    } else if (type === 'fact_on') {
+      chEnabled = user.ch_notify_fact_on !== false;
+    } else if (type === 'remind_on') {
+      chEnabled = user.ch_notify_remind_on !== false;
+    } else {
+      chEnabled = user.ch_notify_remind_off !== false;
+    }
     if (chEnabled) {
       await notificationsQueue.add('user', {
         type: 'user',
@@ -191,6 +198,7 @@ async function checkReminders(bot) {
 
       for (const user of groupUsers) {
         const telegramId = user.telegram_id;
+        const notifyTarget = user.notify_remind_target || 'bot';
 
         // Determine which reminder times are enabled (bot settings)
         const reminderMinutes = [];
@@ -252,6 +260,16 @@ async function checkReminders(bot) {
                 sentReminders.set(factKey, Date.now());
                 const text = buildNotificationText('fact_off', event, scheduleData, regionName, queue, 0);
                 await sendNotification(bot, user, text, 'fact_off');
+                // Channel-only: send fact_off to channel when target is bot-only but channel fact_off is enabled
+                if (user.channel_id && notifyTarget !== 'channel' && notifyTarget !== 'both' &&
+                    user.ch_notify_fact_off !== false) {
+                  await notificationsQueue.add('user', {
+                    type: 'user',
+                    chatId: user.channel_id,
+                    text: text,
+                    options: { parse_mode: 'HTML' },
+                  });
+                }
               }
             }
           }
@@ -293,6 +311,16 @@ async function checkReminders(bot) {
                 sentReminders.set(factKey, Date.now());
                 const text = buildNotificationText('fact_on', event, scheduleData, regionName, queue, 0);
                 await sendNotification(bot, user, text, 'fact_on');
+                // Channel-only: send fact_on to channel when target is bot-only but channel fact_on is enabled
+                if (user.channel_id && notifyTarget !== 'channel' && notifyTarget !== 'both' &&
+                    user.ch_notify_fact_on !== false) {
+                  await notificationsQueue.add('user', {
+                    type: 'user',
+                    chatId: user.channel_id,
+                    text: text,
+                    options: { parse_mode: 'HTML' },
+                  });
+                }
               }
             }
           }
