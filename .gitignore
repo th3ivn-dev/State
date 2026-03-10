@@ -160,3 +160,7 @@ test-critical-fixes.js
 .env
 test-admin-notifier.js
 test-examples-button.js
+
+# Grafana and Prometheus persistent data
+grafana_data/
+prometheus_data/

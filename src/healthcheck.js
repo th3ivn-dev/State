@@ -1,10 +1,10 @@
 const http = require('http');
-const crypto = require('crypto');
 const config = require('./config');
 const { pool } = require('./database/db');
 const { getUserCount } = require('./database/users');
 const { getRedisHealthStatus } = require('./queue/connection');
 const { getQueueStats } = require('./queue/notificationsQueue');
+const { startPrometheusMetrics, getMetricsHandler } = require('./monitoring/prometheusMetrics');
 
 let server = null;
 let botRef = null;
@@ -18,6 +18,10 @@ async function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
   const useWebhook = config.USE_WEBHOOK;
   const webhookPath = config.WEBHOOK_PATH;
   const webhookSecret = config.WEBHOOK_SECRET;
+
+  // Запускаємо збір Prometheus метрик та отримуємо handler
+  startPrometheusMetrics();
+  const prometheusHandler = getMetricsHandler();
 
   const MAX_BODY_BYTES = 1024 * 1024; // 1 MB — Telegram updates are small
   const REQUEST_TIMEOUT_MS = 10_000;
@@ -137,34 +141,11 @@ async function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'error', message: error.message }));
       }
-    } else if (req.url.startsWith('/metrics')) {
-      // Metrics endpoint — detailed system metrics
-      // Auth check for metrics endpoint
-      const metricsKey = config.METRICS_API_KEY;
-      if (metricsKey) {
-        const url = new URL(req.url, `http://${req.headers.host}`);
-        const headerKey = req.headers['x-metrics-key'] || '';
-        const queryKey = url.searchParams.get('key') || '';
-        const keyBuf = Buffer.from(metricsKey);
-        const headerMatch = headerKey.length === metricsKey.length &&
-          crypto.timingSafeEqual(Buffer.from(headerKey), keyBuf);
-        const queryMatch = queryKey.length === metricsKey.length &&
-          crypto.timingSafeEqual(Buffer.from(queryKey), keyBuf);
-        if (!headerMatch && !queryMatch) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Unauthorized' }));
-          return;
-        }
-      }
-      try {
-        const { collectAllMetrics } = require('./monitoring/systemMetrics');
-        const metrics = await collectAllMetrics();
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(metrics, null, 2));
-      } catch (error) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: error.message }));
-      }
+    } else if (req.url === '/metrics') {
+      // Prometheus metrics endpoint — повертає метрики у форматі Prometheus text.
+      // Авторизація навмисно відсутня: Prometheus scraper потребує відкритого доступу.
+      // Захист від зовнішнього доступу забезпечується мережевими правилами (docker network / firewall).
+      await prometheusHandler(req, res);
     } else {
       res.writeHead(404);
       res.end('Not Found');
