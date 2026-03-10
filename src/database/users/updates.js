@@ -24,10 +24,16 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
       SET region = $1, 
           queue = $2, 
           last_hash = NULL, 
-          last_published_hash = NULL,
           updated_at = NOW()
       WHERE telegram_id = $3
     `, [region, queue, telegramId]);
+
+    // Also reset last_published_hash in user_channel_config
+    await pool.query(`
+      UPDATE user_channel_config
+      SET last_published_hash = NULL, updated_at = NOW()
+      WHERE user_id = (SELECT id FROM users WHERE telegram_id = $1)
+    `, [telegramId]);
 
     return result.rowCount > 0;
   } catch (error) {
@@ -40,9 +46,9 @@ async function updateUserRegionAndQueue(telegramId, region, queue) {
 async function updateUserPostId(id, postId) {
   try {
     const result = await pool.query(`
-      UPDATE users 
-      SET last_post_id = $1, updated_at = NOW()
-      WHERE id = $2
+      INSERT INTO user_channel_config (user_id, last_post_id, updated_at)
+      VALUES ($2, $1, NOW())
+      ON CONFLICT (user_id) DO UPDATE SET last_post_id = EXCLUDED.last_post_id, updated_at = NOW()
     `, [postId, id]);
 
     return result.rowCount > 0;
@@ -72,10 +78,11 @@ async function updateUserRouterIp(telegramId, routerIp) {
 async function updateLastScheduleMessageId(telegramId, messageId) {
   try {
     const result = await pool.query(`
-      UPDATE users 
-      SET last_schedule_message_id = $1, updated_at = NOW()
-      WHERE telegram_id = $2
-    `, [messageId, telegramId]);
+      INSERT INTO user_message_tracking (user_id, last_schedule_message_id, updated_at)
+      VALUES ((SELECT id FROM users WHERE telegram_id = $1), $2, NOW())
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_schedule_message_id = EXCLUDED.last_schedule_message_id, updated_at = NOW()
+    `, [telegramId, messageId]);
 
     return result.rowCount > 0;
   } catch (error) {
@@ -88,10 +95,11 @@ async function updateLastScheduleMessageId(telegramId, messageId) {
 async function updateLastBotKeyboardMessageId(telegramId, messageId) {
   try {
     const result = await pool.query(`
-      UPDATE users 
-      SET last_bot_keyboard_message_id = $1, updated_at = NOW()
-      WHERE telegram_id = $2
-    `, [messageId, telegramId]);
+      INSERT INTO user_message_tracking (user_id, last_bot_keyboard_message_id, updated_at)
+      VALUES ((SELECT id FROM users WHERE telegram_id = $1), $2, NOW())
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_bot_keyboard_message_id = EXCLUDED.last_bot_keyboard_message_id, updated_at = NOW()
+    `, [telegramId, messageId]);
 
     return result.rowCount > 0;
   } catch (error) {
@@ -104,10 +112,11 @@ async function updateLastBotKeyboardMessageId(telegramId, messageId) {
 async function updateLastReminderMessageId(telegramId, messageId) {
   try {
     const result = await pool.query(`
-      UPDATE users 
-      SET last_reminder_message_id = $1, updated_at = NOW()
-      WHERE telegram_id = $2
-    `, [messageId, telegramId]);
+      INSERT INTO user_message_tracking (user_id, last_reminder_message_id, updated_at)
+      VALUES ((SELECT id FROM users WHERE telegram_id = $1), $2, NOW())
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_reminder_message_id = EXCLUDED.last_reminder_message_id, updated_at = NOW()
+    `, [telegramId, messageId]);
 
     return result.rowCount > 0;
   } catch (error) {
@@ -120,10 +129,11 @@ async function updateLastReminderMessageId(telegramId, messageId) {
 async function updateLastChannelReminderMessageId(telegramId, messageId) {
   try {
     const result = await pool.query(`
-      UPDATE users 
-      SET last_channel_reminder_message_id = $1, updated_at = NOW()
-      WHERE telegram_id = $2
-    `, [messageId, telegramId]);
+      INSERT INTO user_message_tracking (user_id, last_channel_reminder_message_id, updated_at)
+      VALUES ((SELECT id FROM users WHERE telegram_id = $1), $2, NOW())
+      ON CONFLICT (user_id) DO UPDATE
+        SET last_channel_reminder_message_id = EXCLUDED.last_channel_reminder_message_id, updated_at = NOW()
+    `, [telegramId, messageId]);
 
     return result.rowCount > 0;
   } catch (error) {
