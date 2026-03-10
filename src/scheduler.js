@@ -284,7 +284,7 @@ async function sendScheduleNotifications(user, data, imageCache) {
     } else {
       try {
         const { publishScheduleWithPhoto } = require('./publisher');
-        await publishScheduleWithPhoto(bot, user, user.region, user.queue);
+        await publishScheduleWithPhoto(bot, user, user.region, user.queue, { force: true });
         console.log(`📢 Графік опубліковано в канал ${user.channel_id}`);
       } catch (channelError) {
         if (isTelegramUserInactiveError(channelError)) {
