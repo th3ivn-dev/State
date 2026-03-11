@@ -124,7 +124,7 @@ try {
     settingsContent.includes('IP-адресу збережено') &&
     settingsContent.includes('← Назад') &&
     settingsContent.includes('settings_ip') &&
-    settingsContent.includes('Меню') &&
+    settingsContent.includes('⤴ Меню') &&
     settingsContent.includes('back_to_main'),
     'IP save confirmation should have navigation buttons'
   );
@@ -163,7 +163,8 @@ try {
 
   // Make sure it uses settingsCache or getSetting for debounce
   assert(
-    checkUserPowerFunction.includes("power_debounce_minutes"),
+    checkUserPowerFunction.includes("settingsCache.get('power_debounce_minutes'") ||
+    checkUserPowerFunction.includes("getSetting('power_debounce_minutes'"),
     'checkUserPower should read power_debounce_minutes from settings'
   );
 
