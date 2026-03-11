@@ -93,7 +93,7 @@ async function verifyChannelBranding(user) {
       // Photo was completely removed — real violation
       violations.push('фото');
       console.log(`[${user.telegram_id}] Фото каналу видалено`);
-    } else if (currentPhotoFileId && currentPhotoFileId !== user.channel_photo_file_id) {
+    } else if (user.channel_photo_file_id && currentPhotoFileId && currentPhotoFileId !== user.channel_photo_file_id) {
       // file_id changed but photo still exists — Telegram regenerated the file_id
       // Silently update the stored file_id in the database
       try {
