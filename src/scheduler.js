@@ -169,7 +169,6 @@ async function checkRegionSchedule(region) {
 
 async function processUser(user, data, precomputedHash, hashUpdates, imageCache) {
   try {
-    if (user.channel_status === 'blocked') return;
 
     const GRACE_PERIOD_MS = 2 * 60 * 1000;
     if (user.created_at && Date.now() - new Date(user.created_at).getTime() < GRACE_PERIOD_MS) {
@@ -279,7 +278,9 @@ async function sendScheduleNotifications(user, data, imageCache) {
   }
 
   if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
-    if (user.ch_notify_schedule === false) {
+    if (user.channel_status === 'blocked') {
+      console.log(`📺 Канал ${user.channel_id} заблоковано, пропускаємо публікацію графіка для ${user.telegram_id}`);
+    } else if (user.ch_notify_schedule === false) {
       console.log(`📺 Канальні сповіщення графіка вимкнено для ${user.telegram_id}, пропускаємо`);
     } else {
       try {

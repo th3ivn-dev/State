@@ -69,12 +69,22 @@ async function validateChannel(bot, user) {
       return false;
     }
   } catch (validationError) {
-    // Channel not found or not accessible
-    console.log(`ℹ️ Канал ${user.channel_id} недоступний: ${validationError.message}`);
-    await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+    // Only permanently block on definitive Telegram errors.
+    // In the context of getChat()/getChatMember() calls:
+    //   400 → chat not found / PEER_ID_INVALID (permanent)
+    //   403 → bot was kicked / not a member (permanent)
+    // Transient errors (network timeouts, 5xx, 429) should not permanently block the channel.
+    const errorCode = validationError.error_code || validationError.response?.error_code;
+    const isPermanent = errorCode === 400 || errorCode === 403 ||
+      isTelegramUserInactiveError(validationError);
 
-    // Notify user about the issue
-    await notifyChannelBlocked(bot, user, 'not_found');
+    if (isPermanent) {
+      console.log(`ℹ️ Канал ${user.channel_id} недоступний (постійна помилка ${errorCode}): ${validationError.message}`);
+      await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+      await notifyChannelBlocked(bot, user, 'not_found');
+    } else {
+      console.log(`⚠️ Тимчасова помилка при перевірці каналу ${user.channel_id} (${errorCode || 'network'}): ${validationError.message} — пропускаємо публікацію, статус не змінено`);
+    }
 
     return false;
   }

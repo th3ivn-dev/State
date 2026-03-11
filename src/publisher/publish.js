@@ -32,6 +32,7 @@ async function publishScheduleWithPhoto(bot, user, region, queue, { force = fals
     // Validate channel before publishing
     const isValid = await validateChannel(bot, user);
     if (!isValid) {
+      console.log(`[${user.telegram_id}] validateChannel повернув false для каналу ${user.channel_id}, пропускаємо публікацію`);
       return;
     }
 
