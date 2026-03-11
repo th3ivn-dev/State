@@ -1,7 +1,7 @@
 const { createUser, saveUser, getUserByTelegramId, getUserById, getUserByChannelId, deleteUser, setUserActive, updateUser, batchSetUsersInactive, batchSetUsersActive } = require('./core');
 const { getUsersByRegion, getUsersByRegionForScheduler, getAllActiveUsers, getAllUsers, getRecentUsers, getUsersWithRouterIp, getUsersWithActiveChannels, getUsersWithChannelsForVerification, getActiveUsersByRegionQueue, getActiveUsersWithReminders, paginateActiveUsers } = require('./queries');
 const { updateUserPowerState, changePowerStateAndGetDuration, setPendingPowerChange, clearPendingPowerChange } = require('./power');
-const { updateUserChannel, resetUserChannel, updateChannelBranding, updateChannelBrandingPartial, updateChannelStatus, updateUserChannelPaused } = require('./channel');
+const { updateUserChannel, resetUserChannel, updateChannelBranding, updateChannelBrandingPartial, updateChannelStatus, updateUserChannelPaused, incrementChannelGuardWarnings, resetChannelGuardWarnings } = require('./channel');
 const { updateUserAlertSettings, updateUserFormatSettings, getUserFormatSettings, updateUserPowerNotifyTarget, updateScheduleAlertEnabled, updateScheduleAlertMinutes, updateScheduleAlertTarget, updateUserScheduleAlertSettings, updateNotificationSettings, updateChannelNotificationSettings, updateCleanupSettings } = require('./settings');
 const { updateUserHash, updateUserPublishedHash, updateUserHashes, updateSnapshotHashes, getSnapshotHashes, batchUpdateHashes, batchUpdateSnapshotHashes, batchUpdatePublishedHashes } = require('./hashes');
 const { updateUserRegionQueue, updateUserRegionAndQueue, updateUserPostId, updateUserRouterIp, updateLastScheduleMessageId, updateLastBotKeyboardMessageId, updateLastReminderMessageId, updateLastChannelReminderMessageId } = require('./updates');
@@ -74,4 +74,6 @@ module.exports = {
   batchUpdatePublishedHashes,
   batchSetUsersInactive,
   batchSetUsersActive,
+  incrementChannelGuardWarnings,
+  resetChannelGuardWarnings,
 };

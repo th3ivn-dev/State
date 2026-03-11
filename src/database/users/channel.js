@@ -159,6 +159,42 @@ async function updateUserChannelPaused(telegramId, paused) {
   }
 }
 
+/**
+ * Increment channel guard warnings counter.
+ * Used by two-strike warning system before blocking a channel.
+ * @param {string} telegramId - Telegram user ID
+ */
+async function incrementChannelGuardWarnings(telegramId) {
+  try {
+    await pool.query(`
+      UPDATE users
+      SET channel_guard_warnings = COALESCE(channel_guard_warnings, 0) + 1,
+          updated_at = NOW()
+      WHERE telegram_id = $1
+    `, [telegramId]);
+  } catch (error) {
+    console.error('Error in incrementChannelGuardWarnings:', error.message);
+  }
+}
+
+/**
+ * Reset channel guard warnings counter.
+ * Called after blocking or when no violations are found.
+ * @param {string} telegramId - Telegram user ID
+ */
+async function resetChannelGuardWarnings(telegramId) {
+  try {
+    await pool.query(`
+      UPDATE users
+      SET channel_guard_warnings = 0,
+          updated_at = NOW()
+      WHERE telegram_id = $1
+    `, [telegramId]);
+  } catch (error) {
+    console.error('Error in resetChannelGuardWarnings:', error.message);
+  }
+}
+
 module.exports = {
   updateUserChannel,
   resetUserChannel,
@@ -166,4 +202,6 @@ module.exports = {
   updateChannelBrandingPartial,
   updateChannelStatus,
   updateUserChannelPaused,
+  incrementChannelGuardWarnings,
+  resetChannelGuardWarnings,
 };
