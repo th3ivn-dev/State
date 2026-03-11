@@ -4,6 +4,15 @@ const { cleanOldSchedules } = require('./database/scheduleHistory');
 
 let bot = null;
 
+/**
+ * Normalizes text for reliable comparison.
+ * Telegram API may trim, collapse whitespace, or alter line breaks
+ * compared to what was originally set, so we normalize before comparing.
+ */
+function normalizeText(text) {
+  return (text || '').trim().replace(/\s+/g, ' ');
+}
+
 // Initialize channel guard with daily check at 03:00
 function initChannelGuard(botInstance) {
   bot = botInstance;
@@ -75,14 +84,26 @@ async function verifyChannelBranding(user) {
       console.log(`[${user.telegram_id}] Змінено назву: "${user.channel_title}" -> "${currentTitle}"`);
     }
 
-    if (currentDescription !== user.channel_description) {
+    if (normalizeText(currentDescription) !== normalizeText(user.channel_description)) {
       violations.push('опис');
       console.log(`[${user.telegram_id}] Змінено опис`);
     }
 
-    if (user.channel_photo_file_id && currentPhotoFileId !== user.channel_photo_file_id) {
+    if (user.channel_photo_file_id && !currentPhotoFileId) {
+      // Photo was completely removed — real violation
       violations.push('фото');
-      console.log(`[${user.telegram_id}] Змінено фото`);
+      console.log(`[${user.telegram_id}] Фото каналу видалено`);
+    } else if (currentPhotoFileId && currentPhotoFileId !== user.channel_photo_file_id) {
+      // file_id changed but photo still exists — Telegram regenerated the file_id
+      // Silently update the stored file_id in the database
+      try {
+        await usersDb.updateChannelBrandingPartial(user.telegram_id, {
+          channelPhotoFileId: currentPhotoFileId
+        });
+        console.log(`[${user.telegram_id}] Photo file_id оновлено в БД (Telegram regeneration)`);
+      } catch (updateError) {
+        console.error(`[${user.telegram_id}] Не вдалося оновити photo file_id:`, updateError.message);
+      }
     }
 
     // If violations found, check if change was made through bot recently (within 24 hours)
@@ -103,28 +124,55 @@ async function verifyChannelBranding(user) {
       }
 
       if (shouldBlock) {
-        console.log(`⚠️ Виявлено порушення для користувача ${user.telegram_id}: ${violations.join(', ')}`);
+        // Two-strike system: first violation → warning, second consecutive → block
+        const currentWarnings = user.channel_guard_warnings || 0;
 
-        // Update channel status to blocked
-        await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+        if (currentWarnings === 0) {
+          // First strike — warn, don't block yet
+          console.log(`⚠️ [${user.telegram_id}] Перше попередження: ${violations.join(', ')}`);
+          await usersDb.incrementChannelGuardWarnings(user.telegram_id);
 
-        // Send notification to user
-        const violationText = violations.join('/');
-        const message =
-          `⚠️ <b>Виявлено зміни в каналі "${user.channel_title}"</b>\n\n` +
-          `Ви змінили ${violationText} каналу, що заборонено\n` +
-          `правилами використання СвітлоБот.\n\n` +
-          `🔴 <b>Моніторинг зупинено.</b>\n\n` +
-          `Щоб відновити роботу, перейдіть в:\n` +
-          `Налаштування → Канал → Підключити канал`;
+          // Send warning to user (not blocking)
+          const warningMessage =
+            `⚠️ <b>Увага! Виявлено зміни в каналі "${user.channel_title}"</b>\n\n` +
+            `Змінено: ${violations.join('/')}\n\n` +
+            `Якщо ви не змінювали канал — ігноруйте це повідомлення.\n` +
+            `Якщо зміни справжні — поверніть налаштування, інакше\n` +
+            `моніторинг буде зупинено при наступній перевірці.`;
 
-        try {
-          await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
-        } catch (sendError) {
-          console.error(`Не вдалося надіслати повідомлення користувачу ${user.telegram_id}:`, sendError.message);
+          try {
+            await bot.api.sendMessage(user.telegram_id, warningMessage, { parse_mode: 'HTML' });
+          } catch (sendError) {
+            console.error(`Не вдалося надіслати попередження ${user.telegram_id}:`, sendError.message);
+          }
+        } else {
+          // Second strike — block the channel
+          console.log(`🔴 [${user.telegram_id}] Повторне порушення (warnings: ${currentWarnings}), блокуємо канал: ${violations.join(', ')}`);
+          await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
+          await usersDb.resetChannelGuardWarnings(user.telegram_id);
+
+          const blockMessage =
+            `⚠️ <b>Виявлено зміни в каналі "${user.channel_title}"</b>\n\n` +
+            `Ви змінили ${violations.join('/')} каналу, що заборонено\n` +
+            `правилами використання СвітлоБот.\n\n` +
+            `🔴 <b>Моніторинг зупинено.</b>\n\n` +
+            `Щоб відновити роботу, перейдіть в:\n` +
+            `Налаштування → Канал → Підключити канал`;
+
+          try {
+            await bot.api.sendMessage(user.telegram_id, blockMessage, { parse_mode: 'HTML' });
+          } catch (sendError) {
+            console.error(`Не вдалося надіслати повідомлення ${user.telegram_id}:`, sendError.message);
+          }
+
+          console.log(`🔴 Канал користувача ${user.telegram_id} заблоковано`);
         }
-
-        console.log(`🔴 Канал користувача ${user.telegram_id} заблоковано`);
+      }
+    } else {
+      // No violations — reset warning counter if it was incremented
+      if (user.channel_guard_warnings > 0) {
+        await usersDb.resetChannelGuardWarnings(user.telegram_id);
+        console.log(`[${user.telegram_id}] Порушень не знайдено, лічильник попереджень скинуто`);
       }
     }
 

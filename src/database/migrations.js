@@ -99,6 +99,8 @@ async function runMigrations() {
       { name: 'ch_remind_1h', type: 'BOOLEAN DEFAULT FALSE' },
       // Channel reminder message tracking
       { name: 'last_channel_reminder_message_id', type: 'BIGINT DEFAULT NULL' },
+      // Channel guard warnings counter for two-strike system
+      { name: 'channel_guard_warnings', type: 'INTEGER DEFAULT 0' },
     ];
 
     let addedCount = 0;
