@@ -361,6 +361,14 @@ async function runMigrations() {
       }
     }
 
+    // Ensure last_channel_reminder_message_id exists in user_message_tracking
+    // (may be missing if the table was created by schema.js before this column was added)
+    try {
+      await client.query(`ALTER TABLE user_message_tracking ADD COLUMN IF NOT EXISTS last_channel_reminder_message_id BIGINT DEFAULT NULL`);
+    } catch (e) {
+      console.warn(`⚠️ Could not add last_channel_reminder_message_id to user_message_tracking: ${e.message}`);
+    }
+
     console.log(`✅ Міграція завершена (v${SCHEMA_VERSION}): перевірено ${addedCount} колонок`);
   } catch (error) {
     console.error('❌ Помилка міграції:', error);
