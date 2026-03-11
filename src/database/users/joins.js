@@ -73,6 +73,7 @@ async function getUserFullProfile(telegramId) {
         umt.last_schedule_message_id  AS mt_last_schedule_message_id,
         umt.last_bot_keyboard_message_id AS mt_last_bot_keyboard_message_id,
         umt.last_reminder_message_id  AS mt_last_reminder_message_id,
+        umt.last_channel_reminder_message_id AS mt_last_channel_reminder_message_id,
         umt.last_start_message_id     AS mt_last_start_message_id,
         umt.last_settings_message_id  AS mt_last_settings_message_id,
         umt.last_timer_message_id     AS mt_last_timer_message_id,
@@ -193,7 +194,8 @@ async function getUserWithMessages(telegramId) {
     const result = await pool.query(
       `SELECT u.*,
         umt.last_schedule_message_id, umt.last_bot_keyboard_message_id,
-        umt.last_reminder_message_id, umt.last_start_message_id,
+        umt.last_reminder_message_id, umt.last_channel_reminder_message_id,
+        umt.last_start_message_id,
         umt.last_settings_message_id, umt.last_timer_message_id,
         umt.last_menu_message_id
       FROM users u

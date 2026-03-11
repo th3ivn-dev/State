@@ -321,6 +321,7 @@ async function initializeDatabase() {
         last_schedule_message_id INTEGER DEFAULT NULL,
         last_bot_keyboard_message_id BIGINT DEFAULT NULL,
         last_reminder_message_id BIGINT DEFAULT NULL,
+        last_channel_reminder_message_id BIGINT DEFAULT NULL,
         last_start_message_id INTEGER,
         last_settings_message_id INTEGER,
         last_timer_message_id INTEGER,
