@@ -168,6 +168,7 @@ async function getActiveUsersWithReminders() {
         ucc.ch_notify_remind_off, ucc.ch_notify_remind_on,
         ucc.ch_notify_fact_off, ucc.ch_notify_fact_on,
         ucc.ch_remind_15m, ucc.ch_remind_30m, ucc.ch_remind_1h,
+        ucc.channel_status, ucc.channel_paused,
         umt.last_reminder_message_id, umt.last_channel_reminder_message_id
       FROM users u
       LEFT JOIN user_notification_settings uns ON uns.user_id = u.id
