@@ -1,6 +1,15 @@
 const cron = require('node-cron');
 const usersDb = require('./database/users');
 const { cleanOldSchedules } = require('./database/scheduleHistory');
+const {
+  CHANNEL_GUARD_BATCH_SIZE,
+  CHANNEL_GUARD_DELAY_BETWEEN_BATCHES_MS,
+  CHANNEL_GUARD_DELAY_BETWEEN_REQUESTS_MS,
+  CHANNEL_GUARD_RETRY_ATTEMPTS,
+  CHANNEL_GUARD_RETRY_BASE_DELAY_MS,
+  CHANNEL_GUARD_BRANDING_GRACE_HOURS,
+  CHANNEL_GUARD_CRON,
+} = require('./constants/timeouts');
 
 let bot = null;
 
@@ -8,22 +17,73 @@ let bot = null;
  * Normalizes text for reliable comparison.
  * Telegram API may trim, collapse whitespace, or alter line breaks
  * compared to what was originally set, so we normalize before comparing.
+ * @param {string} text - Text to normalize
+ * @returns {string} Normalized text
  */
 function normalizeText(text) {
   return (text || '').trim().replace(/\s+/g, ' ');
 }
 
-// Initialize channel guard with daily check at 03:00
+/**
+ * Returns a promise that resolves after the specified delay.
+ * @param {number} ms - Delay in milliseconds
+ * @returns {Promise<void>}
+ */
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Retries an async function with exponential backoff.
+ * Retries on transient errors (network, 429, 5xx). Does NOT retry on permanent errors (chat not found, bot kicked, etc.).
+ * @param {Function} fn - Async function to execute
+ * @param {number} [maxRetries=CHANNEL_GUARD_RETRY_ATTEMPTS] - Maximum retry attempts
+ * @param {number} [baseDelay=CHANNEL_GUARD_RETRY_BASE_DELAY_MS] - Base delay in ms
+ * @returns {Promise<*>} - Result of fn()
+ */
+async function retryWithBackoff(fn, maxRetries = CHANNEL_GUARD_RETRY_ATTEMPTS, baseDelay = CHANNEL_GUARD_RETRY_BASE_DELAY_MS) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isRetryable = error.error_code === 429
+        || error.error_code >= 500
+        || error.code === 'ECONNRESET'
+        || error.code === 'ETIMEDOUT'
+        || error.code === 'ENOTFOUND';
+
+      if (!isRetryable || attempt === maxRetries) {
+        throw error;
+      }
+
+      const retryAfter = error.parameters?.retry_after
+        ? error.parameters.retry_after * 1000
+        : baseDelay * Math.pow(2, attempt);
+
+      console.log(`[retry] Attempt ${attempt + 1}/${maxRetries} failed, retrying in ${retryAfter}ms...`);
+      await delay(retryAfter);
+    }
+  }
+}
+
+/**
+ * Initializes the channel guard module.
+ * Schedules a daily cron job to verify channel branding compliance
+ * and a separate cron job for schedule history cleanup.
+ * @param {Object} botInstance - Grammy bot instance
+ */
 function initChannelGuard(botInstance) {
   bot = botInstance;
   console.log('🛡️ Ініціалізація захисту каналів...');
 
-  // Schedule daily check at 03:00
-  cron.schedule('0 3 * * *', async () => {
+  // Schedule daily check
+  cron.schedule(CHANNEL_GUARD_CRON, async () => {
     console.log('🔍 Виконання щоденної перевірки каналів...');
     await verifyAllChannels();
+  });
 
-    // Clean old schedule history
+  // Separate cron for schedule history cleanup
+  cron.schedule('30 3 * * *', async () => {
     console.log('🧹 Очищення старої історії графіків...');
     await cleanOldSchedules();
   });
@@ -31,7 +91,12 @@ function initChannelGuard(botInstance) {
   console.log('✅ Захист каналів запущено (перевірка щодня о 03:00)');
 }
 
-// Verify all channels for branding compliance
+/**
+ * Verifies all channels for branding compliance.
+ * Processes channels in batches to respect Telegram rate limits
+ * and collects run statistics.
+ * @returns {Promise<void>}
+ */
 async function verifyAllChannels() {
   try {
     const users = await usersDb.getUsersWithChannelsForVerification();
@@ -41,32 +106,65 @@ async function verifyAllChannels() {
       return;
     }
 
-    console.log(`Перевірка ${users.length} каналів...`);
+    console.log(`🔍 Перевірка ${users.length} каналів...`);
 
-    for (const user of users) {
-      try {
-        await verifyChannelBranding(user);
-      } catch (error) {
-        console.error(`Помилка перевірки каналу для користувача ${user.telegram_id}:`, error.message);
+    const stats = { checked: 0, warnings: 0, blocked: 0, fileIdUpdated: 0, errors: 0, skipped: 0 };
+
+    // Process in batches to respect Telegram rate limits
+    for (let i = 0; i < users.length; i += CHANNEL_GUARD_BATCH_SIZE) {
+      const batch = users.slice(i, i + CHANNEL_GUARD_BATCH_SIZE);
+
+      const results = await Promise.allSettled(
+        batch.map(async (user) => {
+          await delay(CHANNEL_GUARD_DELAY_BETWEEN_REQUESTS_MS * batch.indexOf(user));
+          return verifyChannelBranding(user, stats);
+        })
+      );
+
+      for (const result of results) {
+        if (result.status === 'rejected') {
+          stats.errors++;
+          console.error('Неочікувана помилка в batch:', result.reason?.message || result.reason);
+        }
+      }
+
+      // Pause between batches
+      if (i + CHANNEL_GUARD_BATCH_SIZE < users.length) {
+        await delay(CHANNEL_GUARD_DELAY_BETWEEN_BATCHES_MS);
       }
     }
 
-    console.log('✅ Перевірка каналів завершена');
+    console.log(
+      `📊 Перевірка завершена: ${stats.checked} перевірено, ` +
+      `${stats.warnings} попереджень, ${stats.blocked} заблоковано, ` +
+      `${stats.fileIdUpdated} file_id оновлено, ${stats.skipped} пропущено, ` +
+      `${stats.errors} помилок`
+    );
   } catch (error) {
     console.error('Помилка при перевірці каналів:', error);
   }
 }
 
-// Verify single channel branding
-async function verifyChannelBranding(user) {
+/**
+ * Verifies branding compliance for a single channel.
+ * Implements a two-strike warning system: first violation sends a warning,
+ * second consecutive violation blocks the channel.
+ * @param {Object} user - User object with channel configuration
+ * @param {Object} stats - Mutable statistics object for tracking run results
+ * @returns {Promise<void>}
+ */
+async function verifyChannelBranding(user, stats) {
   // Skip already blocked channels
   if (user.channel_status === 'blocked') {
+    stats.skipped++;
     return;
   }
 
   try {
     // Get current channel info
-    const chatInfo = await bot.api.getChat(user.channel_id);
+    const chatInfo = await retryWithBackoff(() => bot.api.getChat(user.channel_id));
+
+    stats.checked++;
 
     const currentTitle = chatInfo.title || '';
     const currentDescription = chatInfo.description || '';
@@ -100,13 +198,14 @@ async function verifyChannelBranding(user) {
         await usersDb.updateChannelBrandingPartial(user.telegram_id, {
           channelPhotoFileId: currentPhotoFileId
         });
+        stats.fileIdUpdated++;
         console.log(`[${user.telegram_id}] Photo file_id оновлено в БД (Telegram regeneration)`);
       } catch (updateError) {
         console.error(`[${user.telegram_id}] Не вдалося оновити photo file_id:`, updateError.message);
       }
     }
 
-    // If violations found, check if change was made through bot recently (within 24 hours)
+    // If violations found, check if change was made through bot recently
     if (violations.length > 0) {
       let shouldBlock = true;
 
@@ -116,10 +215,11 @@ async function verifyChannelBranding(user) {
         const now = new Date();
         const hoursSinceUpdate = (now - updatedAt) / (1000 * 60 * 60);
 
-        // If change was made less than 24 hours ago through bot, don't block
-        if (hoursSinceUpdate < 24) {
+        // If change was made within grace period through bot, don't block
+        if (hoursSinceUpdate < CHANNEL_GUARD_BRANDING_GRACE_HOURS) {
           console.log(`[${user.telegram_id}] Зміна була зроблена через бота ${hoursSinceUpdate.toFixed(1)} годин тому - пропускаємо`);
           shouldBlock = false;
+          stats.skipped++;
         }
       }
 
@@ -141,10 +241,12 @@ async function verifyChannelBranding(user) {
             `моніторинг буде зупинено при наступній перевірці.`;
 
           try {
-            await bot.api.sendMessage(user.telegram_id, warningMessage, { parse_mode: 'HTML' });
+            await retryWithBackoff(() => bot.api.sendMessage(user.telegram_id, warningMessage, { parse_mode: 'HTML' }));
           } catch (sendError) {
             console.error(`Не вдалося надіслати попередження ${user.telegram_id}:`, sendError.message);
           }
+
+          stats.warnings++;
         } else {
           // Second strike — block the channel
           console.log(`🔴 [${user.telegram_id}] Повторне порушення (warnings: ${currentWarnings}), блокуємо канал: ${violations.join(', ')}`);
@@ -160,11 +262,12 @@ async function verifyChannelBranding(user) {
             `Налаштування → Канал → Підключити канал`;
 
           try {
-            await bot.api.sendMessage(user.telegram_id, blockMessage, { parse_mode: 'HTML' });
+            await retryWithBackoff(() => bot.api.sendMessage(user.telegram_id, blockMessage, { parse_mode: 'HTML' }));
           } catch (sendError) {
             console.error(`Не вдалося надіслати повідомлення ${user.telegram_id}:`, sendError.message);
           }
 
+          stats.blocked++;
           console.log(`🔴 Канал користувача ${user.telegram_id} заблоковано`);
         }
       }
@@ -177,30 +280,26 @@ async function verifyChannelBranding(user) {
     }
 
   } catch (error) {
+    stats.errors++;
     // If channel is not accessible (deleted, bot removed, etc.), we don't block it
     // Just log the error
     console.error(`Не вдалося перевірити канал ${user.channel_id}:`, error.message);
   }
 }
 
-// Function to check and migrate existing users
+/**
+ * Checks existing users for channels that need migration to standardized branding.
+ * Blocks non-compliant channels and sends migration notifications.
+ * @param {Object} botInstance - Grammy bot instance
+ * @returns {Promise<void>}
+ */
 async function checkExistingUsers(botInstance) {
   bot = botInstance;
 
   try {
     // Get all users with channels but without proper branding
     // Also exclude users who have already been notified (migration_notified = 1)
-    const { pool } = require('./database/db');
-    const result = await pool.query(`
-      SELECT * FROM users 
-      WHERE channel_id IS NOT NULL 
-      AND (channel_title IS NULL OR channel_title = '')
-      AND channel_status != 'blocked'
-      AND (migration_notified IS NULL OR migration_notified = 0)
-      AND is_active = true
-    `);
-
-    const users = result.rows;
+    const users = await usersDb.getUsersForMigrationCheck();
 
     if (users.length === 0) {
       console.log('✅ Всі існуючі канали налаштовані правильно');
@@ -216,7 +315,7 @@ async function checkExistingUsers(botInstance) {
         let needsMigration = false;
 
         try {
-          const chatInfo = await bot.api.getChat(user.channel_id);
+          const chatInfo = await retryWithBackoff(() => bot.api.getChat(user.channel_id));
           const currentTitle = chatInfo.title || '';
 
           // Check if title doesn't start with "СвітлоБот ⚡️ " prefix
@@ -240,7 +339,7 @@ async function checkExistingUsers(botInstance) {
         await usersDb.updateChannelStatus(user.telegram_id, 'blocked');
 
         // Mark user as notified about migration
-        await pool.query('UPDATE users SET migration_notified = 1 WHERE telegram_id = $1', [user.telegram_id]);
+        await usersDb.markMigrationNotified(user.telegram_id);
 
         // Send migration notification
         const message =
@@ -252,7 +351,7 @@ async function checkExistingUsers(botInstance) {
           `Щоб продовжити роботу, перейдіть в:\n` +
           `Налаштування → Канал → Підключити канал`;
 
-        await bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
+        await retryWithBackoff(() => bot.api.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' }));
         console.log(`📧 Надіслано повідомлення про міграцію користувачу ${user.telegram_id}`);
       } catch (error) {
         console.error(`Помилка надсилання повідомлення користувачу ${user.telegram_id}:`, error.message);

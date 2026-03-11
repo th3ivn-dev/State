@@ -204,6 +204,41 @@ async function* paginateActiveUsers(pageSize = 500) {
   }
 }
 
+/**
+ * Get users with channels that need migration check.
+ * Returns active users with a channel_id but no channel_title set, who haven't been notified yet.
+ */
+async function getUsersForMigrationCheck() {
+  try {
+    const result = await pool.query(`
+      SELECT u.*, ucc.channel_id, ucc.channel_title, ucc.channel_status
+      FROM users u
+      INNER JOIN user_channel_config ucc ON ucc.user_id = u.id
+      WHERE ucc.channel_id IS NOT NULL
+        AND (ucc.channel_title IS NULL OR ucc.channel_title = '')
+        AND ucc.channel_status != 'blocked'
+        AND (u.migration_notified IS NULL OR u.migration_notified = 0)
+        AND u.is_active = TRUE
+    `);
+    return result.rows;
+  } catch (error) {
+    console.error('Error in getUsersForMigrationCheck:', error.message);
+    return [];
+  }
+}
+
+/**
+ * Mark a user as notified about channel migration.
+ * @param {string} telegramId - Telegram user ID
+ */
+async function markMigrationNotified(telegramId) {
+  try {
+    await pool.query('UPDATE users SET migration_notified = 1 WHERE telegram_id = $1', [telegramId]);
+  } catch (error) {
+    console.error('Error in markMigrationNotified:', error.message);
+  }
+}
+
 module.exports = {
   getUsersByRegion,
   getUsersByRegionForScheduler,
@@ -216,4 +251,6 @@ module.exports = {
   getActiveUsersByRegionQueue,
   getActiveUsersWithReminders,
   paginateActiveUsers,
+  getUsersForMigrationCheck,
+  markMigrationNotified,
 };
