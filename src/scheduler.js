@@ -212,73 +212,73 @@ async function sendScheduleNotifications(user, data, imageCache) {
   const scheduleData = parseScheduleForQueue(data, user.queue);
   const nextEvent = findNextEvent(scheduleData);
 
-  const notifyTarget = user.power_notify_target || 'both';
+  logger.debug(`[${user.telegram_id}] Графік оновлено`);
 
-  logger.debug(`[${user.telegram_id}] Графік оновлено (target: ${notifyTarget})`);
+  // Always send schedule change to the bot chat
+  try {
+    const { formatScheduleMessage } = require('./formatter');
+    const { getUpdateTypeV2 } = require('./publisher');
+    const { appendTimestamp } = require('./utils/timestamp');
+    const { getScheduleViewKeyboard } = require('./keyboards/inline');
 
-  if (notifyTarget === 'bot' || notifyTarget === 'both') {
-    try {
-      const { formatScheduleMessage } = require('./formatter');
-      const { getUpdateTypeV2 } = require('./publisher');
-      const { appendTimestamp } = require('./utils/timestamp');
-      const { getScheduleViewKeyboard } = require('./keyboards/inline');
+    // Use snapshot fields directly from user object (no extra DB query)
+    const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
+    const updateType = {
+      tomorrowAppeared: updateTypeV2.tomorrowAppeared,
+      todayUpdated: updateTypeV2.todayChanged,
+      todayUnchanged: !updateTypeV2.todayChanged,
+    };
 
-      // Use snapshot fields directly from user object (no extra DB query)
-      const updateTypeV2 = getUpdateTypeV2(null, scheduleData, user);
-      const updateType = {
-        tomorrowAppeared: updateTypeV2.tomorrowAppeared,
-        todayUpdated: updateTypeV2.todayChanged,
-        todayUnchanged: !updateTypeV2.todayChanged,
-      };
+    const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
+    const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, Math.floor(Date.now() / 1000));
+    const scheduleKeyboard = getScheduleViewKeyboard();
 
-      const message = formatScheduleMessage(user.region, user.queue, scheduleData, nextEvent, null, updateType);
-      const { text: fullCaption, entities: timestampEntities } = appendTimestamp(message, Math.floor(Date.now() / 1000));
-      const scheduleKeyboard = getScheduleViewKeyboard();
-
-      const { photoBase64, photoCacheKey } = await prefetchQueueImage(user.region, user.queue, imageCache);
-      if (photoBase64 && !photoCacheKey) {
-        logger.warn(`[${user.telegram_id}] Photo cache недоступний, використовуємо inline base64`);
-      }
-
-      // Clear keyboard from previous keyboard message before sending new one (fire-and-forget)
-      if (user.last_bot_keyboard_message_id) {
-        bot.api.editMessageReplyMarkup(user.telegram_id, user.last_bot_keyboard_message_id, {
-          reply_markup: { inline_keyboard: [] }
-        }).catch(() => {});
-      }
-
-      if (photoBase64) {
-        const jobData = {
-          type: 'photo',
-          chatId: user.telegram_id,
-          photoFilename: 'schedule.png',
-          options: { caption: fullCaption, caption_entities: timestampEntities, reply_markup: scheduleKeyboard },
-          meta: { telegramId: user.telegram_id, updateLastBotKeyboardMessageId: true },
-        };
-        if (photoCacheKey) {
-          jobData.photoCacheKey = photoCacheKey;
-        } else {
-          jobData.photo = photoBase64;
-        }
-        await notificationsQueue.add('photo', jobData);
-      } else {
-        await notificationsQueue.add('user', {
-          type: 'user',
-          chatId: user.telegram_id,
-          text: fullCaption,
-          options: { entities: timestampEntities, reply_markup: scheduleKeyboard },
-          meta: { telegramId: user.telegram_id, updateLastBotKeyboardMessageId: true },
-        });
-      }
-
-      console.log(`📱 Графік додано в чергу для ${user.telegram_id}`);
-    } catch (error) {
-      console.error(`Помилка підготовки графіка для ${user.telegram_id}:`, error.message);
+    const { photoBase64, photoCacheKey } = await prefetchQueueImage(user.region, user.queue, imageCache);
+    if (photoBase64 && !photoCacheKey) {
+      logger.warn(`[${user.telegram_id}] Photo cache недоступний, використовуємо inline base64`);
     }
+
+    // Clear keyboard from previous keyboard message before sending new one (fire-and-forget)
+    if (user.last_bot_keyboard_message_id) {
+      bot.api.editMessageReplyMarkup(user.telegram_id, user.last_bot_keyboard_message_id, {
+        reply_markup: { inline_keyboard: [] }
+      }).catch(() => {});
+    }
+
+    if (photoBase64) {
+      const jobData = {
+        type: 'photo',
+        chatId: user.telegram_id,
+        photoFilename: 'schedule.png',
+        options: { caption: fullCaption, caption_entities: timestampEntities, reply_markup: scheduleKeyboard },
+        meta: { telegramId: user.telegram_id, updateLastBotKeyboardMessageId: true },
+      };
+      if (photoCacheKey) {
+        jobData.photoCacheKey = photoCacheKey;
+      } else {
+        jobData.photo = photoBase64;
+      }
+      await notificationsQueue.add('photo', jobData);
+    } else {
+      await notificationsQueue.add('user', {
+        type: 'user',
+        chatId: user.telegram_id,
+        text: fullCaption,
+        options: { entities: timestampEntities, reply_markup: scheduleKeyboard },
+        meta: { telegramId: user.telegram_id, updateLastBotKeyboardMessageId: true },
+      });
+    }
+
+    console.log(`📱 Графік додано в чергу для ${user.telegram_id}`);
+  } catch (error) {
+    console.error(`Помилка підготовки графіка для ${user.telegram_id}:`, error.message);
   }
 
-  if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
-    if (user.channel_status === 'blocked') {
+  // Channel publication is gated by channel_paused, ch_notify_schedule, and channel_status
+  if (user.channel_id) {
+    if (user.channel_paused) {
+      console.log(`📺 Канал ${user.channel_id} зупинено, пропускаємо публікацію графіка для ${user.telegram_id}`);
+    } else if (user.channel_status === 'blocked') {
       console.log(`📺 Канал ${user.channel_id} заблоковано, пропускаємо публікацію графіка для ${user.telegram_id}`);
     } else if (user.ch_notify_schedule === false) {
       console.log(`📺 Канальні сповіщення графіка вимкнено для ${user.telegram_id}, пропускаємо`);

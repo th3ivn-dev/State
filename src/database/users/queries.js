@@ -23,11 +23,9 @@ async function getUsersByRegionForScheduler(region) {
         ucc.schedule_caption, ucc.period_format, ucc.power_off_text, ucc.power_on_text,
         ucc.delete_old_message, ucc.picture_only,
         ucc.ch_notify_schedule,
-        uns.power_notify_target,
         umt.last_schedule_message_id, umt.last_bot_keyboard_message_id
       FROM users u
       LEFT JOIN user_channel_config ucc ON ucc.user_id = u.id
-      LEFT JOIN user_notification_settings uns ON uns.user_id = u.id
       LEFT JOIN user_message_tracking umt ON umt.user_id = u.id
       WHERE u.region = $1 AND u.is_active = TRUE`,
       [region]

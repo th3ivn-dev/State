@@ -1,4 +1,4 @@
-const { getAdminKeyboard, getAdminSettingsMenuKeyboard, getRestartConfirmKeyboard } = require('../../keyboards/inline');
+const { getAdminSettingsMenuKeyboard, getRestartConfirmKeyboard } = require('../../keyboards/inline');
 const { pool } = require('../../database/db');
 const { safeEditMessageText, safeAnswerCallbackQuery } = require('../../utils/errorHandler');
 const { saveAllUserStates, stopPowerMonitoring } = require('../../powerMonitor');
