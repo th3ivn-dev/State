@@ -79,7 +79,7 @@ async function verifyChannelBranding(user) {
     // Check for violations
     const violations = [];
 
-    if (currentTitle !== user.channel_title) {
+    if (normalizeText(currentTitle) !== normalizeText(user.channel_title)) {
       violations.push('назву');
       console.log(`[${user.telegram_id}] Змінено назву: "${user.channel_title}" -> "${currentTitle}"`);
     }
