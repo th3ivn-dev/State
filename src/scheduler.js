@@ -212,11 +212,10 @@ async function sendScheduleNotifications(user, data, imageCache) {
   const scheduleData = parseScheduleForQueue(data, user.queue);
   const nextEvent = findNextEvent(scheduleData);
 
-  const notifyTarget = user.power_notify_target || 'both';
+  logger.debug(`[${user.telegram_id}] Графік оновлено`);
 
-  logger.debug(`[${user.telegram_id}] Графік оновлено (target: ${notifyTarget})`);
-
-  if (notifyTarget === 'bot' || notifyTarget === 'both') {
+  // Always send schedule change to the bot chat
+  {
     try {
       const { formatScheduleMessage } = require('./formatter');
       const { getUpdateTypeV2 } = require('./publisher');
@@ -277,7 +276,8 @@ async function sendScheduleNotifications(user, data, imageCache) {
     }
   }
 
-  if (user.channel_id && (notifyTarget === 'channel' || notifyTarget === 'both')) {
+  // Channel publication is gated by ch_notify_schedule and channel_status (not by power_notify_target)
+  if (user.channel_id) {
     if (user.channel_status === 'blocked') {
       console.log(`📺 Канал ${user.channel_id} заблоковано, пропускаємо публікацію графіка для ${user.telegram_id}`);
     } else if (user.ch_notify_schedule === false) {
