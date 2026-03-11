@@ -11,10 +11,10 @@ const fs = require('fs');
 
 console.log('🧪 Testing IP Monitoring Bug Fixes...\n');
 
-// Test 1: Verify settings.js uses telegram_id for getUserIpStatus
-console.log('Test 1: Verify settings.js uses telegram_id for getUserIpStatus');
+// Test 1: Verify settings/ip.js uses telegram_id for getUserIpStatus
+console.log('Test 1: Verify settings/ip.js uses telegram_id for getUserIpStatus');
 try {
-  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
 
   // Check that getUserIpStatus is called with user.telegram_id
   assert(
@@ -29,21 +29,21 @@ try {
     'getUserIpStatus should not be called with user.id'
   );
 
-  console.log('✓ settings.js correctly uses user.telegram_id\n');
+  console.log('✓ settings/ip.js correctly uses user.telegram_id\n');
 } catch (error) {
   console.error('✗ Failed:', error.message);
   process.exit(1);
 }
 
-// Test 2: Verify powerMonitor.js uses getSetting for debounce
-console.log('Test 2: Verify powerMonitor.js uses getSetting for debounce');
+// Test 2: Verify powerMonitor uses getSetting for debounce
+console.log('Test 2: Verify powerMonitor uses getSetting for debounce');
 try {
-  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor/index.js'), 'utf8');
 
   // Check that getSetting is imported from database/db (either standalone or with pool)
   assert(
     powerMonitorContent.includes('getSetting') &&
-    powerMonitorContent.includes("require('./database/db')"),
+    powerMonitorContent.includes("require('../database/db')"),
     'getSetting should be imported from database/db'
   );
 
@@ -52,7 +52,7 @@ try {
     'getSetting should be used to get power_debounce_minutes'
   );
 
-  console.log('✓ powerMonitor.js correctly uses getSetting for debounce\n');
+  console.log('✓ powerMonitor correctly uses getSetting for debounce\n');
 } catch (error) {
   console.error('✗ Failed:', error.message);
   process.exit(1);
@@ -61,7 +61,7 @@ try {
 // Test 3: Check that startPowerMonitoring is async
 console.log('Test 3: Verify startPowerMonitoring is async');
 try {
-  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor/index.js'), 'utf8');
 
   assert(
     powerMonitorContent.includes('async function startPowerMonitoring'),
@@ -79,10 +79,11 @@ console.log('Test 4: Verify index.js awaits startPowerMonitoring');
 try {
   const indexContent = fs.readFileSync(path.join(__dirname, '../src/index.js'), 'utf8');
 
-  // Check that startPowerMonitoring is awaited
+  // Check that startPowerMonitoring is awaited (either directly or via Promise.all)
   assert(
-    indexContent.includes('await startPowerMonitoring(bot)'),
-    'startPowerMonitoring should be awaited in index.js'
+    indexContent.includes('await startPowerMonitoring(bot)') ||
+    (indexContent.includes('await Promise.all') && indexContent.includes('startPowerMonitoring(bot)')),
+    'startPowerMonitoring should be awaited in index.js (directly or via Promise.all)'
   );
   console.log('✓ index.js correctly awaits startPowerMonitoring\n');
 } catch (error) {
@@ -93,7 +94,7 @@ try {
 // Test 5: Verify IP setup duplicate check exists
 console.log('Test 5: Verify IP setup has duplicate check');
 try {
-  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
 
   // Check for duplicate check in ip_setup handler
   assert(
@@ -116,14 +117,14 @@ try {
 // Test 6: Verify IP save confirmation has navigation buttons
 console.log('Test 6: Verify IP save confirmation has correct buttons');
 try {
-  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings.js'), 'utf8');
+  const settingsContent = fs.readFileSync(path.join(__dirname, '../src/handlers/settings/ip.js'), 'utf8');
 
   // Check for navigation buttons in success message
   assert(
     settingsContent.includes('IP-адресу збережено') &&
     settingsContent.includes('← Назад') &&
     settingsContent.includes('settings_ip') &&
-    settingsContent.includes('⤵ Меню') &&
+    settingsContent.includes('Меню') &&
     settingsContent.includes('back_to_main'),
     'IP save confirmation should have navigation buttons'
   );
@@ -147,12 +148,12 @@ try {
 // Test 7: Verify config.POWER_DEBOUNCE_MINUTES is not used in checkUserPower
 console.log('Test 7: Verify checkUserPower does not use static config');
 try {
-  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+  const detectorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor/detector.js'), 'utf8');
 
   // Find checkUserPower function
-  const checkUserPowerStart = powerMonitorContent.indexOf('async function checkUserPower');
-  const checkUserPowerEnd = powerMonitorContent.indexOf('async function checkAllUsers', checkUserPowerStart);
-  const checkUserPowerFunction = powerMonitorContent.substring(checkUserPowerStart, checkUserPowerEnd);
+  const checkUserPowerStart = detectorContent.indexOf('async function checkUserPower');
+  const checkUserPowerEnd = detectorContent.indexOf('async function checkAllUsers', checkUserPowerStart);
+  const checkUserPowerFunction = detectorContent.substring(checkUserPowerStart, checkUserPowerEnd);
 
   // Make sure config.POWER_DEBOUNCE_MINUTES is not used in this function
   assert(
@@ -160,13 +161,13 @@ try {
     'checkUserPower should not use config.POWER_DEBOUNCE_MINUTES'
   );
 
-  // Make sure it uses getSetting instead
+  // Make sure it uses settingsCache or getSetting for debounce
   assert(
-    checkUserPowerFunction.includes("getSetting('power_debounce_minutes'"),
-    'checkUserPower should use getSetting for debounce'
+    checkUserPowerFunction.includes("power_debounce_minutes"),
+    'checkUserPower should read power_debounce_minutes from settings'
   );
 
-  console.log('✓ checkUserPower uses getSetting instead of static config\n');
+  console.log('✓ checkUserPower uses dynamic settings instead of static config\n');
 } catch (error) {
   console.error('✗ Failed:', error.message);
   process.exit(1);

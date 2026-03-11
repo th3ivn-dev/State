@@ -7,14 +7,14 @@ const { getRedisHealthStatus } = require('./queue/connection');
 const { getQueueStats } = require('./queue/notificationsQueue');
 
 let server = null;
-let botRef = null;
+let _botRef = null;
 
 // Cache health check data to avoid hammering the DB on frequent probes
 let healthCache = { data: null, ts: 0 };
 const HEALTH_CACHE_TTL = 10_000; // 10 seconds
 
 async function startHealthCheck(bot, port = config.WEBHOOK_PORT) {
-  botRef = bot;
+  _botRef = bot;
   const useWebhook = config.USE_WEBHOOK;
   const webhookPath = config.WEBHOOK_PATH;
   const webhookSecret = config.WEBHOOK_SECRET;

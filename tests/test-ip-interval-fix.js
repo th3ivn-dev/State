@@ -14,7 +14,7 @@ console.log('🧪 Testing IP Monitoring Interval Fix...\n');
 // Test 1: Verify powerMonitor.js reads interval from database
 console.log('Test 1: Verify powerMonitor reads interval from database');
 try {
-  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor/index.js'), 'utf8');
 
   // Check that getSetting is called for power_check_interval
   assert(
@@ -37,7 +37,7 @@ try {
 // Test 2: Verify dynamic calculation is used as fallback
 console.log('Test 2: Verify dynamic calculation is used as fallback');
 try {
-  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor/index.js'), 'utf8');
 
   // Check that calculateCheckInterval is still called as fallback
   assert(
@@ -60,7 +60,7 @@ try {
 // Test 3: Verify logging shows correct mode
 console.log('Test 3: Verify logging shows correct mode');
 try {
-  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+  const powerMonitorContent = fs.readFileSync(path.join(__dirname, '../src/powerMonitor/index.js'), 'utf8');
 
   // Check for admin mode logging
   assert(
@@ -87,20 +87,20 @@ try {
   process.exit(1);
 }
 
-// Test 4: Verify admin.js restarts power monitoring
-console.log('Test 4: Verify admin.js restarts power monitoring after change');
+// Test 4: Verify admin intervals handler restarts power monitoring
+console.log('Test 4: Verify admin intervals handler restarts power monitoring after change');
 try {
-  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin/intervals.js'), 'utf8');
 
   // Find the admin_ip_ callback handler
   const ipHandlerStart = adminContent.indexOf("if (data.startsWith('admin_ip_'))");
   const ipHandlerEnd = adminContent.indexOf('return;', ipHandlerStart + 500);
   const ipHandler = adminContent.substring(ipHandlerStart, ipHandlerEnd);
 
-  // Check that it imports power monitoring functions
+  // Check that it uses power monitoring functions
   assert(
     ipHandler.includes('stopPowerMonitoring') && ipHandler.includes('startPowerMonitoring'),
-    'Should import stopPowerMonitoring and startPowerMonitoring'
+    'Should use stopPowerMonitoring and startPowerMonitoring'
   );
 
   // Check that stopPowerMonitoring is called
@@ -115,7 +115,7 @@ try {
     'Should await startPowerMonitoring(bot)'
   );
 
-  console.log('✓ admin.js correctly restarts power monitoring\n');
+  console.log('✓ admin intervals handler correctly restarts power monitoring\n');
 } catch (error) {
   console.error('✗ Failed:', error.message);
   process.exit(1);
@@ -124,7 +124,7 @@ try {
 // Test 5: Verify success message updated
 console.log('Test 5: Verify success message updated');
 try {
-  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin/intervals.js'), 'utf8');
 
   // Find the admin_ip_ callback handler
   const ipHandlerStart = adminContent.indexOf("if (data.startsWith('admin_ip_'))");
@@ -179,7 +179,7 @@ try {
 // Test 7: Verify special handling for 0 value
 console.log('Test 7: Verify special handling for interval value 0');
 try {
-  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin/intervals.js'), 'utf8');
 
   // Find the admin_ip_ callback handler
   const ipHandlerStart = adminContent.indexOf("if (data.startsWith('admin_ip_'))");
@@ -198,19 +198,19 @@ try {
   process.exit(1);
 }
 
-// Test 8: Verify logger is imported in admin.js
-console.log('Test 8: Verify logger is imported in admin.js');
+// Test 8: Verify logger is imported in admin intervals handler
+console.log('Test 8: Verify logger is imported in admin intervals handler');
 try {
-  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin.js'), 'utf8');
+  const adminContent = fs.readFileSync(path.join(__dirname, '../src/handlers/admin/intervals.js'), 'utf8');
 
   // Check for logger import near the top of the file (first 1500 chars should be enough)
   const firstPartOfFile = adminContent.substring(0, 1500);
   assert(
     firstPartOfFile.includes('logger') && firstPartOfFile.includes('createLogger'),
-    'Logger should be imported at the top of admin.js'
+    'Logger should be imported at the top of admin intervals handler'
   );
 
-  console.log('✓ Logger is imported in admin.js\n');
+  console.log('✓ Logger is imported in admin intervals handler\n');
 } catch (error) {
   console.error('✗ Failed:', error.message);
   process.exit(1);

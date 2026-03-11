@@ -1,4 +1,4 @@
-const { formatTime, formatDate, formatTimeRemaining, escapeHtml, formatDurationFromMs } = require('../utils');
+const { formatTime, formatDate, escapeHtml, formatDurationFromMs } = require('../utils');
 const { REGIONS } = require('../constants/regions');
 
 // Форматувати повідомлення про графік

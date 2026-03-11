@@ -164,25 +164,25 @@ if (topLevelPoolMatch) {
 console.log('');
 
 // ============================================================================
-// Test 6: powerMonitor.js has no unused db import
+// Test 6: powerMonitor module has no unused db import
 // ============================================================================
-console.log('Test 6: powerMonitor.js has no unused db import');
+console.log('Test 6: powerMonitor module has no unused db import');
 
-const powerMonitorCode = fs.readFileSync(path.join(__dirname, '../src/powerMonitor.js'), 'utf8');
+const powerMonitorIndexCode = fs.readFileSync(path.join(__dirname, '../src/powerMonitor/index.js'), 'utf8');
 
-// Check that there's no "const db = require('./database/db');"
+// Check that there's no "const db = require('../database/db');"
 assert(
-  !powerMonitorCode.match(/^const db = require\('\.\/database\/db'\);/m),
-  'powerMonitor.js should not have: const db = require(\'./database/db\');'
+  !powerMonitorIndexCode.match(/^const db = require\('\.\.\/database\/db'\);/m),
+  'powerMonitor/index.js should not have: const db = require(\'../database/db\');'
 );
 
-// Check that pool is still imported
+// Check that getSetting is imported (db module is still needed for getSetting)
 assert(
-  powerMonitorCode.includes("const { pool } = require('./database/db');"),
-  'powerMonitor.js should have: const { pool } = require(\'./database/db\');'
+  powerMonitorIndexCode.includes("require('../database/db')"),
+  'powerMonitor/index.js should import from database/db'
 );
 
-console.log('✓ Unused db import is removed, pool import remains\n');
+console.log('✓ No unused db import in powerMonitor module\n');
 
 // ============================================================================
 // Summary

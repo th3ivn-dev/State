@@ -18,7 +18,6 @@ const {
   setWizardState,
   clearWizardState,
   createPauseKeyboard,
-  notifyAdminsAboutNewUser,
 } = require('./helpers');
 
 /**
